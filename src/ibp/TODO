@@ -1,0 +1,14 @@
+# IBP
+
+* Split-merge moves for MH (see thesis ibp chapt 3.3 and neal07 and BMF)
+* two parameters
+* poisson gamma !
+* slice saémpling ?! (these ibp...)
+* Optimisation, take subset of bilinear matrix where the feature updated is active the relation ! sparse matrix ?
+
+
+* predict result framework (numpy.ma ?)
+IPB mask for test sub indices in matrice to keep the matrice product !
+
+
+

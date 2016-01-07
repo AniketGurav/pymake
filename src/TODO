@@ -1,0 +1,36 @@
+
+
+### Propriété:
+    * homophily (ya t'il homophilie par attaachement préférentiel)
+    * attachement préférentiel par homopholie (nouveux liens / nouveaux noeud?) 
+
+##### communauté
+* equivalence struturelle (economie / partenariat)
+* algo formelle (une communauté c'est une clique, k-clique / percolation)
+* ensemble de neud fortement connecté, par rapport au reste du réseau.
+
+-- voir impossibilité théorem
+###### Dynamic
+
+    (DHDP and other )
+    * dynamicité rapide / lente -> gaussien? relaxation. -- evolutivité des graphes
+        * split - merge community
+        * cycle dans la dynamicity
+
+# Mesures / Performance
+
+* Baseline
+    * RESCAL -> prediction !?
+    * logit rescal
+    * m3F
+    * nonparam
+    * MMSB ! (infinite - dynamic...)
+    * IBP
+
+## Mesure attachement préférentiel:
+    * proba que tout les lien à 0 soit liée ?
+    -- comparé à aux leader (ceux qui ont un haut degré)
+
+* Mesure cluistering: 
+    * contingency table / cluster%precision rappel F mesure ?
+    * NMI (Mutuel Information Normalization)
