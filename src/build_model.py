@@ -60,8 +60,14 @@ class modelManager(object):
         self.write = config.get('write', False)
         self.config = config
 
-        if self.model_name:
+        if self.model_name in ('ilda', 'lda_cgs'):
             self.model = self.loadgibbs(self.model_name)
+        elif self.model_name in ('lda_vb'):
+            pass
+        elif self.model_name in ('immsb', 'mmsb'):
+            pass
+        elif self.model_name in ('ilfrm'):
+            pass
 
     # Base class for Gibbs, VB ... ?
     def loadgibbs(self, target, likelihood=None):
@@ -127,7 +133,7 @@ if __name__ == '__main__':
         #model                         = 'lda_cgs',
         model                         = 'ilda',
         hyper                         = 'auto',
-        K                             = 10,
+        K                             = 3,
         N                             = 3,
         chunk                         = 10000,
         iterations                    = 2,
@@ -188,7 +194,7 @@ if __name__ == '__main__':
     #models = ('ilda_cgs', 'lda_cgs', 'immsb', 'mmsb', 'ilfm_gs', 'lda_vb', 'ldafull_vb')
     # Hyperparameter
     delta = .1
-    alpha = 0.2
+    alpha = 0.01
     gmma = 0.5
     hyperparams = {'alpha': alpha, 'delta': delta, 'gmma': gmma}
     config['hyperparams'] = hyperparams

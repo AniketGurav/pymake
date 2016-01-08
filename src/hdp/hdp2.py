@@ -125,7 +125,9 @@ class ZSampler(GibbsSampler):
         # z DxN_k topic assignment matrix
         # --- From this reconstruct theta and phi
 
-    def __init__(self, alpha_0, likelihood, K_init=1):
+    _max_K = 6
+
+    def __init__(self, alpha_0, likelihood, K_init=2):
         self.K_init = K_init
         self.alpha_0 = alpha_0
         self.likelihood = likelihood
@@ -183,7 +185,7 @@ class ZSampler(GibbsSampler):
                 # Regularize matrices for new topic sampled
                 if sample == self.doc_topic_counts.shape[1] - 1:
                     self._K += 1
-                    print 'Simplex probabilities: %s' % (params)
+                    #print 'Simplex probabilities: %s' % (params)
                     col_doc = np.zeros((self.J, 1), dtype=int)
                     col_word = np.zeros((self.likelihood.nfeat, 1), dtype=int)
                     self.doc_topic_counts = np.hstack((self.doc_topic_counts, col_doc))
@@ -253,7 +255,7 @@ class ZSampler(GibbsSampler):
         k_ji = self.z[j][i]
         njdot_minusji[k_ji] -= 1
 
-        new_t = 0 if hasattr(self, 'K') else 1
+        new_t = 0 if hasattr(self, 'K') or self._K > self._max_K else 1
         possible_ks = range(self.get_K() + new_t)
 
         params = [self.prob_zji_eq_k(k, j, i, njdot_minusji[k]) for k in possible_ks]
@@ -511,10 +513,10 @@ class HDP_LDA_CGS(GibbsSampler):
 
         if hyper == 'auto':
             self.hyper = hyper
-            self.a_alpha = 1
-            self.b_alpha = 1
-            self.a_gmma = 1
-            self.b_gmma = 1
+            self.a_alpha = 0.1
+            self.b_alpha = 0.1
+            self.a_gmma = 5
+            self.b_gmma = 0.1
         else:
             raise NotImplementedError('Hyperparameters optimization ?')
 
@@ -573,7 +575,7 @@ class GibbsRun(object):
             try: os.makedirs(bdir)
             except: pass
             self.fname_i = bdir + '/inference-' + fn.split('.')[0]
-            csv_typo = '# it entropy K'
+            csv_typo = '# it entropy K alpha gamma'
             self._f = open(self.fname_i, 'w')
             self._f.write(csv_typo + '\n')
 
@@ -609,6 +611,7 @@ class GibbsRun(object):
             f = self._f
         samples = np.array([samples])
         np.savetxt(f, samples, fmt="%.8f")
+        f.flush()
 
     def evaluate_perplexity(self, data=None):
         self.s.zsampler.estimate_latent_variables()

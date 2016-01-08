@@ -4,7 +4,7 @@
 ### GNU Parallel parameters
 JOBS="2"
 
-COMMAND="python ./topics.py -w -i 200"
+COMMAND="python ./topics.py -w -i 200 --refdir debug"
 
 #############
 ### parameters
@@ -32,4 +32,4 @@ RUNS=${RUNS::-2}
 
 ###--- Gnu Parallel ---###
 #parallel --no-notice -k -j$JOBS  $RUN ::: {1..4}
-echo -e  "$RUNS" | parallel --progress -k -j$JOBS --colsep ' ' "$COMMAND {}"
+echo -e  "$RUNS" | parallel --eta -k -j$JOBS --colsep ' ' "$COMMAND {}"
