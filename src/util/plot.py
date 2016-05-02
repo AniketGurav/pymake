@@ -262,7 +262,7 @@ def plot_ibp(model, target_dir=None, block=False, columns=[0], separate=False, K
     adj_mat_kmeans = nx.adjacency_matrix(G, nodelist=nodelist_kmeans).A
     draw_adjmat(adj_mat_kmeans, title='KMeans on feature matrix')
     # Adjacency matrix generation
-    draw_adjmat(model.generate_Y(nodelist_kmeans), title='Generated Y from ILFRM')
+    draw_adjmat(model.generate(nodelist_kmeans), title='Generated Y from ILFRM')
 
     # training Rescal
     R = rescal(model._Y, K)

@@ -2,18 +2,18 @@
 
 #############
 ### GNU Parallel parameters
-JOBS="22"
+JOBS="2"
 
-COMMAND="python ./topics.py -w -i 200 --refdir debug1"
+COMMAND="python ./topics.py -w -i 50 --refdir debug_local"
 
 #############
 ### parameters
-CORPUS="nips12 kos nips reuter50 20ngroups"  
-#CORPUS="20ngroups" 
-MODELS="lda_cgs"
-Ks="30 40 50"
-ALPHAS="auto"
-Ns="1000 2000 10000"
+#CORPUS="nips12 kos nips reuter50 20ngroups"  
+CORPUS="kos"  
+MODELS="lda_vb lda_cgs"
+Ks="10"
+ALPHAS="10 1000 10000"
+Ns="all"
 RUNS=""
 
 for corpus in $CORPUS; do

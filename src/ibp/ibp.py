@@ -3,6 +3,8 @@ import numpy as np
 import scipy as sp
 import scipy.stats as stats
 import math
+import logging
+lgg = logging.getLogger('root')
 
 """
 @author: Adrien Dulac (adrien.dulac@imag.fr)
@@ -17,12 +19,15 @@ class IBP(object):
     @param alpha_hyper_parameter: hyper-parameter for alpha sampling, a tuple defining the parameter for an inverse gamma distribution
     @param metropolis_hastings_k_new: a boolean variable, set to true if we use metropolis hasting to estimate K_new, otherwise use truncated gibbs sampling """
     def __init__(self, #real_valued_latent_feature=True,
-                 alpha_hyper_parameter=None,
+                 alpha_hyper_parameter='',
                  metropolis_hastings_k_new=True):
         # initialize the hyper-parameter for sampling _alpha
         # a value of None is a gentle way to say "do not sampling _alpha"
-        assert(alpha_hyper_parameter == None or type(alpha_hyper_parameter) == tuple)
-        self._alpha_hyper_parameter = alpha_hyper_parameter
+        if alpha_hyper_parameter.startswith('auto'):
+            self._alpha_hyper_parameter = (1., 1.)
+        else:
+            self._alpha_hyper_parameter = False
+
 
         #self._real_valued_latent_feature = real_valued_latent_feature
         self._metropolis_hastings_k_new = metropolis_hastings_k_new
@@ -30,6 +35,7 @@ class IBP(object):
         self._x_title = "X-matrix-"
         self._z_title = "Z-matrix-"
         self._hyper_parameter_vector_title = "Hyper-parameter-vector-"
+        super(IBP, self).__init__()
 
     """
     @param data: a NxD np data matrix
@@ -42,9 +48,12 @@ class IBP(object):
         # Data matrix
         #self._Y = self.center_data(data)
         self._Y = data
+        assert(type(data) is np.ma.masked_array)
+
         # Binary case
-        self._Y[self._Y <= 0 ] = -1
-        self._Y[self._Y > 0 ] = 1
+        Yd = self._Y.data
+        Yd[Yd <= 0 ] = -1
+        Yd[Yd > 0 ] = 1
         (self._N, self._D) = self._Y.shape
 
         if(initial_Z == None):
@@ -107,19 +116,19 @@ class IBP(object):
             alpha = self._alpha
         # initialize matrix Z recursively in IBP manner
         # Debug case
-        Z = np.random.randint(0,2, (1, KK))
-        Z = np.ones((1, KK))
-        for i in xrange(2, N + 1):
-            # sample existing features
-            # Z.sum(axis=0)/i: compute the popularity of every dish, computes the probability of sampling that dish
-            sample_dish = (np.random.uniform(0, 1, (1, Z.shape[1])) < (Z.sum(axis=0).astype(np.float) / i))
-            # sample a value from the poisson distribution, defines the number of new features
-            K_new = 0
-            # horizontally stack or append the new dishes to current object's observation vector, i.e., the vector Z_{n*}
-            sample_dish = np.hstack((sample_dish, np.ones((1, K_new))))
-            # append the matrix horizontally and then vertically to the Z matrix
-            Z = np.hstack((Z, np.zeros((Z.shape[0], K_new))))
-            Z = np.vstack((Z, sample_dish))
+        Z = np.random.randint(0,2, (N, KK))
+        #Z = np.ones((1, KK))
+        #for i in xrange(2, N + 1):
+        #    # sample existing features
+        #    # Z.sum(axis=0)/i: compute the popularity of every dish, computes the probability of sampling that dish
+        #    sample_dish = (np.random.uniform(0, 1, (1, Z.shape[1])) < (Z.sum(axis=0).astype(np.float) / i))
+        #    # sample a value from the poisson distribution, defines the number of new features
+        #    K_new = 0
+        #    # horizontally stack or append the new dishes to current object's observation vector, i.e., the vector Z_{n*}
+        #    sample_dish = np.hstack((sample_dish, np.ones((1, K_new))))
+        #    # append the matrix horizontally and then vertically to the Z matrix
+        #    Z = np.hstack((Z, np.zeros((Z.shape[0], K_new))))
+        #    Z = np.vstack((Z, sample_dish))
 
         assert(Z.shape[0] == N)
         Z = Z.astype(np.int)
@@ -176,17 +185,14 @@ class IBP(object):
         H_N = np.sum(1.0 / H_N)
         posterior_rate = alpha_hyper_b + H_N # best convergence but longer (K get higher)
         #posterior_scale = alpha_hyper_b + self._N # LL lower but faster (K smaller)
-        posterior_scale = 1 / posterior_rate
 
         # Posterior in PyIBP ?
         #m = (self._Z != 0).astype(np.int).sum(axis=0)
         #posterior_shape = alpha_hyper_a + m.sum()
         #posterior_scale = float(1) / (alpha_hyper_b + self._N)
 
-        print posterior_shape, posterior_scale
-        alpha_new = np.random.gamma(posterior_shape, posterior_scale)
-        #alpha_new = np.random.gamma(10, 1)
-        #alpha_new = stats.gamma.rvs(posterior_shape, scale=posterior_scale)
+        alpha_new = np.random.gamma(posterior_shape, 1/posterior_rate, size=5).mean()
+        lgg.info( 'hyper sample: alpha: %s' % alpha_new )
 
         return alpha_new
 
@@ -226,37 +232,6 @@ class IBP(object):
         l = list(Z.T)
         l.sort(key=tuple)
         return np.array(l)[::-1].T
-
-
-    """
-    @param directory: the export directory
-    @param index: the export index, e.g., usually the iteration count, append to the title """
-    def export_snapshot(self, directory, index):
-        import os
-        if not os.path.exists(directory):
-            os.mkdir(directory)
-        assert(directory.endswith("/"))
-        np.savetxt(directory + self._a_title + str(index), self._W)
-        np.savetxt(directory + self._x_title + str(index), self._Y)
-        np.savetxt(directory + self._z_title + str(index), self._Z)
-        vector = np.array([self._alpha, self._sigma_a, self._sigma_x])
-        np.savetxt(directory + self._hyper_parameter_vector_title + str(index), vector)
-        print "successfully export the snapshot to " + directory + " for iteration " + str(index) + "..."
-
-    """
-    @param directory: the import director
-    @param index: the import index, e.g., usually the iteration count, append to the title """
-    def import_snapshot(self, directory, index):
-        assert(directory.endswith("/"))
-        self._W = np.loadtxt(directory + self._a_title + str(index))
-        self._Y = np.loadtxt(directory + self._x_title + str(index))
-        self._Z = np.loadtxt(directory + self._z_title + str(index))
-        (self._N, self._K) = self._Z.shape
-        (self._N, self._D) = self._Y.shape
-        assert(self._Z.shape[0] == self._Y.shape[0])
-        assert(self._W.shape == (self._K, self._D))
-        (self._alpha, self._sigma_a, self._sigma_x) = np.loadtxt(directory + self._hyper_parameter_vector_title + str(index))
-        print "successfully import the snapshot from " + directory + " for iteration " + str(index) + "..."
 
     """
     center the data, i.e., subtract the mean """

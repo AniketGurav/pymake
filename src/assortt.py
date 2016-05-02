@@ -5,6 +5,7 @@ from local_utils import *
 from vocabulary import Vocabulary, parse_corpus
 from util.frontend import ModelManager, FrontendManager
 
+from numpy import ma
 import numpy as np
 import scipy as sp
 #np.set_printoptions(threshold='nan')
@@ -13,7 +14,7 @@ import logging
 import os
 import os.path
 
-_USAGE = '''build_model [-vhswp] [-k [rvalue] [-n N] [-d basedir] [-lall] [-l type] [-m model] [-c corpus] [-i iterations]
+_USAGE = '''assort [-vhswp] [-k [rvalue] [-n N] [-d basedir] [-lall] [-l type] [-m model] [-c corpus] [-i iterations]
 
 Default load corpus and run a model !!
 
@@ -35,14 +36,7 @@ Default load corpus and run a model !!
 -v           : Verbosity level
 
 Examples:
-# Load corpus and infer modef (eg LDA)
-./lda_run.py -k 6 -m ldafullbaye -p:
-# Load corpus and model:
-./lda_run.py -k 6 -m ldafullbaye -lall -p
-# Network corpus:
-./topics.py -m immsb -c generator1 -n 100 -i 10
-# Various networks setting:
-./topics.py -m ibp_cgs --homo 0 -c clique6 -n 100 -k 3 -i 20
+./assortt.py -n 1000 -k 10 --alpha auto --homo 0 -m ibp_cgs -c generator3 -l model --refdir debug5 -nld
 
 
 '''
@@ -76,9 +70,9 @@ if __name__ == '__main__':
         refdir                        = 'debug',
         bdir                          = '../data',
         load_data                   = True,
-        save_data                   = True,
+        save_data                   = False,
         load_model                    = False,
-        save_model                    = True,
+        save_model                    = False,
         write                         = False, # -w/-nw
         #####
         predict                       = False,
@@ -113,60 +107,76 @@ if __name__ == '__main__':
                          config['output_path'])
         exit()
 
-    ############################################################
-    ##### Load Data
-    frontend = FrontendManager.get(config)
-    print 'debug why error and i get walue superior to 6000 in the striling matrix ????'
-
-    now = datetime.now()
-    data = frontend.load_data(randomize=False)
-    data = frontend.sample()
-    last_d = ellapsed_time('Data Preprocessing Time', now)
-
-    if 'Text' in str(type(frontend)):
-        data, data_t = frontend.cross_set(ratio=0.8)
-    elif 'Network' in str(type(frontend)):
-        # Debug5
-        percent_hole = 0.2
-        data = frontend.get_masked(percent_hole)
-        config['symmetric'] = frontend.is_symmetric()
-        data_t = None
-
-        ## Debug6
-        #percent_hole = 0.2
-        #data = frontend.get_masked_1(percent_hole)
-        #config['symmetric'] = frontend.is_symmetric()
-        #data_t = None
-
-        #print frontend.nodes_list
-    else:
-        raise ValueError('Unknow data type')
-
-    ############################################################
-    ##### Load Model
-    #models = ('ilda_cgs', 'lda_cgs', 'immsb', 'mmsb', 'ilfm_gs', 'lda_vb', 'ldafull_vb')
-    # Hyperparameter
-    delta = .5
-    # Those are sampled
-    alpha = .5
-    gmma = 1.
-    hyperparams = {'alpha': alpha, 'delta': delta, 'gmma': gmma}
-    config['hyperparams'] = hyperparams
-
-    #### Debug
-    #config['write'] = False
-    #model = ModelManager(data, config)
-    #model.init_loop_test()
-    #exit()
 
     # Initializa Model
-    model = ModelManager(data, config, data_t=data_t)
-    last_d = ellapsed_time('Init Model Time', last_d)
+    frontend = FrontendManager.get(config)
+    data = frontend.load_data(randomize=False)
+    data = frontend.sample()
+    # Load model
+    model = ModelManager(None, config)
 
     #### Run Inference / Learning Model
-    model.run()
-    last_d = ellapsed_time('Inference Time: %s'%(model.output_path), last_d)
+    #model.run()
 
     #### Predict Future
-    model.predict(frontend)
+    #model.predict(frontend)
+
+    if config.get('load_model'):
+        ### Generate data from a fitted model
+        model = model.load()
+    else:
+        ### Generate data from a un-fitted model
+        model = model.model
+
+    d = frontend.assort(model)
+    print d
+    #frontend.update_json(d)
+
+
+    ### Percentage of Homophily
+#    # Source
+#    sim_zeros_source = sim_source[data < 1]
+#    simtest_source = np.ones((data==1).sum()) / (data < 1).sum()
+#    for i, _1 in enumerate(zip(*np.where(data == 1))):
+#        t = (sim_source[_1] > sim_zeros_source).sum()
+#        simtest_source[i] *= t
+#
+#    # Learn
+#    sim_zeros_learn = sim_learn[y < 1]
+#    simtest_learn = np.ones((y==1).sum()) / (y < 1).sum()
+#    for i, _1 in enumerate(zip(*np.where(y == 1))):
+#        t = (sim_learn[_1] > sim_zeros_learn).sum()
+#        simtest_learn[i] *= t
+#
+#    print 'Probability that link where 1sim is sup to 0sim:\n \
+#            source:: mean: %f, var: %f,\n \
+#            learn :: mean: %f, var: %f' % (simtest_source.mean(), simtest_source.var(), simtest_learn.mean(), simtest_learn.var())
+#
+    ### Plot the vector of probability
+    #from plot import *
+    #plt.figure()
+    #plt.imshow(np.tile(simtest_source[:, np.newaxis], 100))
+    #plt.title('Simtest Source')
+    #plt.colorbar()
+
+    #plt.figure()
+    #plt.subplot(1,2,1)
+    #plt.imshow(sim_source)
+    #plt.title('Source Similarity')
+
+    #plt.subplot(1,2,2)
+    #plt.imshow(sim_learn)
+    #plt.title('Learn Similarity')
+
+    #plt.subplots_adjust(left=0.06, bottom=0.1, right=0.9, top=0.87)
+    #cax = plt.axes([0.93, 0.15, 0.025, 0.7])
+    #plt.colorbar(cax=cax)
+
+    #plt.figure()
+    #plt.imshow(phi)
+    #plt.colorbar()
+
+
+
+    #display(True)
 

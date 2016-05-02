@@ -4,39 +4,81 @@ from string import Template
 
 from local_utils import *
 from vocabulary import Vocabulary, parse_corpus
-from util.frontend import frontEndBase
+from util.frontend import DataBase
 
-sys.path.insert(1, '../../gensim')
+sys.path.insert(1, os.path.join(os.path.dirname(__file__),'../../../gensim'))
 import gensim
 from gensim.models import ldamodel, ldafullbaye
 Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
 
 ############################################################
 ############################################################
-#### Aim at be a frontend for corpus data manipulation.
-####   * First, purpose is to be the frontend for model/algorithm input,
-####   * Second, frontend for data observation. States of corpus or results analysis,
-####   * Third, operate on corpus various operation as filtering, merging etc.
-####
-####  load_corpus->load_text_corpus->text_loader
-####  (frontent) -> (choice) -> (adapt preprocessing)
+#### Frontend for text data ie Corpus.
 
-# review that:
-#    * separate better load / save and preprocessing (input can be file or array...)
-#    * view of file confif.... and path creation....
-
-class frontEndText(frontEndBase):
+class frontendText(DataBase):
 
     def __init__(self, config):
         config['bdir'] = os.path.join(config['bdir'], 'text')
-        super(frontEndText, self).__init__(config)
+        super(frontendText, self).__init__(config)
 
-    def load_corpus(self, corpus_name=None):
-        self.load_text_corpus(corpus_name)
+    def load_data(self, corpus_name=None, randomize=False):
+        corpus_name = corpus_name or self.config.get('corpus_name')
+        if corpus_name:
+            self.get_corpus(corpus_name)
+        elif self.config.get('random'):
+            self.random()
+        else:
+            raise ValueError()
         # @DEBUG
-        if self.N > self.corpus.shape[0]:
-            self.N = self.config['N'] = None
-        return self.corpus
+        if str(self.N).isdigit() and int(self.N) > self.data.shape[0]:
+            raise ValueError('Sampling of corpus %s too big (-n options)' % self.N)
+
+        if randomize:
+            self.shuffle_docs()
+        return self.data
+
+    def cross_set(self, ratio):
+        D = self.data.shape[0]
+        d = D * ratio
+        d_t = D - d
+        data = self.data[:d]
+        data_t = self.data[d:]
+        return data, data_t
+
+    # @Debug: remove docu for wich count > 6000 because of stirling matrix !
+    def sample(self, N=None, **args):
+        N = N or self.N
+        n = self.data.shape[0]
+        if not N or N == 'all':
+            self.N = 'all'
+            # To remove !
+            if  self.corpus_name == '20ngroups':
+                data = self.data[:10000]
+                empty_words =  np.where(data.sum(0).A[0] == 0)[0]
+                new_cols = np.delete(np.arange(data.shape[1]), empty_words)
+                self.data = data[:, new_cols]
+
+        else:
+            N = int(N)
+            data = self.data[:N]
+            # Here we come to streaming problem !
+            # @DEBUG manage id2word
+            if type(data) is np.array:
+                empty_words =  np.where(data.sum(0) == 0)[0]
+                self.data = np.delete(data, empty_words, axis=1)
+            elif data.format == 'csr':
+                empty_words =  np.where(data.sum(0).A[0] == 0)[0]
+                new_cols = np.delete(np.arange(data.shape[1]), empty_words)
+                self.data = data[:, new_cols]
+
+        # @debug to remove
+        _l =  (self.data >= 6000).sum(1).A.T[0]
+        print _l
+        tt = self.data[_l > 0]
+        for t in tt:
+            print t[t>=6000]
+        self.data = self.data[ _l == 0 ]
+        return self.data
 
     ### Get and prepropress text
     #   See Vocabulary class...
@@ -64,9 +106,9 @@ class frontEndText(frontEndBase):
         else:
             fname = bdir + '/'+fn+'.mm'
 
-        if self._load_corpus and os.path.isfile(fname):
-            corpus = gensim.corpora.MmCorpus(fname)
-            corpus = gensim.matutils.corpus2csc(corpus, dtype=int).T
+        if self._load_data and os.path.isfile(fname):
+            data = gensim.corpora.MmCorpus(fname)
+            data = gensim.matutils.corpus2csc(data, dtype=int).T
             id2word = dict(gensim.corpora.dictionary.Dictionary.load_from_text(fname + '.dico'))
         else:
             print 're-Building Corpus...'
@@ -75,28 +117,28 @@ class frontEndText(frontEndBase):
             # Corpus will be in bag of words format !
             if type(raw_data) is list:
                 voca = Vocabulary(exclude_stopwords=True)
-                corpus = [voca.doc_to_bow(doc) for doc in raw_data]
-                corpus = gensim.matutils.corpus2csc(corpus, dtype=int).T # Would be faster with #doc #term #nnz
+                data = [voca.doc_to_bow(doc) for doc in raw_data]
+                data = gensim.matutils.corpus2csc(data, dtype=int).T # Would be faster with #doc #term #nnz
             else:
-                corpus = raw_data
+                data = raw_data
 
-            if self._save_corpus:
+            if self._save_data:
                 make_path(bdir)
-                _corpus = gensim.matutils.Sparse2Corpus(corpus, documents_columns=False)
-                voca_gensim = gensim.corpora.dictionary.Dictionary.from_corpus(_corpus, id2word)
+                _data = gensim.matutils.Sparse2Corpus(data, documents_columns=False)
+                voca_gensim = gensim.corpora.dictionary.Dictionary.from_corpus(_data, id2word)
                 voca_gensim.save_as_text(fname+'.dico')
-                gensim.corpora.MmCorpus.serialize(fname=fname, corpus=_corpus)
+                gensim.corpora.MmCorpus.serialize(fname=fname, corpus=_data)
                 #@Debug how to get the corpus from list of list ?
-                #_corpus = gensim.corpora.MmCorpus(fname)
+                #_data = gensim.corpora.MmCorpus(fname)
 
-        return corpus, id2word
+        return data, id2word
 
-    def load_text_corpus(self, corpus_name=None):
+    def get_corpus(self, corpus_name=None):
         config = self.config
         corpus_name = corpus_name or self.corpus_name
         bdir = self.basedir
         self.corpus_name = corpus_name
-        corpus_t = None
+        data_t = None
         if corpus_name == 'lucene':
             raise NotImplementedError
             #searcher = warm_se(config)
@@ -143,30 +185,30 @@ class frontEndText(frontEndBase):
             fn_train = os.path.join(bdir, 'train.txt')
             fn_test = os.path.join(bdir, 'test.txt')
             # More feature in test than train !!!
-            corpus, train_classes = load_svmlight_file(fn_train)
-            corpus_t, test_classes = load_svmlight_file(fn_test)
+            data, train_classes = load_svmlight_file(fn_train)
+            data_t, test_classes = load_svmlight_file(fn_test)
             id2word = None
         elif corpus_name in ('reuter50', 'nips12', 'nips', 'enron', 'kos', 'nytimes', 'pubmed') or corpus_name == '20ngroups' :
             # DOC_ID FEAT_ID COUNT file type
-            corpus, id2word = self.textloader(bdir, corpus_name=corpus_name)
+            data, id2word = self.textloader(bdir, corpus_name=corpus_name)
         else:
             raise ValueError('Which corpus to Load ?')
 
-        self.corpus = corpus
+        self.data = data
         self.id2word = id2word
-        if corpus_t is None:
+        if data_t is None:
             pass
             #raise NotImplementedError('Corpus test ?')
         else:
-            self.corpus_t = corpus_t
+            self.data_t = data_t
 
         return True
 
-    def get_corpus_prop(self):
-        prop =  super(frontEndText, self).get_corpus_prop()
-        nnz = self.corpus.sum(),
-        _nnz = self.corpus.sum(axis=1)
-        dct = {'features': self.corpus.shape[1],
+    def get_data_prop(self):
+        prop =  super(frontendText, self).get_data_prop()
+        nnz = self.data.sum(),
+        _nnz = self.data.sum(axis=1)
+        dct = {'features': self.data.shape[1],
                'nnz': nnz,
                'nnz_mean': _nnz.mean(),
                'nnz_var': _nnz.var(),
@@ -187,11 +229,11 @@ class frontEndText(frontEndBase):
         train: $train_size
         test: $test_size
         \n'''
-        return super(frontEndText, self).template(dct, text_templ)
+        return super(frontendText, self).template(dct, text_templ)
 
-    def print_vocab(self, corpus, id2word):
+    def print_vocab(self, data, id2word):
         if id2word:
-            return gensim.corpora.dictionary.Dictionary.from_corpus(corpus, id2word) #; print voca
+            return gensim.corpora.dictionary.Dictionary.from_corpus(data, id2word) #; print voca
 
     def shuffle_docs(self):
         self.shuffle_instances()
@@ -235,7 +277,6 @@ class frontEndText(frontEndBase):
    #     ##############
    #     ### Log Output
    #     print
-   #     logging.basicConfig(format='%(levelname)s : %(message)s', level=logging.INFO)
    #     lda.print_topics(K)
    #     print
 
@@ -290,37 +331,4 @@ class frontEndText(frontEndBase):
    #         print corpus_t
    #     self.print_vocab(corpus, id2word)
 
-    ########################################################################"
-    ### LDA Worker
-    def lda_gensim(corpus=None, id2word=None, K=10, alpha='auto', save=False, bdir='tmp/', model='ldamodel', load=False, n=None, heldout_corpus=None, updatetype='batch'):
-        try: n = len(corpus) if corpus is not None else n
-        except: n = corpus.shape[0]
-        fname = bdir + "/%s_%s_%s_%s.gensim" % ( model, str(K), alpha, n)
-        if load:
-            return Models[model].LdaModel.load(fname)
-
-        if hasattr(corpus, 'tocsc'):
-            # is csr sparse matrix
-            corpus = corpus.tocsc()
-            corpus = gsm.matutils.Sparse2Corpus(corpus, documents_columns=False)
-            if heldout_corpus is not None:
-                heldout_corpus = heldout_corpus.tocsc()
-                heldout_corpus = gsm.matutils.Sparse2Corpus(heldout_corpus, documents_columns=False)
-        elif isanparray:
-            # up tocsc ??!!! no !
-            dense2corpus
-        # Passes is the iterations for batch onlines and iteration the max it in the gamma treshold test loop
-        # Batch setting !
-        if updatetype == 'batch':
-            lda = Models[model].LdaModel(corpus, id2word=id2word, num_topics=K, alpha=alpha,
-                                         iterations=100, eval_every=None, update_every=None, passes=50, chunksize=200000, fname=fname, heldout_corpus=heldout_corpus)
-        elif updatetype == 'online':
-            lda = Models[model].LdaModel(corpus, id2word=id2word, num_topics=K, alpha=alpha,
-                                         iterations=100, eval_every=None, update_every=1, passes=1, chunksize=2000, fname=fname, heldout_corpus=heldout_corpus)
-
-        if save:
-            lda.expElogbeta = None
-            lda.sstats = None
-            lda.save(fname)
-        return lda
 

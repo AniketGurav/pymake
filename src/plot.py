@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 
+import re
 import os
 from multiprocessing import Process
 from itertools import cycle
@@ -24,7 +26,7 @@ def tag_from_csv(c):
     if c == 0:
         ylabel = 'Iteration'
         label = 'Iteration'
-    elif c == 1:
+    elif c in (1,2, 3):
         ylabel = 'loglikelihood'
         label = 'loglikelihood'
 
@@ -34,15 +36,117 @@ def csv_row(s):
     #csv_typo = '# mean_eta, var_eta, mean_alpha, var_alpha, log_perplexity'
     if s == 'Iteration':
         row = 0
-    elif s in ('loglikelihood', 'likelihood', 'perplexity'):
+    if s == 'Timeit':
         row = 1
-    elif s == 'K':
+    elif s in ('loglikelihood', 'likelihood', 'perplexity'):
         row = 2
+    elif s in ('loglikelihood_t', 'likelihood_t', 'perplexity_t'):
+        row = 3
+    elif s == 'K':
+        row = 4
+    elif s == 'alpha':
+        row = 5
+    elif s == 'gamma':
+        row = 6
     else:
         row = s
     return row
 
-def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None):
+def plot_degree(y, title=None, noplot=False):
+    if len(y) > 6000:
+        return
+    typeG = nx.DiGraph()
+    G = nx.from_numpy_matrix(y, typeG)
+    degree = sorted(nx.degree(G).values(), reverse=True)
+    if noplot:
+        return degree
+    #plt.plot(degree)
+    x = np.arange(1, y.shape[0] + 1)
+    plt.loglog(x, degree)
+    if title:
+        plt.title(title)
+
+def adjmat(Y, title=''):
+    plt.figure()
+    plt.axis('off')
+    plt.title('Adjacency matrix')
+    plt.imshow(Y, cmap="Greys", interpolation="none", origin='upper')
+    title = 'Adjacency matrix, N = %d\n%s' % (Y.shape[0], title)
+    plt.title(title)
+
+def adjshow(Y, cmap=None, pixelspervalue=20, minvalue=None, maxvalue=None, title='', ax=None):
+        """ Make a colormap image of a matrix
+        :key Y: the matrix to be used for the colormap.
+        """
+        if minvalue == None:
+            minvalue = np.amin(Y)
+        if maxvalue == None:
+            maxvalue = np.amax(Y)
+        if not cmap:
+            cmap = plt.cm.hot
+            if not ax:
+                #figsize = (np.array(Y.shape) / 100. * pixelspervalue)[::-1]
+                #fig = plt.figure(figsize=figsize)
+                #fig.set_size_inches(figsize)
+                #plt.axes([0, 0, 1, 1]) # Make the plot occupy the whole canvas
+                fig = plt.figure()
+                plt.axis('off')
+                plt.title(title)
+                implot = plt.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+            else:
+                ax.axis('off')
+                implot = ax.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+        #plt.show()
+        plt.draw()
+        #plt.savefig(filename, fig=fig, facecolor='white', edgecolor='black')
+
+def adjshow_l(Y,title=[], pixelspervalue=20):
+        minvalue = np.amin(Y)
+        maxvalue = np.amax(Y)
+        cmap = plt.cm.hot
+
+        fig = plt.figure()
+        plt.subplot(1,2,1)
+        plt.axis('off')
+        implot = plt.imshow(Y[0], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+        plt.title(title[0])
+
+        plt.subplot(1,2,2)
+        plt.axis('off')
+        implot = plt.imshow(Y[1], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+        plt.title(title[1])
+
+        plt.draw()
+
+def adjshow_ll(Y,title=[], pixelspervalue=20):
+        minvalue = np.amin(Y)
+        maxvalue = np.amax(Y)
+        cmap = plt.cm.hot
+
+        fig = plt.figure()
+        plt.subplot(2,2,1)
+        plt.axis('off')
+        implot = plt.imshow(Y[0], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+        plt.title(title[0])
+
+        plt.subplot(2,2,2)
+        plt.axis('off')
+        implot = plt.imshow(Y[1], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+        plt.title(title[1])
+
+        plt.subplot(2,2,3)
+        plt.axis('off')
+        implot = plt.imshow(Y[2], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+        plt.title(title[2])
+
+        plt.subplot(2,2,4)
+        plt.axis('off')
+        implot = plt.imshow(Y[3], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+        plt.title(title[3])
+
+        plt.draw()
+
+def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twin=False, iter_max=None):
     if type(columns) is not list:
         columns = [columns]
 
@@ -57,21 +161,26 @@ def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None):
     old_prop = 0
     fig = None
     _Ks = None
-    markers = cycle([ '+', '*', ',', 'o', '.', '1', 'p', ])
-    if separate is False:
-        fig = plt.figure()
-        ax1 = fig.add_subplot(111)
-        ax1.set_xlabel(xlabel)
-        ax1.set_title(title)
+    is_nonparam = False
+    markers = cycle([ '+', '*', '|','x', 'o', '.', '1', 'p', '<', '>', 's' ])
+    #if separate is False:
+    #    fig = plt.figure()
+    #    ax1 = fig.add_subplot(111)
+    #    ax1.set_xlabel(xlabel)
+    #    ax1.set_title(title)
 
     for i, target_dir in enumerate(target_dirs):
 
         filen = os.path.join(os.path.dirname(__file__), "../data/", target_dir)
+        print 'plotting in %s ' % (filen, )
         with open(filen) as f:
             data = f.read()
 
         data = filter(None, data.split('\n'))
-        data = [x.strip() for x in data if not x.startswith(('#', '%'))]
+        if iter_max:
+            data = data[:iter_max]
+        data = [re.sub("\s\s+" , " ", x.strip()) for l,x in enumerate(data) if not x.startswith(('#', '%'))]
+        #data = [x.strip() for x in data if not x.startswith(('#', '%'))]
 
         prop = get_expe_file_prop(target_dir)
         for column in columns:
@@ -79,7 +188,14 @@ def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None):
                 column = csv_row(column)
 
 			### Optionnal row...?%
-            if separate is True:
+            if separate is False:
+                if fig is None:
+                    fig = plt.figure()
+                plt.subplot(1,1,1)
+                plt.title(title)
+                plt.xlabel(xlabel)
+                ax1 = plt.gca()
+            elif separate is True:
                 fig = plt.figure()
                 plt.title(title)
                 plt.xlabel(xlabel)
@@ -110,20 +226,22 @@ def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None):
             Ks = [int(float(row.split(sep)[csv_row('K')])) for row in data]
             Ks = np.ma.masked_invalid(np.array(Ks, dtype='int'))
 
-            print 'plotting in %s ' % (filen, )
-
             ylabel, label = tag_from_csv(column)
             ax1.set_ylabel(ylabel)
 
+            model_label = target_dir.split('/')[-1][len('inference-'):]
             #label = target_dir + ' ' + label
-            label = target_dir.split('/')[-3] +' '+ target_dir.split('/')[-1][len('inference-'):]
-            if 'ilda' in label:
+            label = target_dir.split('/')[-3] +' '+ model_label
+            if model_label.startswith(('ilda', 'immsb')):
+                is_nonparam = True
                 label += ' K -> %d' % (float(Ks[-1]))
 
             ax1.plot(ll_y, marker=next(markers), label=label)
             leg = ax1.legend(loc=1,prop={'size':10})
 
-            if prop['model'] == 'ilda' or _Ks is None:
+            if not twin:
+                continue
+            if is_nonparam or _Ks is None:
                 _Ks = Ks
             Ks = _Ks
             ax2 = ax1.twinx()
@@ -143,29 +261,29 @@ def basic_plot():
     plot_csv(targets, columns, separate=False)
     return
 
-def make_path(spec, sep=None):
+def make_path(spec, sep=None, ):
     targets = []
-    base = 'text'
-    hook = spec['hook_dir']
     if sep:
         tt = []
-    for c in spec['corpus']:
-        p = os.path.join(base, c, hook)
-        for n in spec['Ns']:
-            for m in spec['models']:
-                for k in spec['Ks']:
-                    for h in spec['hyper']:
-                        t = 'inference-%s_%s_%s_%s' % (m, k, h, n)
-                        t = os.path.join(p, t)
-                        filen = os.path.join(os.path.dirname(__file__), "../data/", t)
-                        if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
-                            continue
+    for base in spec['base']:
+        for hook in spec['hook_dir']:
+            for c in spec['corpus']:
+                p = os.path.join(base, c, hook)
+                for n in spec['Ns']:
+                    for m in spec['models']:
+                        for k in spec['Ks']:
+                            for h in spec['hyper']:
+                                for hm in spec['homo']:
+                                    t = 'inference-%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
+                                    t = os.path.join(p, t)
+                                    filen = os.path.join(os.path.dirname(__file__), "../data/", t)
+                                    if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
+                                        continue
+                                    targets.append(t)
 
-                        targets.append(t)
-
-        if sep == 'corpus' and targets:
-            tt.append(targets)
-            targets = []
+                if sep == 'corpus' and targets:
+                    tt.append(targets)
+                    targets = []
 
     if sep:
         return tt
@@ -191,7 +309,8 @@ def get_expe_file_prop(target):
         model = model.split('-')[-1],
         K     = _id[0],
         hyper = _id[1],
-        N     = _id[2],)
+        homo = _id[2],
+        N     = _id[3],)
     return prop
 
 # Return size of proportie in a list if expe files
@@ -206,30 +325,76 @@ def get_expe_file_set_prop(targets):
 
     return sets
 
+def json_extract(targets):
+    l = []
+    for t in targets:
+        for _f in t:
+            f = os.path.join(os.path.dirname(__file__), "../data/", _f) + '.json'
+            d = os.path.dirname(f)
+            f = os.path.basename(f)[len('inference-'):]
+            fn = os.path.join(d, f)
+            try:
+                d = json.load(open(fn,'r'))
+                l.append(d)
+                precision = d['Precision']
+                rappel = d['Rappel']
+                K = len(d['Local_Attachment'])
+                h_s = d.get('homo_ind1_source', np.inf)
+                h_l = d.get('homo_ind1_learn', np.inf)
+                nmi = d.get('NMI', np.inf)
+                print '%s; \t K=%s,  global precision: %.3f, local precision: %.3f, rappel: %.3f, homsim s/l: %.3f / %.3f, NMI: %.3f' % (f, K, d.get('g_precision'), precision, rappel, h_s, h_l, nmi )
+            except Exception, e:
+                print e
+                pass
+
+    print
+    if len(l) == 1:
+        return l[0]
+    else:
+        return l
+
 
 if __name__ ==  '__main__':
     block = True
     conf = argParse()
 
     spec = dict(
-        hook_dir = 'debug1/',
-        corpus   = ['kos', 'nips12', 'nips', 'reuter50', '20ngroups'],
+        base = ['networks'],
+        hook_dir = ['debug6/'],
+        #corpus   = ['kos', 'nips12', 'nips', 'reuter50', '20ngroups'],
+        #corpus   = ['generator/Graph1', 'generator/Graph2', 'clique3'],
+        #corpus   = ['generator/Graph3',],
+        #corpus   = ['generator/Graph3', 'generator/Graph4'],
+        corpus   = ['generator/Graph5', 'generator/Graph6'],
         columns  = ['perplexity'],
-        models   = ['ilda', 'lda_cgs', ],
-        #models   = ['lda_cgs', ],
-        Ns       = [1000, 2000, 10000],
-        Ks       = [1, 5, 10, 15, 20],
-        hyper    = ['fix'],
+        models   = ['ibp', 'ibp_cgs'],
+        #models   = [ 'mmsb_cgs', 'immsb'],
+        #models   = ['ibp_cgs', 'immsb'],
+        #models   = ['ibp', 'ibp_cgs', ],
+        #Ns       = [250, 1000, 'all'],
+        Ns       = [1000,],
+        #Ks       = [2, 3, 6, 10, 20, 30],
+        #Ks       = [5, 10, 30],
+        Ks       = [10],
+        homo     = [0,1,2],
+        #homo     = [0,1, 2],
+        hyper    = ['fix', 'auto'],
+        hyper    = [ 'auto'],
+        iter_max = 500 ,
     )
 
     sep = 'corpus'
     separate = 'N'
+    #separate = 'N' and False
     targets = make_path(spec, sep=sep)
+    json_extract(targets)
+    #exit()
     if sep:
         for t in targets:
-            plot_csv(t, spec['columns'], separate=separate)
+            plot_csv(t, spec['columns'], separate=separate, twin=False, iter_max=spec['iter_max'])
     else:
-        plot_csv(targets, spec['columns'], separate=True)
+        plot_csv(targets, spec['columns'], separate=True, iter_max=spec['iter_max'])
+
 
     ### Basic Plots
     #basic_plot()

@@ -2,6 +2,7 @@ import sys, os
 from os.path import dirname
 from datetime import datetime
 from collections import defaultdict
+import logging
 
 import numpy as np
 import scipy as sp
@@ -13,18 +14,23 @@ def argParse(usage="Usage ?"):
             argdict['noprint'] = True
         elif arg in ('-w',):
             argdict.update(write = True)
-        elif arg in ('-w',):
-            argdict.update(write = False)
+        elif arg in ('-nv',):
+            argdict.update(verbose = logging.WARN)
         elif arg in ('-v',):
-            argdict.update(verbose = 1)
+            argdict.update(verbose = logging.DEBUG)
         elif arg in ('-vv',):
-            argdict.update(verbose = 2)
+            argdict.update(verbose = logging.CRITICAL)
         elif arg in ('-p',):
             argdict.update(predict = 1)
         elif arg in ('-s',):
             argdict['simul'] = arg
+        elif arg in ('-nld',):
+            argdict['load_data'] = False
+        elif arg in ('--seed',):
+            argdict['seed'] = 42
         elif arg in ('-n', '--limit'):
-            _arg = int(sys.argv.pop(i+1))
+            # no int() because could be all.
+            _arg = sys.argv.pop(i+1)
             argdict['N'] = _arg
         elif arg in ('--alpha', '--hyper'):
             _arg = sys.argv.pop(i+1)
@@ -35,6 +41,9 @@ def argParse(usage="Usage ?"):
         elif arg in ('-k',):
             _arg = int(sys.argv.pop(i+1))
             argdict['K'] = _arg
+        elif arg in ('--homo',):
+            _arg = int(sys.argv.pop(i+1))
+            argdict['homo'] = _arg
         elif arg in ('-i',):
             _arg = int(sys.argv.pop(i+1))
             argdict['iterations'] = _arg
@@ -56,7 +65,7 @@ def argParse(usage="Usage ?"):
                 _arg = 'tmp'
             if not os.path.exists(_arg):
                 if _arg == 'corpus' or _arg == 'model':
-                    argdict['load'] = _arg
+                    argdict['load'] = sys.argv.pop(i+1)
                 else:
                     argdict['load'] = False
             else:
@@ -83,14 +92,32 @@ def argParse(usage="Usage ?"):
 
     return argdict
 
+
+def setup_logger(name, fmt, verbose, file=None):
+    #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
+    formatter = logging.Formatter(fmt=fmt)
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(verbose)
+    logger.addHandler(handler)
+    return logger
+
 def ellapsed_time(text, since):
     current = datetime.now()
     delta = current - since
     print text + ' : %s' % (delta)
     return current
 
+def jsondict(d):
+    if isinstance(d, dict):
+        return {str(k):v for k,v in d.items()}
+    return d
+
 def getGraph(target='', **conf):
-    basedir = conf.get('filen', dirname(__file__) + "/../../data/networks/")
+    basedir = conf.get('filen', dirname(__file__) + '/../../data/networks/')
     filen = basedir + target
     f = open(filen, 'r')
 
@@ -141,11 +168,10 @@ except:
 def kmeans(M, K=4):
     km = KMeans(n_clusters=K)
     km.fit(M)
-    clusters = km.predict(M)
+    clusters = km.predict(M.astype(float))
     return clusters
 
 
-import logging
 from scipy.io.matlab import loadmat
 from scipy.sparse import lil_matrix
 try:
@@ -167,9 +193,9 @@ def rescal(X, K):
     theta =  A.dot(R).dot(A.T)
     Y = 1 / (1 + np.exp(-theta))
     Y =  Y[:,0,:]
-    #Y = sp.stats.bernoulli.rvs(Y)
     Y[Y <= 0.5] = 0
     Y[Y > 0.5] = 1
+    #Y = sp.stats.bernoulli.rvs(Y)
     return Y
 
 # Assign new values to an array according to a map list

@@ -4,7 +4,7 @@
 from local_utils import *
 from vocabulary import Vocabulary, parse_corpus
 from util.frontend import ModelManager, FrontendManager
-from util.frontendtext import frontendText
+from util.frontendnetwork import frontendNetwork
 
 import numpy as np
 import scipy as sp
@@ -23,27 +23,25 @@ if __name__ == '__main__':
         limit_train = None,
         ###### I/O settings
         bdir = '../data',
-        load_corpus = False,
+        load_corpus = True,
         save_corpus = True,
     ))
     config.update(argParse(_USAGE))
 
-    corpuses = ('nips12',)
-    corpuses = ('nips12', 'kos','reuter50', 'nips', 'enron', 'nytimes', 'pubmed', '20ngroups')
-    print 'Sure to overwrite corpus ?'; exit()
+    corpuses = ('generator1', 'generator2', 'generator3', 'generator4')
 
     ############################################################
     ##### Simulation Output
-    if confif.get('simul'):
+    if config.get('simul'):
         print '''--- Simulation settings ---
         Build Corpuses %s''' % (str(corpuses))
         exit()
 
-    fn_corpus_build = os.path.join(config['bdir'], 'text','Corpuses.txt')
+    fn_corpus_build = os.path.join(config['bdir'], 'networks', 'Corpuses.txt')
     _f = open(fn_corpus_build, 'a')
     _f.write('/**** %s ****/\n\n' % (datetime.now()))
 
-    frontend = frontendText(config)
+    frontend = frontendNetwork(config)
 
     for corpus_name in corpuses:
         startt = datetime.now()

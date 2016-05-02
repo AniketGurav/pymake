@@ -103,7 +103,7 @@ if __name__ == '__main__':
                         G = nx.from_numpy_matrix(data, nx.DiGraph())
                         data = nx.adjacency_matrix(G, np.random.permutation(range(N))).A
                     elif rvalue == 'barabasi-albert':
-                        data = nx.adjacency_matrix(nx.barabasi_albert_graph(N, m=13) ).A
+                        data = nx.adjacency_matrix(nx.barabasi_albert_graph(N, m=13)).A
                 else:
                     data = getGraph(target=target, **conf)
                     np.fill_diagonal(data, 1)

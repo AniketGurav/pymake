@@ -4,7 +4,7 @@ import nltk, re
 from string import punctuation
 import os
 
-with open ("util/stopwords.txt", "r") as _f:
+with open (os.path.join(os.path.dirname(__file__), 'stopwords.txt'), "r") as _f:
     stopwords_list = _f.read().replace('\n', '').split()
 stopwords_list += nltk.corpus.stopwords.words('english')
 stopwords_list = set(stopwords_list)
