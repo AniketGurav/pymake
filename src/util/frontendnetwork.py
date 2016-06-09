@@ -22,9 +22,12 @@ Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
 class frontendNetwork(DataBase):
 
     def __init__(self, config):
-        config['bdir'] = os.path.join(config['bdir'], 'networks')
+        self.bdir = os.path.join(config['bdir'], 'networks')
         super(frontendNetwork, self).__init__(config)
 
+    # Load data according to different scheme:
+    #   * Corpus from file dataset
+    #   * Corpus from random generator
     def load_data(self, corpus_name=None, randomize=False):
         corpus_name = corpus_name or self.config.get('corpus_name')
         if corpus_name:
@@ -154,7 +157,11 @@ class frontendNetwork(DataBase):
         self.make_output_path(corpus_name)
         self.corpus_name = corpus_name
         data_t = None
-        N = int(self.N)
+        try:
+            N = int(self.N)
+        except:
+            # Catch later or elsewhere
+            pass
 
         if corpus_name[:-1] in ('generator'):
             # Reroot basedir
@@ -192,6 +199,7 @@ class frontendNetwork(DataBase):
 
         self.data = data
         N, M = self.data.shape
+        self.N = N
         self.nodes_list = [np.arange(N), np.arange(M)]
         return True
 
@@ -220,7 +228,6 @@ class frontendNetwork(DataBase):
 
     ### Parse Network data depending on type/extension
     def parse_graph(self, fn):
-        max_n = 1100
         f = open(fn, 'r')
         data = []
         inside = {'vertices':False, 'edges':False }
@@ -236,9 +243,6 @@ class frontendNetwork(DataBase):
                     inside['vertices'] = False
                 else:
                     # Parsing assignation
-                    if N >= max_n:
-                        inside['vertices'] = False
-                        continue
                     elements = line.strip().split(';')
                     clust = int(elements[-1])
                     feats = map(float, elements[-2].split('|'))
@@ -248,17 +252,12 @@ class frontendNetwork(DataBase):
             elif line.startswith('# Edges') or inside['edges']:
                 if not inside['edges']:
                     inside['edges'] = True
-                    N = 0
                     continue
                 if line.startswith('#') or not line.strip() :
                     inside['edges'] = False
                 else:
                     # Parsing assignation
-                    if N >= max_n:
-                        inside['edges'] = False
-                        continue
                     data.append( line.strip() )
-                    N += 1
         f.close()
 
         edges = [tuple(row.split(';')) for row in data]

@@ -17,12 +17,10 @@ if __name__ == '__main__':
         #corpus   = ['generator3', 'generator4'],
         #corpus   = ['generator5', 'generator6'],
         corpus   = [ 'generator6'],
-        #models   = ['ibp', 'ibp_cgs', 'immsb', 'mmsb_cgs' ],
         #models   = ['ibp', 'ibp_cgs', 'mmsb_cgs', 'immsb'],
         models   = ['ibp_cgs', 'mmsb_cgs'],
         #Ns       = [250, 1000, 'all'],
         Ns       = [1000,],
-        #Ks       = [2, 3, 6, 10, 20, 30],
         Ks       = [5, 10, 30],
         homo     = [0,1,2],
         hyper    = ['fix', 'auto'],
@@ -38,13 +36,10 @@ if __name__ == '__main__':
         if config['model'] is 'mmsb_cgs':
             if config['hyper'] is 'fix':
                 return False
-
         if config['model'] is 'ibp_cgs':
             if config['hyper'] is 'fix':
                 return False
-
         return True
-
 
     def_conf = {'load_data':False, # Need to compute feature and communities ground truth (no stored in pickle)
                 'load_model': True, # Load model vs Gnerate random data

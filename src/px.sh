@@ -2,26 +2,28 @@
 
 #############
 ### GNU Parallel parameters
-JOBS="2"
+JOBS="3"
 
-COMMAND="python ./topics.py -w -i 50 --refdir debug_local"
+COMMAND="python ./topics.py -w -i 200 --refdir debug"
 
 #############
 ### parameters
-#CORPUS="nips12 kos nips reuter50 20ngroups"  
-CORPUS="kos"  
-MODELS="lda_vb lda_cgs"
-Ks="10"
-ALPHAS="10 1000 10000"
-Ns="all"
+CORPUS="clique4"
+MODELS="mmsb_cgs ibp"
+Ks="5"
+ALPHAS="auto"
+Ns="100"
+homo="0 2"
 RUNS=""
 
-for corpus in $CORPUS; do
-    for N in $Ns; do
-        for K in $Ks; do
-            for alpha in $ALPHAS; do
-                for model in $MODELS; do
-                    RUNS="${RUNS} -m $model -k $K --alpha $alpha -c $corpus -n $N\n"
+for alpha in $ALPHAS; do
+    for hom in $homo; do
+        for corpus in $CORPUS; do
+            for N in $Ns; do
+                for K in $Ks; do
+                    for model in $MODELS; do
+                        RUNS="${RUNS} -m $model --homo $hom -k $K --alpha $alpha -c $corpus -n $N\n"
+                    done
                 done
             done
         done
@@ -32,4 +34,4 @@ RUNS=${RUNS::-2}
 
 ###--- Gnu Parallel ---###
 #parallel --no-notice -k -j$JOBS  $RUN ::: {1..4}
-echo -e  "$RUNS" | parallel --progress -k -j$JOBS --colsep ' ' "$COMMAND {}"
+echo -e "$RUNS" | parallel --delay 1 --load 42 --eta -k -j$JOBS --colsep ' ' "$COMMAND {}"

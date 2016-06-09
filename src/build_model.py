@@ -126,13 +126,13 @@ if __name__ == '__main__':
     if 'Text' in str(type(frontend)):
         data, data_t = frontend.cross_set(ratio=0.8)
     elif 'Network' in str(type(frontend)):
-        # Debug5
+        # Random training set on 20% on Data
         percent_hole = 0.2
         data = frontend.get_masked(percent_hole)
         config['symmetric'] = frontend.is_symmetric()
         data_t = None
 
-        ## Debug6
+        # Random training set on 20% on Data vertex (0.2 * data == 1).
         #percent_hole = 0.2
         #data = frontend.get_masked_1(percent_hole)
         #config['symmetric'] = frontend.is_symmetric()
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     ##### Load Model
     #models = ('ilda_cgs', 'lda_cgs', 'immsb', 'mmsb', 'ilfm_gs', 'lda_vb', 'ldafull_vb')
     # Hyperparameter
-    delta = .5
+    delta = .1
     # Those are sampled
     alpha = .5
     gmma = 1.

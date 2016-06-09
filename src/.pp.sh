@@ -5,7 +5,7 @@ TESTING="topics.py -m immsb -c generator1 -n 100 -i 10"
 TESTING="./topics.py -m immsb -c clique10 -n 1000 -i 2"
 TESTING="./topics.py -m ibp --homo 0 -c clique10 -k 5  -n 500 -i 5"
 
-TESTING="./assortt.py -n 1000 -k 10 --alpha auto --homo 0 -m ibp_cgs -c generator3 -l model --refdir debug5"
+TESTING="./topics.py -n 100 -k 10 --alpha auto --homo 0 -m ibp -c clique4 -i 10"
 
 python -m cProfile -o profile.out $TESTING
 ./ptime.py profile.out > t.out

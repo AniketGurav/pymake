@@ -92,6 +92,15 @@ def argParse(usage="Usage ?"):
 
     return argdict
 
+def ask_sure_exit(question):
+    while True:
+        a = raw_input(question+' ').lower()
+        if a == 'yes':
+            break
+        elif a == 'no':
+            exit()
+        else:
+            print("Enter either yes/no")
 
 def setup_logger(name, fmt, verbose, file=None):
     #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')

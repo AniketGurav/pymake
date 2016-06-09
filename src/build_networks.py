@@ -28,7 +28,8 @@ if __name__ == '__main__':
     ))
     config.update(argParse(_USAGE))
 
-    corpuses = ('generator1', 'generator2', 'generator3', 'generator4')
+    corpuses = ('generator1', 'generator2', 'generator3', 'generator4', 'generator5', 'generator6')
+    ask_sure_exit('Sure to overwrite corpus / networks ?')
 
     ############################################################
     ##### Simulation Output
@@ -41,10 +42,10 @@ if __name__ == '__main__':
     _f = open(fn_corpus_build, 'a')
     _f.write('/**** %s ****/\n\n' % (datetime.now()))
 
-    frontend = frontendNetwork(config)
 
     for corpus_name in corpuses:
         startt = datetime.now()
+        frontend = frontendNetwork(config)
         frontend.load_data(corpus_name)
         building_corpus_time = (ellapsed_time('Prepropressing %s'%corpus_name, startt) - startt)
         prop = frontend.get_data_prop()
@@ -52,5 +53,4 @@ if __name__ == '__main__':
         msg = frontend.template(prop)
         _f.write(msg)
         _f.flush()
-
 

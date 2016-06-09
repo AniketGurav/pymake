@@ -182,6 +182,7 @@ def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twi
         data = [re.sub("\s\s+" , " ", x.strip()) for l,x in enumerate(data) if not x.startswith(('#', '%'))]
         #data = [x.strip() for x in data if not x.startswith(('#', '%'))]
 
+        print target_dir
         prop = get_expe_file_prop(target_dir)
         for column in columns:
             if type(column) is str:
@@ -259,17 +260,7 @@ def basic_plot():
                'text/nips12/debug/inference-lda_cgs_5_auto_100',
                'text/nips12/debug/inference-lda_cgs_10_auto_100000000', ]
     plot_csv(targets, columns, separate=False)
-
-def complex_plot(spec):
-	sep = 'corpus'
-	separate = 'N'
-	targets = make_path(spec, sep=sep)
-	json_extract(targets)
-	if sep:
-		for t in targets:
-			plot_csv(t, spec['columns'], separate=separate, twin=False, iter_max=spec['iter_max'])
-	else:
-		plot_csv(targets, spec['columns'], separate=True, iter_max=spec['iter_max'])
+    return
 
 def make_path(spec, sep=None, ):
     targets = []
@@ -287,6 +278,7 @@ def make_path(spec, sep=None, ):
                                     t = 'inference-%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
                                     t = os.path.join(p, t)
                                     filen = os.path.join(os.path.dirname(__file__), "../data/", t)
+                                    print filen
                                     if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
                                         continue
                                     targets.append(t)
@@ -370,20 +362,17 @@ if __name__ ==  '__main__':
 
     spec = dict(
         base = ['networks'],
-        hook_dir = ['debug6/'],
+        hook_dir = ['debug/'],
         #corpus   = ['kos', 'nips12', 'nips', 'reuter50', '20ngroups'],
-        #corpus   = ['generator/Graph1', 'generator/Graph2', 'clique3'],
-        #corpus   = ['generator/Graph3',],
-        #corpus   = ['generator/Graph3', 'generator/Graph4'],
-        corpus   = ['generator/Graph5', 'generator/Graph6'],
+        corpus   = ['generator/clique/clique4'],
         columns  = ['perplexity'],
         #models   = ['ibp', 'ibp_cgs'],
         #models   = ['ibp_cgs', 'immsb'],
         models   = ['immsb', 'mmsb_cgs'],
         #models   = [ 'mmsb_cgs', 'immsb'],
         #Ns       = [250, 1000, 'all'],
-        Ns       = [1000,],
-        Ks       = [5, 10, 15, 20, 25, 30],
+        Ns       = [100,],
+        Ks       = [5],
         #Ks       = [5, 10, 30],
         #Ks       = [10],
         homo     = [0,1,2],

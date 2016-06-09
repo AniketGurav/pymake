@@ -159,7 +159,6 @@ class IBPGibbsSampling(IBP, ModelBase):
                 #self._W  = np.eye(self._K)
             elif self.assortativity == 2:
                 self.sample_W()
-                lgg.warn('MH for new weight for assotativite==2 (multivariate gaussian) is not implemented')
             else:
                 self.sample_W()
 

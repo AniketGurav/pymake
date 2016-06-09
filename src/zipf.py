@@ -108,28 +108,32 @@ if __name__ == '__main__':
                          config['output_path'])
         exit()
 
-
     # Initializa Model
     frontend = FrontendManager.get(config)
     data = frontend.load_data(randomize=False)
     data = frontend.sample()
 
-    model = ModelManager(None, config)
-
     if config.get('load_model'):
         ### Generate data from a fitted model
+        model = ModelManager(None, config)
         model = model.load()
         y, theta, phi = model.generate(config['N'])
         y = np.triu(y) + np.triu(y, 1).T
         R = rescal(data, config['K'])
         #np.fill_diagonal(y,1)
-        K = theta.shape[1]
     else:
         ### Generate data from a un-fitted model
-        ### Generate data from a un-fitted model
+        delta = .1
+        alpha = .5
+        gmma = 1.
+        hyperparams = {'alpha': alpha, 'delta': delta, 'gmma': gmma}
+        config['hyperparams'] = hyperparams
+        model = ModelManager(data, config)
         model = model.model
         y, theta, phi = model.generate(config['N'], config['K'])
+        R = None
 
+    K = theta.shape[1]
     from plot import *
 
     ### Analysis On Generated Model

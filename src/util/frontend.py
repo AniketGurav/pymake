@@ -17,10 +17,13 @@ from vocabulary import Vocabulary, parse_corpus
 ####   * Second, frontend for data observation. States of corpus or results analysis,
 ####   * Third, operate on corpus various operation as filtering, merging etc.
 
-### @Debug : update config path !
 
 ####  load_corpus->load_text_corpus->text_loader
 ####  (frontent) -> (choice) -> (adapt preprocessing)
+
+### @Debug :
+#   * update config path !
+#   * Separate attribute of the frontend: dataset / Learning / IHM ...
 
 # review that:
 #    * separate better load / save and preprocessing (input can be file or array...)
@@ -53,7 +56,7 @@ class DataBase(object):
         # Write Path (for models results)
         config = self.config
         if not hasattr(self, 'basedir') or corpus_name:
-            self.basedir = os.path.join(config.get('bdir', 'tmp-data'), corpus_name)
+            self.basedir = os.path.join(self.bdir, corpus_name)
         corpus_name = corpus_name or self.corpus_name
         fname_out = '%s_%s_%s_%s_%s.out' % (self.model_name, self.K, self.hyper_optimiztn, self.homo, self.N)
         config['output_path'] = os.path.join(self.basedir, config.get('refdir', ''),  fname_out)
@@ -221,6 +224,8 @@ class ModelManager(object):
                 metropolis_hastings_k_new = False
             else:
                 metropolis_hastings_k_new = True
+                if self.config['homo'] == 2:
+                    raise NotImplementedError('Warning !: Metropolis Hasting not implemented with matrix normal. Exiting....')
             alpha_hyper_parameter = self.config['hyper']
             sigma_w_hyper_parameter = None #(1., 1.)
             symmetric = self.config['symmetric']
@@ -242,7 +247,7 @@ class ModelManager(object):
         alpha = self.hyperparams['alpha']
         gmma = self.hyperparams['gmma']
         mask = self.config['mask']
-        symmetric = self.config['symmetric']
+        symmetric = self.config.get('symmetric',False)
         assortativity = self.config['homo']
         K = self.K
 

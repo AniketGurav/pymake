@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     corpuses = ('nips12',)
     corpuses = ('nips12', 'kos','reuter50', 'nips', 'enron', 'nytimes', 'pubmed', '20ngroups')
-    print 'Sure to overwrite corpus ?'; exit()
+    ask_sure_exit('Sure to overwrite corpus / text ?')
 
     ############################################################
     ##### Simulation Output
@@ -43,10 +43,10 @@ if __name__ == '__main__':
     _f = open(fn_corpus_build, 'a')
     _f.write('/**** %s ****/\n\n' % (datetime.now()))
 
-    frontend = frontendText(config)
 
     for corpus_name in corpuses:
         startt = datetime.now()
+        frontend = frontendText(config)
         frontend.load_data(corpus_name)
         building_corpus_time = (ellapsed_time('Prepropressing %s'%corpus_name, startt) - startt)
         prop = frontend.get_data_prop()

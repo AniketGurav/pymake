@@ -54,7 +54,8 @@ class DirMultLikelihood(object):
             self.nodes_list = nodes_list
             raise ValueError('re order the networks ! to avoid using _nmap')
 
-        assert(type(data) is np.ma.masked_array)
+        if type(data) is not np.ma.masked_array:
+            data = np.ma.array(data)
         self.data_ma = data
         self.symmetric = symmetric
         self.data_dims = self.get_data_dims()
@@ -607,19 +608,24 @@ class NP_CGS(GibbsSampler):
         m_dot = self.msampler.m_dotk.sum()
         alpha_0 = self.zsampler.alpha_0
         n_jdot = np.array(self.zsampler.data_dims) # @debug add row count + line count for masked !
-        #norm = np.linalg.norm(n_jdot/alpha_0)
-        #u_j = binomial(1, n_jdot/(norm* alpha_0))
-        u_j = binomial(1, n_jdot/(n_jdot + alpha_0))
+        #p = np.power(n_jdot / alpha_0, np.arange(n_jdot.shape[0]))
+        #norm = np.linalg.norm(p)
+        #u_j = binomial(1, p/norm)
+        u_j = binomial(1, alpha_0/(n_jdot + alpha_0))
+        #u_j = binomial(1, n_jdot/(n_jdot + alpha_0))
         v_j = beta(alpha_0 + 1, n_jdot)
         new_alpha0 = gamma(self.a_alpha + m_dot - u_j.sum(), 1/( self.b_alpha - np.log(v_j).sum()), size=3).mean()
         self.zsampler.alpha_0 = new_alpha0
 
         # Optimize \gamma
         K = self.zsampler._K
+        #m_dot = self.msampler.m_dotk
         gmma = self.betasampler.gmma
-        #norm = np.linalg.norm(m_dot/gmma)
-        #u = binomial(1, m_dot / (norm*gmma))
-        u = binomial(1, m_dot / (m_dot + gmma))
+        #p = np.power(m_dot / gmma, np.arange(m_dot.shape[0]))
+        #norm = np.linalg.norm(p)
+        #u = binomial(1, p/norm)
+        u = binomial(1, gmma / (m_dot + gmma))
+        #u = binomial(1, m_dot / (m_dot + gmma))
         v = beta(gmma + 1, m_dot)
         new_gmma = gamma(self.a_gmma + K -1 + u, 1/(self.b_gmma - np.log(v)), size=3).mean()
         self.betasampler.gmma = new_gmma
@@ -730,8 +736,8 @@ class GibbsRun(ModelBase):
         if K is not None:
             K = int(K)
             #alpha = np.ones(K) * alpha
-            #alpha = np.ones(K) * 1/K
-            alpha = np.asarray([1.0 / (i + np.sqrt(K)) for i in xrange(K)])
+            alpha = np.ones(K) * 1/(K*10)
+            ##alpha = np.asarray([1.0 / (i + np.sqrt(K)) for i in xrange(K)])
             #alpha /= alpha.sum()
             #delta = self.s.zsampler.likelihood.delta
             delta = delta

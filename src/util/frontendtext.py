@@ -18,7 +18,7 @@ Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
 class frontendText(DataBase):
 
     def __init__(self, config):
-        config['bdir'] = os.path.join(config['bdir'], 'text')
+        self.bdir = os.path.join(config['bdir'], 'text')
         super(frontendText, self).__init__(config)
 
     def load_data(self, corpus_name=None, randomize=False):

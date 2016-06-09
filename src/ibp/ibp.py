@@ -48,7 +48,8 @@ class IBP(object):
         # Data matrix
         #self._Y = self.center_data(data)
         self._Y = data
-        assert(type(data) is np.ma.masked_array)
+        if type(data) is not np.ma.masked_array:
+            data = np.ma.array(data)
 
         # Binary case
         Yd = self._Y.data
