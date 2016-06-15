@@ -65,6 +65,7 @@ class DataBase(object):
                                             self.hyper_optimiztn,
                                             self.homo,
                                             self.N)
+
         config['output_path'] = os.path.join(self.basedir,
                                              config.get('refdir', ''),
                                              config.get('repeat', ''),

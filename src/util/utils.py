@@ -39,7 +39,11 @@ def argParse(usage="Usage ?"):
             _arg = sys.argv.pop(i+1)
             argdict['refdir'] = _arg
         elif arg in ('--repeat',):
-            _arg = sys.argv.pop(i+1)
+            repeat = int(sys.argv.pop(i+1))
+            if repeat < 0:
+                _arg = ''
+            else:
+                _arg = str(repeat)
             argdict['repeat'] = _arg
         elif arg in ('-k',):
             _arg = int(sys.argv.pop(i+1))

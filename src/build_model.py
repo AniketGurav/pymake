@@ -71,14 +71,14 @@ if __name__ == '__main__':
         N                             = 3,
         chunk                         = 10000,
         iterations                    = 2,
-        repeat                        = 1,
+        repeat                        = '1',
         ###
         homo                          = False, # learn W in IBP
         ###### I/O settings
         refdir                        = 'debug',
         bdir                          = '../data',
         load_data                   = True,
-        save_data                   = True,
+        save_data                   = False,
         load_model                    = False,
         save_model                    = True,
         write                         = False, # -w/-nw

@@ -34,10 +34,12 @@ if __name__ ==  '__main__':
         ('N'      , ('all',)),
         ('hyper'  , ('fix', 'auto')),
         ('homo'   , (0, 1, 2)),
+        #('repeat'   , (0, 1, 2, 4, 5)),
     ))
 
-    ### Tensor Forest
+    ### Seek experiments results
     target_files = make_path_v2(map_parameters, sep=None)
+    ### Make Tensor Forest of results
     rez = results_tensor(target_files, map_parameters, verbose=False)
 
 
@@ -55,7 +57,8 @@ if __name__ ==  '__main__':
         ('N'     , 'all')     ,
         ('hyper' , 'auto')     ,
         ('homo'  , 0) ,
-        ('measure', 0),
+        #('repeat', '*'),
+        ('measure', 2),
         ))
     if model:
         expe_1.update(model=model)

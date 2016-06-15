@@ -58,21 +58,25 @@ def make_path_v2(spec, sep=None, ):
         for hook in spec['debug']:
             for c in spec['corpus']:
                 _c = 'generator/' + c
-                p = os.path.join(base, _c, hook)
-                for n in spec['N']:
-                    for m in spec['model']:
-                        for k in spec['K']:
-                            for h in spec['hyper']:
-                                for hm in spec['homo']:
-                                    t = 'inference-%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
-                                    t = os.path.join(p, t)
-                                    filen = os.path.join(os.path.dirname(__file__), "../data/", t)
-                                    if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
-                                        continue
-                                    if sum(1 for line in open(filen)) <= 1:
-                                        # empy file
-                                        continue
-                                    targets.append(t)
+                if spec.get('repeat'):
+                    _p = [os.path.join(base, _c, hook, rep) for rep in spec['repeat']]
+                else:
+                    _p = [ os.path.join(base, _c, hook) ]
+                for p in _p:
+                    for n in spec['N']:
+                        for m in spec['model']:
+                            for k in spec['K']:
+                                for h in spec['hyper']:
+                                    for hm in spec['homo']:
+                                        t = 'inference-%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
+                                        t = os.path.join(p, t)
+                                        filen = os.path.join(os.path.dirname(__file__), "../data/", t)
+                                        if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
+                                            continue
+                                        if sum(1 for line in open(filen)) <= 1:
+                                            # empy file
+                                            continue
+                                        targets.append(t)
 
     return targets
 
@@ -90,20 +94,38 @@ def get_expe_file_prop(target):
             st += 1
             model += s
 
+
+    # @debug
+    try:
+        int(target.split('/')[-2])
+        id_debug = -3
+        id_corpus = -4
+    except:
+        id_debug = -2
+        id_corpus = -3
+
     _id = _id[st:]
     prop = dict(
-        debug = target.split('/')[-2],
-        corpus = target.split('/')[-3],
         model = model.split('-')[-1],
+        repeat = target.split('/')[-2],
+        debug = target.split('/')[id_debug],
+        corpus = target.split('/')[id_corpus],
         K     = _id[0],
         hyper = _id[1],
         homo = _id[2],
         N     = _id[3],)
+
+    # @debug
+    try:
+        int(target.split('/')[-2])
+    except:
+        del prop['repeat']
+
     return prop
 
 # Return size of proportie in a list if expe files
 def get_expe_file_set_prop(targets):
-    template = ' networks/generator/Graph13/debug11/inference-immsb_10_auto_0_all'
+    template = 'networks/generator/Graph13/debug11/inference-immsb_10_auto_0_all'
     c = []
     for t in targets:
         c.append(get_expe_file_prop(t))
@@ -168,7 +190,12 @@ def results_tensor(target_files, map_parameters, verbose=True):
                 v = int(v)
             except:
                 pass
-            idx = map_parameters[k].index(v)
+            try:
+                idx = map_parameters[k].index(v)
+            except Exception, e:
+                print e
+                print k, v
+                raise ValueError
             pt[rez_map.index(k)] = idx
 
         f = os.path.join(os.path.dirname(__file__), "../data/", _f) + '.json'
@@ -209,6 +236,12 @@ def results_tensor(target_files, map_parameters, verbose=True):
         #[ sys.stdout.write(m) for m in info_file]
     return rez
 
+def save_files(files):
+    f =  open( "ffiles.out", "wb" )
+    f.write('\n'.join(target_files))
+    print 'ffiles.out writen.'
+    exit()
+
 if __name__ ==  '__main__':
     from tabulate import tabulate
     #import argparse
@@ -228,11 +261,13 @@ if __name__ ==  '__main__':
         ('K'      , (5, 10, 15, 20)),
         ('N'      , ('all',)),
         ('hyper'  , ('fix', 'auto')),
-        ('homo'   , (0, 1, 2)),
+        ('homo'   , (0, 1)),
+        #('repeat'   , (0, 1, 2, 4, 5)),
     ))
 
-    ### Tensor Forest
+    ### Seek experiments results
     target_files = make_path_v2(map_parameters, sep=None)
+    ### Make Tensor Forest of results
     rez = results_tensor(target_files, map_parameters, verbose=False)
 
 
@@ -246,10 +281,11 @@ if __name__ ==  '__main__':
         ('debug' , 'debug11') ,
         ('corpus', '*'),
         ('model' , 'immsb')   ,
-        ('K'     , 10)         ,
+        ('K'     , 20)         ,
         ('N'     , 'all')     ,
         ('hyper' , 'auto')     ,
         ('homo'  , 0) ,
+        #('repeat', '*'),
         ('measure', '*'),
         ))
     if model:

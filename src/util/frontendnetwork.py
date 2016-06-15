@@ -624,23 +624,34 @@ class frontendNetwork(DataBase):
                                 for h in spec['hyper']:
                                     for hm in spec['homo']:
                                         for repeat in spec.get('repeat'):
-                                        # generate path trick wrong
-                                        #t = 'inference-%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
-                                        #t = os.path.join(p, t)
-                                        #filen = os.path.join(os.path.dirname(__file__), "../../data/", t)
-                                        #if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
-                                        #    continue
-                                        d = {'N' : n,
-                                             'K' : k,
-                                             'hyper': h,
-                                             'homo': hm,
-                                             'model': m,
-                                             'corpus_name': c,
-                                             'refdir': hook,
-                                             'repeat': repeat,
-                                            }
-                                        targets.append(d)
+                                            # generate path trick wrong
+                                            #t = 'inference-%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
+                                            #t = os.path.join(p, t)
+                                            #filen = os.path.join(os.path.dirname(__file__), "../../data/", t)
+                                            #if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
+                                            #    continue
+                                            d = {'N' : n,
+                                                 'K' : k,
+                                                 'hyper': h,
+                                                 'homo': hm,
+                                                 'model': m,
+                                                 'corpus_name': c,
+                                                 'refdir': hook,
+                                                 'repeat': repeat,
+                                                }
+                                            targets.append(d)
         return targets
+
+
+    #@staticmethod
+    #def make_path
+    #   first make_dir ('' path are ignored in join !
+    #   then make expe file.
+
+
+    #@staticmethod
+    #def get_expe_file_prop
+    #   rebuild the dict of prop according to a file, but don't consider null value in make conf
 
 
 
