@@ -42,6 +42,9 @@ Examples:
 
 '''
 
+# @Debug:
+#   * get_json and get_data_prop are not consistent/aligned.
+
 ##################
 ###### MAIN ######
 ##################
@@ -81,9 +84,6 @@ if __name__ == '__main__':
     config.update(argParse(_USAGE))
 
     lgg = setup_logger('root','%(message)s', config.get('verbose') )
-
-    if config.get('seed'):
-        np.random.seed(config.get('seed'))
 
     # Silly ! think different
     if config.get('lall'):

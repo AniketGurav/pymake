@@ -27,6 +27,7 @@ Default load corpus and run a model !!
 -n | --limit N : Limit size of corpus
 -d basedir     : base directory to save results.
 -k K           : Number of topics.
+--homo int     : homophily 0:default, 1: ridge, 2: smooth
 ##### Single argument
 -p           : Do prediction on test data
 -s           : Simulate output
@@ -70,6 +71,7 @@ if __name__ == '__main__':
         N                             = 3,
         chunk                         = 10000,
         iterations                    = 2,
+        repeat                        = 1,
         ###
         homo                          = False, # learn W in IBP
         ###### I/O settings
@@ -86,9 +88,6 @@ if __name__ == '__main__':
     config.update(argParse(_USAGE))
 
     lgg = setup_logger('root','%(message)s', config.get('verbose') )
-
-    if config.get('seed'):
-        np.random.seed(config.get('seed'))
 
     # Silly ! think different
     if config.get('lall'):
@@ -126,17 +125,24 @@ if __name__ == '__main__':
     if 'Text' in str(type(frontend)):
         data, data_t = frontend.cross_set(ratio=0.8)
     elif 'Network' in str(type(frontend)):
-        # Random training set on 20% on Data
-        percent_hole = 0.2
-        data = frontend.get_masked(percent_hole)
-        config['symmetric'] = frontend.is_symmetric()
-        data_t = None
-
-        # Random training set on 20% on Data vertex (0.2 * data == 1).
-        #percent_hole = 0.2
-        #data = frontend.get_masked_1(percent_hole)
-        #config['symmetric'] = frontend.is_symmetric()
-        #data_t = None
+        if config['refdir'] in ('debug11', 'debug1111','debug111111'):
+            # Random training set on 20% on Data / debug5 - debug11
+            percent_hole = 0.2
+            data = frontend.get_masked(percent_hole)
+            config['symmetric'] = frontend.is_symmetric()
+            data_t = None
+        elif config['refdir']  in ('debug10', 'debug1010', 'debug101010'):
+            # Random training set on 20% on Data vertex (0.2 * data == 1) / debug6 - debug 10
+            percent_hole = 0.2
+            data = frontend.get_masked_1(percent_hole)
+            config['symmetric'] = frontend.is_symmetric()
+            data_t = None
+        else:
+            # Random training set on 20% on Data / debug5 - debug11
+            percent_hole = 0.2
+            data = frontend.get_masked(percent_hole)
+            config['symmetric'] = frontend.is_symmetric()
+            data_t = None
 
         #print frontend.nodes_list
     else:

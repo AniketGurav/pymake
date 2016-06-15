@@ -32,6 +32,8 @@ from vocabulary import Vocabulary, parse_corpus
 class DataBase(object):
 
     def __init__(self, config):
+        if config.get('seed'):
+            np.random.seed(config.get('seed'))
         self.seed = np.random.get_state()
         self.config = config
         self.corpus_name = config.get('corpus_name')
@@ -58,8 +60,15 @@ class DataBase(object):
         if not hasattr(self, 'basedir') or corpus_name:
             self.basedir = os.path.join(self.bdir, corpus_name)
         corpus_name = corpus_name or self.corpus_name
-        fname_out = '%s_%s_%s_%s_%s.out' % (self.model_name, self.K, self.hyper_optimiztn, self.homo, self.N)
-        config['output_path'] = os.path.join(self.basedir, config.get('refdir', ''),  fname_out)
+        fname_out = '%s_%s_%s_%s_%s.out' % (self.model_name,
+                                            self.K,
+                                            self.hyper_optimiztn,
+                                            self.homo,
+                                            self.N)
+        config['output_path'] = os.path.join(self.basedir,
+                                             config.get('refdir', ''),
+                                             config.get('repeat', ''),
+                                             fname_out)
 
     def load_data(self):
         raise NotImplementedError()
@@ -120,7 +129,7 @@ class FrontendManager(object):
     @staticmethod
     def get(config):
         corpus = config.get('corpus_name')
-        corpus_typo = {'network': ['facebook','generator', 'bench', 'clique'],
+        corpus_typo = {'network': ['facebook','generator', 'bench', 'clique', 'fb_uc', 'manufacturing'],
                        'text': ['reuter50', 'nips12', 'nips', 'enron', 'kos', 'nytimes', 'pubmed', '20ngroups', 'odp', 'wikipedia', 'lucene']}
 
         frontend = None
@@ -132,7 +141,7 @@ class FrontendManager(object):
                     frontend = frontendNetwork(config)
 
         if frontend is None:
-            raise ValueError('Unknown Corpus !')
+            raise ValueError('Unknown Corpus `%s\'!' % corpus)
 
         return frontend
 

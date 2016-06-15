@@ -1,6 +1,7 @@
 import sys, os
 import json
 from itertools import chain
+from operator import itemgetter
 from string import Template
 from numpy import ma
 import networkx as nx
@@ -68,7 +69,7 @@ class frontendNetwork(DataBase):
             else:
                 self.data = self.data[:N, :N]
 
-            if hasattr(self, 'features'):
+            if hasattr(self, 'features') and self.features is not None:
                 self.features = self.features[:N]
 
         return self.data
@@ -163,7 +164,7 @@ class frontendNetwork(DataBase):
             # Catch later or elsewhere
             pass
 
-        if corpus_name[:-1] in ('generator'):
+        if corpus_name.startswith('generator'):
             # Reroot basedir
             K = int(corpus_name[len('generator'):])
             self.basedir = self.basedir[:-len(str(K))]
@@ -194,8 +195,18 @@ class frontendNetwork(DataBase):
 
             fn = os.path.join(self.basedir, corpus_name, '0.edges')
             data = self.networkloader(fn)
+        elif corpus_name == 'manufacturing':
+            fn = os.path.join(self.basedir, 'manufacturing.csv')
+            data = self.networkloader(fn)
+        elif corpus_name == 'fb_uc':
+            fn = os.path.join(self.basedir, 'graph.tnet')
+            data = self.networkloader(fn)
         else:
-            raise ValueError('Which corpus to Load ?')
+            raise ValueError('Which corpus to Load; %s ?' % corpus_name)
+
+        for a in ('features', 'clusters'):
+            if not hasattr(self, a):
+                setattr(self, a, None)
 
         self.data = data
         N, M = self.data.shape
@@ -218,6 +229,10 @@ class frontendNetwork(DataBase):
                 data = self.parse_graph(fn)
             elif ext == 'edges':
                 data = self.parse_edges(fn)
+            elif ext == 'tnet':
+                data = self.parse_tnet(fn)
+            elif os.path.basename(fn) == 'manufacturing.csv':
+                data = self.parse_manufacturing(fn)
             else:
                 raise ValueError('extension of network data unknown')
 
@@ -225,6 +240,32 @@ class frontendNetwork(DataBase):
             self.save(data, fn+'.pk')
 
         return data
+
+    def parse_tnet(self, fn):
+        sep = ' '
+        with open(fn) as f:
+            content = f.read()
+        lines = filter(None, content.split('\n'))
+        edges = [l.strip().split(sep)[-3:-1] for l in lines]
+        edges = [ (int(e[0])-1, int(e[1])-1) for e in edges]
+        N = max(list(chain(*edges))) + 1
+
+        g = np.zeros((N,N))
+        g[zip(*edges)] = 1
+        return g
+
+    def parse_manufacturing(self, fn):
+        sep = ';'
+        with open(fn) as f:
+            content = f.read()
+        lines = filter(None, content.split('\n'))[1:]
+        edges = [l.strip().split(sep)[0:2] for l in lines]
+        edges = [ (int(e[0])-1, int(e[1])-1) for e in edges]
+        N = max(list(chain(*edges))) + 1
+
+        g = np.zeros((N,N))
+        g[zip(*edges)] = 1
+        return g
 
     ### Parse Network data depending on type/extension
     def parse_graph(self, fn):
@@ -265,12 +306,18 @@ class frontendNetwork(DataBase):
         g[[e[0] for e in edges], [e[1] for e in edges]] = 1
         g[[e[1] for e in edges], [e[0] for e in edges]] = 1
 
+        parameters = parse_file_conf(os.path.join(os.path.dirname(fn), 'parameters'))
+        parameters['devs'] = map(float, parameters['devs'].split(';'))
+        self.parameters_ = parameters
+
         self.clusters = clusters
         self.features = np.array(features)
         return g
 
     def communities_analysis(self):
         clusters = self.clusters
+        if clusters is None:
+            return None
         data = self.data
         symmetric = self.is_symmetric()
         community_distribution = list(np.bincount(clusters))
@@ -286,15 +333,6 @@ class frontendNetwork(DataBase):
             local_attach[comm] = local
 
         return community_distribution, local_attach, clusters
-
-    def similarity_matrix(self, sim='cos'):
-        features = self.features
-        if sim == 'dot':
-            sim = np.dot(features, features.T)
-        elif sim == 'cos':
-            norm = np.linalg.norm(features, axis=1)
-            sim = np.dot(features, features.T)/norm/norm.T
-        return sim
 
     def density(self):
         G = self.GG()
@@ -318,18 +356,19 @@ class frontendNetwork(DataBase):
 
     def clustering_coefficient(self):
         G = self.GG()
-        cc = None
         try:
             cc = nx.average_clustering(G)
         except:
-            pass
+            cc = None
         return cc
 
     def GG(self):
         if not hasattr(self, 'G'):
             if self.is_symmetric():
+                # Undirected Graph
                 typeG = nx.Graph()
             else:
+                # Directed Graph
                 typeG = nx.DiGraph()
             self.G = nx.from_numpy_matrix(self.data, typeG)
             #self.G = nx.from_scipy_sparse_matrix(self.data, typeG)
@@ -342,6 +381,16 @@ class frontendNetwork(DataBase):
             nfeat = 2
         return nfeat
 
+    def get_clusters(self):
+        return self.clusters
+
+    def clusters_len(self):
+        cluster = self.get_clusters()
+        if not cluster:
+            return None
+        else:
+            return max(self.clusters)+1
+
     def get_data_prop(self):
         prop =  super(frontendNetwork, self).get_data_prop()
         nnz = self.data.sum(),
@@ -353,13 +402,15 @@ class frontendNetwork(DataBase):
                'density': self.density(),
                'diameter': self.diameter(),
                'clustering_coef': self.clustering_coefficient(),
-               'communities': max(self.clusters)+1,
+               'communities': self.clusters_len(),
                'features': self.get_nfeat(),
+               'directed': not self.is_symmetric()
               }
         prop.update(d)
         return prop
 
     def template(self, d):
+        d['time'] = d.get('time', None)
         netw_templ = '''###### $corpus_name
         Building: $time minutes
         Nodes: $instances
@@ -371,6 +422,7 @@ class frontendNetwork(DataBase):
         Density: $density
         Communities: $communities
         Relations: $features
+        Directed: $directed
         \n'''
         return super(frontendNetwork, self).template(d, netw_templ)
 
@@ -386,6 +438,130 @@ class frontendNetwork(DataBase):
         json.dump(res, open(fn,'w'))
         return fn
 
+    def similarity_matrix(self, sim='cos'):
+        features = self.features
+        if features is None:
+            return None
+
+        if sim == 'dot':
+            sim = np.dot(features, features.T)
+        elif sim == 'cos':
+            norm = np.linalg.norm(features, axis=1)[np.newaxis]
+            sim = np.dot(features, features.T)/np.dot(norm.T, norm)
+        elif sim == 'kmeans':
+            cluster = kmeans(features, K=2)[np.newaxis]
+            cluster[cluster == 0] = -1
+            sim = np.dot(cluster.T,cluster)
+        elif sim == 'comm':
+            N = len(self.clusters)
+            sim = np.repeat(np.array(self.clusters)[np.newaxis], N, 0)
+            sim = (sim == sim.T)*1
+            sim[sim < 1] = -1
+        elif sim == 'euclide_old':
+            from sklearn.metrics.pairwise import euclidean_distances as ed
+            #from plot import kmeans_plus
+            #kmeans_plus(features, K=4)
+            dist = ed(features)
+            K = self.parameters_['k']
+            devs = self.parameters_['devs'][0]
+            sim = np.zeros(dist.shape)
+            sim[dist <= 2.0 * devs / K] = 1
+            sim[dist > 2.0  * devs / K] = -1
+        elif sim == 'euclide_abs':
+            from sklearn.metrics.pairwise import euclidean_distances as ed
+            #from plot import kmeans_plus
+            #kmeans_plus(features, K=4)
+            N = len(features)
+            K = self.parameters_['k']
+            devs = self.parameters_['devs'][0]
+
+            a = np.repeat(features[:,0][None], N, 0).T
+            b = np.repeat(features[:,0][None], N, 0)
+            sim1 = np.abs( a-b )
+            a = np.repeat(features[:,1][None], N, 0).T
+            b = np.repeat(features[:,1][None], N, 0)
+            sim2 = np.abs( a-b )
+
+            sim3 = np.zeros((N,N))
+            sim3[sim1 <= 2.0*  devs / K] = 1
+            sim3[sim1 > 2.0 *  devs / K] = -1
+            sim4 = np.zeros((N,N))
+            sim4[sim2 <= 2.0*  devs / K] = 1
+            sim4[sim2 > 2.0 *  devs / K] = -1
+            sim = sim4 + sim3
+            sim[sim >= 0] = 1
+            sim[sim < 0] = -1
+
+        elif sim == 'euclide_dist':
+            from sklearn.metrics.pairwise import euclidean_distances as ed
+            #from plot import kmeans_plus
+            #kmeans_plus(features, K=4)
+            N = len(features)
+            K = self.parameters_['k']
+            devs = self.parameters_['devs'][0]
+
+            sim1 = ed(np.repeat(features[:,0][None], 2, 0).T)
+            sim2 = ed(np.repeat(features[:,0][None], 2, 0).T)
+
+            sim3 = np.zeros((N,N))
+            sim3[sim1 <= 2.0*  devs / K] = 1
+            sim3[sim1 > 2.0 *  devs / K] = -1
+            sim4 = np.zeros((N,N))
+            sim4[sim2 <= 2.0*  devs / K] = 1
+            sim4[sim2 > 2.0 *  devs / K] = -1
+            sim = sim4 + sim3
+            sim[sim >= 0] = 1
+            sim[sim < 0] = -1
+        return sim
+
+    def homophily(self, sim='cos', type='kleinberg'):
+        data = self.data
+        N = self.data.shape[0]
+        card = N*(N-1)
+        sim_source = self.similarity_matrix(sim=sim)
+        if sim_source is None:
+            return np.nan, np.nan
+
+        connected = data.sum()
+        unconnected = N - connected
+        similar = (sim_source > 0).sum()
+        unsimilar = (sim_source <= 0).sum()
+
+        indic_source = ma.array(np.ones(sim_source.shape)*-1, mask=ma.masked)
+        indic_source[(data == 1) & (sim_source > 0)] = 0
+        indic_source[(data == 1) & (sim_source <= 0)] = 1
+        indic_source[(data == 0) & (sim_source > 0)] = 2
+        indic_source[(data == 0) & (sim_source <= 0)] = 3
+
+        np.fill_diagonal(indic_source, ma.masked)
+        indic_source[indic_source == -1] = ma.masked
+
+        a = (indic_source==0).sum()
+        b = (indic_source==1).sum()
+        c = (indic_source==2).sum()
+        d = (indic_source==3).sum()
+
+        if type == 'kleinberg':
+            homo_obs = 1.0 * a / connected # precision; homophily respected
+            homo_exp = 1.0 * similar / card # rappel; strenght of homophily
+        else:
+            raise NotImplementedError
+
+        #if sim == 'euclide' and type is None:
+        #    homo_obs = 1.0 * (a + d - c - b) / card
+        #    pr = 1.0 * (data == 1).sum() / card
+        #    ps = 1.0 * (indic_source==0).sum() / card
+        #    pnr = 1.0 - pr
+        #    pns = 1.0 - ps
+        #    a_ = pr*ps*card
+        #    b_ = pnr*ps*card
+        #    c_ = pr*pns*card
+        #    d_ = pnr*pns*card
+        #    homo_expect = (a_+b_-c_-d_) /card
+        #    return homo_obs, homo_expect
+
+        return homo_obs, homo_exp
+
     def assort(self, model):
         #if not source:
         #    data = self.data
@@ -397,6 +573,8 @@ class frontendNetwork(DataBase):
         y, _, _ = model.generate(N)
         y = np.triu(y) + np.triu(y, 1).T
         sim_learn = model.similarity_matrix(sim='cos')
+
+        np.fill_diagonal(indic_source, ma.masked)
 
         assert(N == y.shape[0])
 
@@ -418,8 +596,8 @@ class frontendNetwork(DataBase):
         indic_learn[indic_learn == -1] = ma.masked
 
         ### Indicateur Homophily Christine
-        homo_ind1_source = 2.0 * ( (indic_source==0).sum()+(indic_source==3).sum()-(indic_source==1).sum() - (indic_source==2).sum() ) / (N*(N-1))
-        homo_ind1_learn = 2.0 * ( (indic_learn== 0).sum()+(indic_learn==3).sum()-(indic_learn==1).sum() - (indic_learn==2).sum() ) / (N*(N-1))
+        homo_ind1_source = 1.0 * ( (indic_source==0).sum()+(indic_source==3).sum()-(indic_source==1).sum() - (indic_source==2).sum() ) / (N*(N-1))
+        homo_ind1_learn = 1.0 * ( (indic_learn== 0).sum()+(indic_learn==3).sum()-(indic_learn==1).sum() - (indic_learn==2).sum() ) / (N*(N-1))
 
         # AMI / NMI
         from sklearn import metrics
@@ -445,6 +623,7 @@ class frontendNetwork(DataBase):
                             for k in spec['Ks']:
                                 for h in spec['hyper']:
                                     for hm in spec['homo']:
+                                        for repeat in spec.get('repeat'):
                                         # generate path trick wrong
                                         #t = 'inference-%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
                                         #t = os.path.join(p, t)
@@ -458,6 +637,7 @@ class frontendNetwork(DataBase):
                                              'model': m,
                                              'corpus_name': c,
                                              'refdir': hook,
+                                             'repeat': repeat,
                                             }
                                         targets.append(d)
         return targets

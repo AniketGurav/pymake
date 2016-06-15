@@ -23,14 +23,17 @@ if __name__ == '__main__':
         limit_train = None,
         ###### I/O settings
         bdir = '../data',
-        load_corpus = True,
-        save_corpus = True,
+        load_data = False,
+        save_data = True,
     ))
     config.update(argParse(_USAGE))
 
-    corpuses = ('generator1', 'generator2', 'generator3', 'generator4', 'generator5', 'generator6')
-    ask_sure_exit('Sure to overwrite corpus / networks ?')
+    # Expe
+    corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7',)
+    corpuses = ( 'fb_uc', 'manufacturing', )
+    corpuses = ('generator7',)
 
+    ask_sure_exit('Sure to overwrite corpus / networks ?')
     ############################################################
     ##### Simulation Output
     if config.get('simul'):
@@ -42,7 +45,6 @@ if __name__ == '__main__':
     _f = open(fn_corpus_build, 'a')
     _f.write('/**** %s ****/\n\n' % (datetime.now()))
 
-
     for corpus_name in corpuses:
         startt = datetime.now()
         frontend = frontendNetwork(config)
@@ -51,6 +53,7 @@ if __name__ == '__main__':
         prop = frontend.get_data_prop()
         prop.update(time='%0.3f' % (building_corpus_time.total_seconds()/60) )
         msg = frontend.template(prop)
+        print msg
         _f.write(msg)
         _f.flush()
 

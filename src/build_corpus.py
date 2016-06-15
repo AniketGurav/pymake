@@ -23,8 +23,8 @@ if __name__ == '__main__':
         limit_train = None,
         ###### I/O settings
         bdir = '../data',
-        load_corpus = False,
-        save_corpus = True,
+        load_data = False,
+        save_data = True,
     ))
     config.update(argParse(_USAGE))
 

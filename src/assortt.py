@@ -81,9 +81,6 @@ if __name__ == '__main__':
 
     lgg = setup_logger('root','%(message)s', config.get('verbose') )
 
-    if config.get('seed'):
-        np.random.seed(config.get('seed'))
-
     # Silly ! think different
     if config.get('lall'):
         # Load All

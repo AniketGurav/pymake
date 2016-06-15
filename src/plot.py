@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import json
 import numpy as np
@@ -55,16 +56,105 @@ def csv_row(s):
 def plot_degree(y, title=None, noplot=False):
     if len(y) > 6000:
         return
-    typeG = nx.DiGraph()
+    if (y == y.T).all():
+        # Undirected Graph
+        typeG = nx.Graph()
+    else:
+        # Directed Graph
+        typeG = nx.DiGraph()
     G = nx.from_numpy_matrix(y, typeG)
     degree = sorted(nx.degree(G).values(), reverse=True)
     if noplot:
         return degree
     #plt.plot(degree)
     x = np.arange(1, y.shape[0] + 1)
+    fig = plt.figure()
     plt.loglog(x, degree)
     if title:
         plt.title(title)
+    plt.draw()
+
+def plot_degree_(y, title=None):
+    if len(y) > 6000:
+        return
+    if (y == y.T).all():
+        # Undirected Graph
+        typeG = nx.Graph()
+    else:
+        # Directed Graph
+        typeG = nx.DiGraph()
+    G = nx.from_numpy_matrix(y, typeG)
+    degree = sorted(nx.degree(G).values(), reverse=True)
+    x = np.arange(1, y.shape[0] + 1)
+    plt.loglog(x, degree)
+    if title:
+        plt.title(title)
+
+def plot_degree_3(y):
+    if len(y) > 6000:
+        return
+    if (y == y.T).all():
+        # Undirected Graph
+        typeG = nx.Graph()
+    else:
+        # Directed Graph
+        typeG = nx.DiGraph()
+    G = nx.from_numpy_matrix(y, typeG)
+    degree = sorted(nx.degree(G).values(), reverse=True)
+    degree, _ = np.histogram(degree ,bins=len(degree), density=True)
+    x = np.arange(1, y.shape[0] + 1)
+    plt.loglog(x, degree)
+    if title:
+        plt.title(title)
+
+def drop_zeros(a_list):
+    return [i for i in a_list if i>0]
+
+def log_binning(counter_dict,bin_count=35):
+
+    max_x = np.log10(max(counter_dict.keys()))
+    max_y = np.log10(max(counter_dict.values()))
+    max_base = max([max_x,max_y])
+
+    min_x = np.log10(min(drop_zeros(counter_dict.keys())))
+
+    bins = np.logspace(min_x,max_base,num=bin_count)
+
+    # Based off of: http://stackoverflow.com/questions/6163334/binning-data-in-python-with-scipy-numpy
+    #bin_means_y = (np.histogram(counter_dict.keys(),bins,weights=counter_dict.values())[0] / np.histogram(counter_dict.keys(),bins)[0])
+    #bin_means_x = (np.histogram(counter_dict.keys(),bins,weights=counter_dict.keys())[0] / np.histogram(counter_dict.keys(),bins)[0])
+    bin_means_y = np.histogram(counter_dict.keys(),bins,weights=counter_dict.values())[0]
+    bin_means_x = np.histogram(counter_dict.keys(),bins,weights=counter_dict.keys())[0]
+    return bin_means_x,bin_means_y
+
+from collections import Counter
+def plot_degree_2(y):
+    # To convert normalized degrees to raw degrees
+    #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
+    if (y == y.T).all():
+        # Undirected Graph
+        typeG = nx.Graph()
+    else:
+        # Directed Graph
+        typeG = nx.DiGraph()
+    G = nx.from_numpy_matrix(y, typeG)
+    #degree = sorted(nx.degree(G).values(), reverse=True)
+
+    #ba_c = nx.degree_centrality(G)
+    ba_c = nx.degree(G)
+    ba_c2 = dict(Counter(ba_c.values()))
+
+    #ba_x,ba_y = log_binning(ba_c2,50)
+
+    plt.xscale('log')
+    plt.yscale('log')
+    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
+    plt.scatter(ba_c2.keys(),ba_c2.values(),c='b',marker='x')
+    #plt.xlim((1,1e4))
+    plt.ylim((.9,1e3))
+    plt.xlabel('Degree')
+    plt.ylabel('Counts of degree')
+    #plt.show()
 
 def adjmat(Y, title=''):
     plt.figure()
@@ -73,6 +163,25 @@ def adjmat(Y, title=''):
     plt.imshow(Y, cmap="Greys", interpolation="none", origin='upper')
     title = 'Adjacency matrix, N = %d\n%s' % (Y.shape[0], title)
     plt.title(title)
+
+def adjshow_(Y, cmap=None, pixelspervalue=20, minvalue=None, maxvalue=None, title='', ax=None):
+        """ Make a colormap image of a matrix
+        :key Y: the matrix to be used for the colormap.
+        """
+        if minvalue == None:
+            minvalue = np.amin(Y)
+        if maxvalue == None:
+            maxvalue = np.amax(Y)
+        if not cmap:
+            cmap = plt.cm.hot
+            if not ax:
+                plt.axis('off')
+                implot = plt.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+                plt.title(title)
+            else:
+                ax.axis('off')
+                implot = ax.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+        #plt.savefig(filename, fig=fig, facecolor='white', edgecolor='black')
 
 def adjshow(Y, cmap=None, pixelspervalue=20, minvalue=None, maxvalue=None, title='', ax=None):
         """ Make a colormap image of a matrix
@@ -289,6 +398,9 @@ def make_path(spec, sep=None, ):
                                     filen = os.path.join(os.path.dirname(__file__), "../data/", t)
                                     if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
                                         continue
+                                    if sum(1 for line in open(filen)) <= 1:
+                                        # empy file
+                                        continue
                                     targets.append(t)
 
                 if sep == 'corpus' and targets:
@@ -341,18 +453,23 @@ def json_extract(targets):
         for _f in t:
             f = os.path.join(os.path.dirname(__file__), "../data/", _f) + '.json'
             d = os.path.dirname(f)
+            corpus_type = ('/').join(d.split('/')[-2:])
             f = os.path.basename(f)[len('inference-'):]
             fn = os.path.join(d, f)
             try:
                 d = json.load(open(fn,'r'))
                 l.append(d)
+                density = d['density_all']
+                mask_density = d['mask_density']
+                #print density
+                #print mask_density
                 precision = d['Precision']
                 rappel = d['Rappel']
                 K = len(d['Local_Attachment'])
                 h_s = d.get('homo_ind1_source', np.inf)
                 h_l = d.get('homo_ind1_learn', np.inf)
                 nmi = d.get('NMI', np.inf)
-                print '%s; \t K=%s,  global precision: %.3f, local precision: %.3f, rappel: %.3f, homsim s/l: %.3f / %.3f, NMI: %.3f' % (f, K, d.get('g_precision'), precision, rappel, h_s, h_l, nmi )
+                print '%s %s; \t K=%s,  global precision: %.3f, local precision: %.3f, rappel: %.3f, homsim s/l: %.3f / %.3f, NMI: %.3f' % (corpus_type, f, K, d.get('g_precision'), precision, rappel, h_s, h_l, nmi )
             except Exception, e:
                 print e
                 pass
@@ -370,24 +487,24 @@ if __name__ ==  '__main__':
 
     spec = dict(
         base = ['networks'],
-        hook_dir = ['debug6/'],
+        hook_dir = ['debug5/'],
         #corpus   = ['kos', 'nips12', 'nips', 'reuter50', '20ngroups'],
         #corpus   = ['generator/Graph1', 'generator/Graph2', 'clique3'],
-        #corpus   = ['generator/Graph3',],
         #corpus   = ['generator/Graph3', 'generator/Graph4'],
-        corpus   = ['generator/Graph5', 'generator/Graph6'],
+        corpus   = ['generator/Graph4', 'generator/Graph10', 'generator/Graph12', 'generator/Graph13'],
         columns  = ['perplexity'],
         #models   = ['ibp', 'ibp_cgs'],
         #models   = ['ibp_cgs', 'immsb'],
-        models   = ['immsb', 'mmsb_cgs'],
-        #models   = [ 'mmsb_cgs', 'immsb'],
+        ##models   = ['immsb', 'mmsb_cgs'],
+        models   = [ 'ibp', 'immsb'],
         #Ns       = [250, 1000, 'all'],
-        Ns       = [1000,],
-        Ks       = [5, 10, 15, 20, 25, 30],
+        Ns       = ['all',],
+        #Ks       = [5, 10, 15, 20, 25, 30],
+        Ks       = [5, 10],
         #Ks       = [5, 10, 30],
         #Ks       = [10],
-        homo     = [0,1,2],
-        #homo     = [0,1, 2],
+        #homo     = [0,1,2],
+        homo     = [0],
         hyper    = ['fix', 'auto'],
         #hyper    = ['auto'],
         iter_max = 500 ,
@@ -398,6 +515,7 @@ if __name__ ==  '__main__':
     #separate = 'N' and False
     targets = make_path(spec, sep=sep)
     json_extract(targets)
+    exit()
     if sep:
         for t in targets:
             plot_csv(t, spec['columns'], separate=separate, twin=False, iter_max=spec['iter_max'])

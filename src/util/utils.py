@@ -38,6 +38,9 @@ def argParse(usage="Usage ?"):
         elif arg in ('--refdir',):
             _arg = sys.argv.pop(i+1)
             argdict['refdir'] = _arg
+        elif arg in ('--repeat',):
+            _arg = sys.argv.pop(i+1)
+            argdict['repeat'] = _arg
         elif arg in ('-k',):
             _arg = int(sys.argv.pop(i+1))
             argdict['K'] = _arg
@@ -125,6 +128,25 @@ def jsondict(d):
         return {str(k):v for k,v in d.items()}
     return d
 
+def parse_file_conf(fn):
+    with open(fn) as f:
+        parameters = f.read()
+    parameters = filter(None, parameters.split('\n'))
+    parameters = dict((p[0], p[1]) for p  in (t.strip().split(':') for t in parameters))
+    for k, v in parameters.items():
+        if  '.' in v:
+            try:
+                parameters[k] = float(v)
+            except:
+                pass
+        else:
+            try:
+                parameters[k] = int(v)
+            except:
+                pass
+    return parameters
+
+
 def getGraph(target='', **conf):
     basedir = conf.get('filen', dirname(__file__) + '/../../data/networks/')
     filen = basedir + target
@@ -172,13 +194,49 @@ def getClique(N=100, K=4):
 
 try:
     from sklearn.cluster import KMeans
+    from sklearn.datasets.samples_generator import make_blobs
 except:
     pass
 def kmeans(M, K=4):
-    km = KMeans(n_clusters=K)
+    km = KMeans( init='k-means++',  n_clusters=K)
     km.fit(M)
     clusters = km.predict(M.astype(float))
     return clusters
+
+from matplotlib import pyplot as plt
+def kmeans_plus(X=None, K=4):
+    if X is None:
+        centers = [[1, 1], [-1, -1], [1, -1]]
+        K = len(centers)
+        X, labels_true = make_blobs(n_samples=3000, centers=centers, cluster_std=0.7)
+
+	##############################################################################
+	# Compute clustering with Means
+
+    k_means = KMeans(init='k-means++', n_clusters=K, n_init=10)
+    k_means.fit(X)
+    k_means_labels = k_means.labels_
+    k_means_cluster_centers = k_means.cluster_centers_
+    k_means_labels_unique = np.unique(k_means_labels)
+
+	##############################################################################
+	# Plot result
+
+    colors = ['#4EACC5', '#FF9C34', '#4E9A06', '#4E9A97']
+    plt.figure()
+    plt.hold(True)
+    for k, col in zip(range(K), colors):
+    #for k in range(K):
+        my_members = k_means_labels == k
+        cluster_center = k_means_cluster_centers[k]
+        plt.plot(X[my_members, 0], X[my_members, 1], 'w',
+                 markerfacecolor=col, marker='.')
+        plt.plot(cluster_center[0], cluster_center[1], 'o',
+                 markeredgecolor='k', markersize=6, markerfacecolor=col)
+    plt.title('KMeans')
+    plt.grid(True)
+    plt.show()
+
 
 
 from scipy.io.matlab import loadmat
