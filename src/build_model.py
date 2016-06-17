@@ -58,14 +58,14 @@ if __name__ == '__main__':
         host                          = 'localhost',
         index                         = 'search',
         ##### Input Features / Corpus
-        corpus_name                   = 'kos',
+        corpus_name                   = 'clique2',
         vsm                           = 'tf',
         limit_train                   = 10000,
         limit_predict                 = None,
         extra_feat                    = False,
         ##### Models Hyperparameters
         #model                         = 'lda_cgs',
-        model_name                    = 'ilda',
+        model_name                    = 'immsb',
         hyper                         = 'auto',
         K                             = 3,
         N                             = 3,

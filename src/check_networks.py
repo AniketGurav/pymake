@@ -25,7 +25,6 @@ if __name__ == '__main__':
         ###### I/O settings
         bdir = '../data',
         load_data = False, # Fasle because if not cluster and feature are not loaded
-        save_data = False,
     ))
     config.update(argParse(_USAGE))
 
@@ -38,15 +37,15 @@ if __name__ == '__main__':
     ### Expe
     Corpuses = ( 'generator4', )
     Corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7',)
+    Corpuses = ( 'manufacturing', 'fb_uc',)
     Corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7', 'generator13')
     Corpuses = ( 'generator10', )
-    Corpuses = ( 'manufacturing', 'fb_uc',)
 
     ### Models
     Model = dict ((
-    ('debug'        , 'debug10') ,
-    ('model'        , 'immsb')   ,
-    ('K'            , 15)        ,
+    ('debug'        , 'debug11') ,
+    ('model'        , 'ibp')   ,
+    ('K'            , 20)        ,
     ('N'            , 'all')     ,
     ('hyper'        , 'fix')     ,
     ('homo'         , 0)         ,
@@ -64,10 +63,10 @@ if __name__ == '__main__':
     for corpus_name in Corpuses:
         frontend = frontendNetwork(config)
         data = frontend.load_data(corpus_name)
+        data = frontend.sample()
         prop = frontend.get_data_prop()
         msg = frontend.template(prop)
         #print msg
-
 
         #################################################
         ### Homophily Analysis

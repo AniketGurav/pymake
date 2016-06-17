@@ -76,7 +76,7 @@ def results_tensor(target_files, map_parameters, verbose=True):
 
     ### Output: rez.shape rez_map_l rez_map
     # Those valuea are get from file expe see get_expe_file()
-    dim = get_expe_file_set_prop(target_files)
+    dim = get_conf_dim_from_files(target_files)
     map_parameters = map_parameters
 
     rez_map = map_parameters.keys() # order !
@@ -98,7 +98,7 @@ def results_tensor(target_files, map_parameters, verbose=True):
     not_finished = []
     info_file = []
     for _f in target_files:
-        prop = get_expe_file_prop(_f)
+        prop = get_conf_from_file(_f)
         pt = np.empty(rez.ndim)
 
         assert(len(pt) - len(new_dims) == len(prop))

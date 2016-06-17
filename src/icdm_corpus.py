@@ -25,26 +25,24 @@ if __name__ == '__main__':
         ###### I/O settings
         bdir = '../data',
         load_data = False, # Fasle because if not cluster and feature are not loaded
-        save_data = False,
     ))
     config.update(argParse(_USAGE))
 
     ### Bursty
-    #corpuses = ( 'generator3', 'generator11', 'generator12', 'generator7', 'generator14',)
+    #Corpuses = ( 'generator3', 'generator11', 'generator12', 'generator7', 'generator14',)
 
     ### Non Bursty
-    #corpuses = ( 'generator4', 'generator5', 'generator6', 'generator9', 'generator10',)
+    #Corpuses = ( 'generator4', 'generator5', 'generator6', 'generator9', 'generator10',)
 
 
     ### Expe
-
-    corpuses = (('generator4', 'Network 4 -b/h', 'g4'),
+    Corpuses = (('generator4', 'Network 4 -b/h', 'g4'),
                 ('generator10','Network 3 -b/-h', 'g3'),
                 ('generator12','Network 2 b/-h', 'g2'),
                 ('generator7' ,'Network 1  b/h ', 'g1'),
                 )
 
-    corpuses = (('manufacturing', 'Manufacturing', 'manufacturing'),
+    Corpuses = (('manufacturing', 'Manufacturing', 'manufacturing'),
                 ('fb_uc', 'UC Irvine', 'irvine' )
                )
 
@@ -52,16 +50,18 @@ if __name__ == '__main__':
     ##### Simulation Output
     if config.get('simul'):
         print '''--- Simulation settings ---
-        Build Corpuses %s''' % (str(corpuses))
+        Build Corpuses %s''' % (str(Corpuses))
         exit()
 
-    for corpus_ in corpuses:
+    for corpus_ in Corpuses:
+        path = '../../../papers/personal/relational_models/git/img/'
         corpus_name = corpus_[0]
         title = corpus_[1]
         fn = corpus_[2]
 
         frontend = frontendNetwork(config)
         data = frontend.load_data(corpus_name)
+        data = frontend.sample()
         prop = frontend.get_data_prop()
         msg = frontend.template(prop)
         #print msg
@@ -101,7 +101,7 @@ if __name__ == '__main__':
             community_distribution_source, local_attach_source, clusters_source = frontend.communities_analysis()
         except TypeError:
             'Getting Latent Classes from Latent Models...'
-            d = frontend.get_json()
+            #d = frontend.get_json()
             #local_attach_source = d['Local_Attachment']
             #community_distribution_source = d['Community_Distribution']
             ### In the future
@@ -112,7 +112,7 @@ if __name__ == '__main__':
             print 'Skypping reordering adjacency matrix: %s' % e
             data_r = data
 
-        ### Reordering Adjacency Mmatrix based on Clusters/Class/Communities
+        ### Reordering Adjacency Matrix based on Clusters/Class/Communities
         if globals().get('clusters_source'):
             nodelist = [k[0] for k in sorted(zip(range(len(clusters_source)), clusters_source), key=lambda k: k[1])]
             data_r = data[nodelist, :][:, nodelist]
@@ -125,7 +125,6 @@ if __name__ == '__main__':
         ### Plotting
 
         ### Plot Adjacency matrix
-        path = '../../../papers/personal/relational_models/git/img/'
         figsize=(4.7, 4.7)
         plt.figure(figsize=figsize)
         #plt.subplot(1,2,1)
@@ -138,7 +137,6 @@ if __name__ == '__main__':
         figsize=(3.8, 4.3)
         #figsize=(3.3, 4.3)
         plt.figure(figsize=figsize)
-        #plt.subplot(1,2,2)
         plot_degree_2(data)
 
         plt.savefig(path+fn+'_d'+'.pdf', facecolor='white', edgecolor='black')

@@ -147,6 +147,11 @@ def plot_degree_2(y, ax=None):
     x = np.array(ba_c2.keys())
     y = np.array(ba_c2.values())
 
+    if x[0] == 0:
+        print '%d unconnected vertex' % y[0]
+        x = x[1:]
+        y = y[1:]
+
     #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
     plt.xscale('log')
     plt.yscale('log')
@@ -154,6 +159,67 @@ def plot_degree_2(y, ax=None):
     fit = np.polyfit(np.log(x), np.log(y), deg=1)
     plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'g--')
     plt.scatter(x,y,c='b',marker='o')
+
+    #plt.xlim((1,1e4))
+    plt.ylim((.9,1e3))
+    plt.xlabel('Degree')
+    #plt.ylabel('Counts of degree')
+    #plt.show()
+
+def plot_degree_2_l(Y, ax=None):
+    _X = []
+    _Y = []
+    size = []
+    for y in Y:
+        # To convert normalized degrees to raw degrees
+        #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
+        if (y == y.T).all():
+            # Undirected Graph
+            typeG = nx.Graph()
+        else:
+            # Directed Graph
+            typeG = nx.DiGraph()
+        G = nx.from_numpy_matrix(y, typeG)
+        #degree = sorted(nx.degree(G).values(), reverse=True)
+
+        #ba_c = nx.degree_centrality(G)
+        ba_c = nx.degree(G)
+        ba_c2 = dict(Counter(ba_c.values()))
+
+        #ba_x,ba_y = log_binning(ba_c2,50)
+        _X.append(ba_c2.keys())
+        _Y.append(ba_c2.values())
+        if _Y[-1][0] == 0:
+            _X[-1] = _X[-1][1:]
+            _Y[-1] = _Y[-1][1:]
+        size.append(len(_Y[-1]))
+
+    min_d = min(size)
+    for i, v in enumerate(_Y):
+        if len(v) > min_d:
+            _X[i] = _X[i][:min_d]
+            _Y[i] = _Y[i][:min_d]
+
+    X = np.array(_X)
+    Y = np.array(_Y)
+    print X
+    print Y
+    x = X.mean(0)
+    y = Y.mean(0)
+
+    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
+    plt.xscale('log')
+    plt.yscale('log')
+
+    fit = np.polyfit(np.log(x), np.log(y), deg=1)
+    plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'g--')
+    #plt.scatter(x,y,c='b',marker='o')
+
+    yerr = y / 2
+    plt.errorbar(x, y, yerr=yerr, fmt='o')
+
+
+
     #plt.xlim((1,1e4))
     plt.ylim((.9,1e3))
     plt.xlabel('Degree')
@@ -442,7 +508,7 @@ def json_extract(targets):
             try:
                 d = json.load(open(fn,'r'))
                 l.append(d)
-                density = d['density_all']
+                density = d['density'] # excepte try density_all
                 mask_density = d['mask_density']
                 #print density
                 #print mask_density

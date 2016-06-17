@@ -6,13 +6,13 @@ LOCAL_BDIR = '../../data'
     #### I/O
     Corpus are load/saved using Pickle format in:
     * bdir/corpus_name.pk
-    Models are load/saved using Pickle/Json/CSV in :
-    * bdir/debug/rept/model_name_parameters.pk
-    * bdir/debug/rept/model_name_parameters.json
-    * bdir/debug/rept/inference-model_name_parameters
+    Models are load/saved using cPickle/json/cvs in :
+    * bdir/debug/rept/model_name_parameters.pk <--> ModelManager
+    * bdir/debug/rept/model_name_parameters.json <--> DataBase
+    * bdir/debug/rept/inference-model_name_parameters <--> ModelBase
 
     Filnemame is formatted as follow:
-    fname_out = '%s_%s_%s_%s_%s.out' % (self.model_name,
+    fname_out = '%s_%s_%s_%s_%s' % (self.model_name,
                                         self.K,
                                         self.hyper_optimiztn,
                                         self.homo,
@@ -47,7 +47,8 @@ def make_forest_path(spec, _type, sep=None):
     for base in ('networks',):
         for hook in spec['debug']:
             for c in spec['corpus']:
-                if c.startswith(('clique', 'Graph')):
+                if c.startswith(('clique', 'Graph', 'generator')):
+                    c = c.replace('generator', 'Graph')
                     _c = 'generator/' + c
                 else:
                     _c = c
@@ -79,7 +80,8 @@ def make_output_path(spec, _type, sep=None):
     base = 'networks'
     hook = spec['debug']
     c = spec['corpus']
-    if c.startswith(('clique', 'Graph')):
+    if c.startswith(('clique', 'Graph', 'generator')):
+        c = c.replace('generator', 'Graph')
         _c = 'generator/' + c
     else:
         _c = c
@@ -103,15 +105,15 @@ def make_output_path(spec, _type, sep=None):
             continue
 
     if _type == 'pk':
-        t = t + '.pk'
+        filen = filen + '.pk'
     elif _type == 'json':
-        t = t + '.json'
+        filen = filen + '.json'
     elif _type in ('inf', 'inference'):
-        t = 'inference-' + t
+        filen = 'inference-' + filen
     elif _type == 'all':
-        t = dict(pk=t + '.pk',
-                 json=t + '.json',
-                 inference='inference-'+t)
+        filen = dict(pk=filen + '.pk',
+                 json=filen + '.json',
+                 inference='inference-'+filen)
     else:
         raise NotImplementedError
 
@@ -148,7 +150,7 @@ def make_forest_conf(spec):
                                         targets.append(d)
     return targets
 
-def get_expe_file_prop(target):
+def get_conf_from_file(target):
     """ Return dictionary of property for an expe file. (format
     inference-model_K_hyper_N) """
     _id = target.split('_')
@@ -163,6 +165,7 @@ def get_expe_file_prop(target):
             model += s
 
     # @debug
+    print target
     try:
         int(target.split('/')[-2])
         id_debug = -3
@@ -190,15 +193,15 @@ def get_expe_file_prop(target):
 
     return prop
 
-def get_expe_file_set_prop(targets):
+def get_conf_dim_from_files(targets):
     """ Return size of proportie in a list for expe files """
     template = 'networks/generator/Graph13/debug11/inference-immsb_10_auto_0_all'
     c = []
     for t in targets:
-        c.append(get_expe_file_prop(t))
+        c.append(get_conf_from_file(t))
 
     sets = {}
-    keys_name = get_expe_file_prop(template).keys()
+    keys_name = get_conf_from_file(template).keys()
     for p in keys_name:
         sets[p] = len(set([ _p[p] for _p in c ]))
 

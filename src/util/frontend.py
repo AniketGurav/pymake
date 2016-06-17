@@ -67,7 +67,7 @@ class DataBase(object):
         if not hasattr(self, 'basedir') or corpus_name:
             self.basedir = os.path.join(self.bdir, corpus_name)
         corpus_name = corpus_name or self.corpus_name
-        fname_out = '%s_%s_%s_%s_%s.out' % (self.model_name,
+        fname_out = '%s_%s_%s_%s_%s' % (self.model_name,
                                             self.K,
                                             self.hyper_optimiztn,
                                             self.homo,
@@ -82,8 +82,27 @@ class DataBase(object):
     def corpus_walker(bdir):
         raise NotImplementedError()
 
+    #######
+    # How to get a chlidren class from root class !?
+    # See also: load_model() return super('child') ...
+    #######
     def load_data(self):
         raise NotImplementedError()
+
+    def save_json(self):
+        fn = self.output_path + '.json'
+        return json.dump(res, open(fn,'w'))
+    def get_json(self):
+        fn = self.config['output_path'] + '.json'
+        d = json.load(open(fn,'r'))
+        return d
+    def update_json(self, d):
+        fn = self.config['output_path'] + '.json'
+        res = json.load(open(fn,'r'))
+        res.update(d)
+        print 'updating json: %s' % fn
+        json.dump(res, open(fn,'w'))
+        return fn
 
     def get_data_prop(self):
         prop = defaultdict()
@@ -167,6 +186,7 @@ class ModelBase(object):
     """
     def __init__(self):
         self._samples = []
+        # Why this the fuck ?
         super(ModelBase, self).__init__()
 
     # Write data with buffer manager
@@ -256,16 +276,7 @@ class ModelManager(object):
         self.data = data
         self.data_t = data_t
 
-        self.model_name = config.get('model_name')
-        #models = {'ilda' : HDP_LDA_CGS,
-        #          'lda_cgs' : LDA_CGS, }
-        self.hyperparams = config.get('hyperparams')
-        self.output_path = config.get('output_path')
-        self.K = config.get('K')
-        self.inference_method = '?'
-
-        self.write = config.get('write', False)
-        self.config = config
+        self._init(config)
 
         if self.config.get('load_model'):
             return
@@ -380,23 +391,18 @@ class ModelManager(object):
             print 'No predict method for self._name_ ?'
             return
 
+        ### Prediction Measures
         res = self.model.predict()
 
-        ### Global Measure
-        # Global Preferential Aattachment
-        # Overall Links Density
-        res['density_all'] = frontend.density()
-        res['degree_all'] = jsondict(frontend.degree())
-        res['degree_hist'] = frontend.degree_histogram()
-        res['clustering_coefficient'] = frontend.clustering_coefficient()
+        ### Data Measure
+        data_prop = frontend.get_data_prop()
+        res.update(data_prop)
 
         if self.write:
-            # Write ...
-            fn = self.output_path[:-len('.out')] + '.json'
-            json.dump(res, open(fn,'w'))
+            frontend.save_json(res)
             self.save()
         else:
-            print res
+            lgg.debug(res)
 
     # Measure perplexity on different initialization
     def init_loop_test(self):
@@ -413,7 +419,7 @@ class ModelManager(object):
 
     # Pickle class
     def save(self):
-        fn = self.output_path[:-len('.out')] + '.pk'
+        fn = self.output_path + '.pk'
         ### Debug for non serializable variables
         #for u, v in vars(self.model).items():
         #    with open(f, 'w') as _f:
@@ -431,7 +437,7 @@ class ModelManager(object):
     #@classmethod
     def load(self, spec=None):
         if spec == None:
-            fn = self.output_path[:-len('.out')] + '.pk'
+            fn = self.output_path + '.pk'
         else:
             fn = make_output_path(spec, 'pk')
         if not os.path.isfile(fn) or os.stat(fn).st_size == 0:
@@ -441,7 +447,26 @@ class ModelManager(object):
             print 'Pick the right models, maestro !'
             raise IOError
         with open(fn, 'r') as _f:
-            return cPickle.load(_f)
+            model =  cPickle.load(_f)
+
+        if spec:
+            self._init(spec)
+        self.model = model
+        return model
+
+    def _init(self, spec):
+        self.model_name = spec.get('model_name') or spec.get('model')
+        #models = {'ilda' : HDP_LDA_CGS,
+        #          'lda_cgs' : LDA_CGS, }
+        self.hyperparams = spec.get('hyperparams')
+        self.output_path = spec.get('output_path')
+        self.K = spec.get('K')
+        self.inference_method = '?'
+
+        self.write = spec.get('write', False)
+        # **kwargs
+        self.config = spec
+
 
 
 

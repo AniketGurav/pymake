@@ -82,6 +82,5 @@ if __name__ == '__main__':
         ### Homophily measures
         d = frontend.assort(model)
 
-
         frontend.update_json(d)
 

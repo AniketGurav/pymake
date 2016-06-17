@@ -93,7 +93,8 @@ def argParse(usage="Usage ?"):
             exit(0)
         else:
             if i == 0:
-                argdict.setdefault('arg', 'no args') # see defaultdict...
+                argdict.setdefault('arg', False)
+                #argdict.setdefault('arg', 'no args')
             else:
                 argdict.update({arg:arg})
 

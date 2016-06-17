@@ -126,7 +126,7 @@ if __name__ == '__main__':
         gmma = 1.
         delta = .1
         model = model.model
-        model.update_hyper((alpha, gmma, delta)
+        model.update_hyper((alpha, gmma, delta))
         y, theta, phi = model.generate(N, config['K'])
 
     ### Baselines

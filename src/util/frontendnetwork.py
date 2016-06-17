@@ -1,5 +1,4 @@
 import sys, os
-import json
 from itertools import chain
 from operator import itemgetter
 from string import Template
@@ -26,31 +25,32 @@ class frontendNetwork(DataBase):
         self.bdir = os.path.join(config['bdir'], 'networks')
         super(frontendNetwork, self).__init__(config)
 
-    # Load data according to different scheme:
-    #   * Corpus from file dataset
-    #   * Corpus from random generator
+    # /!\ Will set the name of output_path.
     def load_data(self, corpus_name=None, randomize=False):
-        corpus_name = corpus_name or self.config.get('corpus_name')
-        if corpus_name:
-            self.get_corpus(corpus_name)
-        elif self.config.get('random'):
-            self.random()
+        """ Load data according to different scheme:
+            * Corpus from file dataset
+            * Corpus from random generator
+            """
+        if corpus_name is not None:
+            self.corpus_name = corpus_name
         else:
-            raise ValueError()
+            corpus_name = self.corpus_name
+
+        self.get_corpus(corpus_name)
 
         np.fill_diagonal(self.data, 1)
         if randomize:
             self.shuffle_node()
         return self.data
 
-    # Shuffle rows and columns of data
     def shuffle_node(self):
+        """ Shuffle rows and columns of data """
         N, M = self.data.shape
         nodes_list = [np.random.permutation(N), np.random.permutation(M)]
         self.reorder_node(nodes_list)
 
-    # Subsample the data with reordoring of rows and columns
     def reorder_node(self, nodes_l):
+        """ Subsample the data with reordoring of rows and columns """
         self.data = self.data[nodes_l[0], :][:, nodes_l[1]]
         # Track the original nodes
         self.nodes_list = [self.nodes_list[0][nodes_l[0]], self.nodes_list[1][nodes_l[1]]]
@@ -76,6 +76,7 @@ class frontendNetwork(DataBase):
         return self.data
 
     def get_masked(self, percent_hole, diag_off=1):
+        """ Construct a random mask """
         data = self.data
         if type(data) is np.ndarray:
             #self.data_mat = sp.sparse.csr_matrix(data)
@@ -97,8 +98,8 @@ class frontendNetwork(DataBase):
 
         return data_ma
 
-    # Construct Mask nased on the proportion of 1/links
     def get_masked_1(self, percent_hole, diag_off=1):
+        """ Construct Mask nased on the proportion of 1/links """
         data = self.data
         if type(data) is np.ndarray:
             #self.data_mat = sp.sparse.csr_matrix(data)
@@ -215,8 +216,8 @@ class frontendNetwork(DataBase):
         self.nodes_list = [np.arange(N), np.arange(M)]
         return True
 
-    ### Load pickle or parse data
     def networkloader(self, fn):
+        """ Load pickle or parse data """
 
         data = None
         if self._load_data and os.path.isfile(fn+'.pk'):
@@ -268,8 +269,8 @@ class frontendNetwork(DataBase):
         g[zip(*edges)] = 1
         return g
 
-    ### Parse Network data depending on type/extension
     def parse_graph(self, fn):
+        """ Parse Network data depending on type/extension """
         f = open(fn, 'r')
         data = []
         inside = {'vertices':False, 'edges':False }
@@ -426,18 +427,6 @@ class frontendNetwork(DataBase):
         Directed: $directed
         \n'''
         return super(frontendNetwork, self).template(d, netw_templ)
-
-    def get_json(self):
-        fn = self.config['output_path'][:-len('.out')] + '.json'
-        d = json.load(open(fn,'r'))
-        return d
-    def update_json(self, d):
-        fn = self.config['output_path'][:-len('.out')] + '.json'
-        res = json.load(open(fn,'r'))
-        res.update(d)
-        print 'updating json: %s' % fn
-        json.dump(res, open(fn,'w'))
-        return fn
 
     def similarity_matrix(self, sim='cos'):
         features = self.features

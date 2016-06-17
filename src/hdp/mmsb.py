@@ -731,6 +731,8 @@ class GibbsRun(ModelBase):
         return
 
     def update_hyper(self, hyper):
+        if hyper is None:
+            return
         alpha, gmma, delta = hyper
         if delta:
             self.s.zsampler.likelihood.delta = delta

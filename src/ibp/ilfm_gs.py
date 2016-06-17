@@ -461,6 +461,8 @@ class IBPGibbsSampling(IBP, ModelBase):
         return self.log_likelihood_Y()
 
     def update_hyper(self, hyper):
+        if hyper is None:
+            return
         alpha, _ = hyper
         if alpha:
             self._alpha = alpha
