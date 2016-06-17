@@ -111,7 +111,6 @@ def drop_zeros(a_list):
     return [i for i in a_list if i>0]
 
 def log_binning(counter_dict,bin_count=35):
-
     max_x = np.log10(max(counter_dict.keys()))
     max_y = np.log10(max(counter_dict.values()))
     max_base = max([max_x,max_y])
@@ -128,7 +127,7 @@ def log_binning(counter_dict,bin_count=35):
     return bin_means_x,bin_means_y
 
 from collections import Counter
-def plot_degree_2(y):
+def plot_degree_2(y, ax=None):
     # To convert normalized degrees to raw degrees
     #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
     if (y == y.T).all():
@@ -145,15 +144,20 @@ def plot_degree_2(y):
     ba_c2 = dict(Counter(ba_c.values()))
 
     #ba_x,ba_y = log_binning(ba_c2,50)
+    x = np.array(ba_c2.keys())
+    y = np.array(ba_c2.values())
 
+    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
     plt.xscale('log')
     plt.yscale('log')
-    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
-    plt.scatter(ba_c2.keys(),ba_c2.values(),c='b',marker='x')
+
+    fit = np.polyfit(np.log(x), np.log(y), deg=1)
+    plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'g--')
+    plt.scatter(x,y,c='b',marker='o')
     #plt.xlim((1,1e4))
     plt.ylim((.9,1e3))
     plt.xlabel('Degree')
-    plt.ylabel('Counts of degree')
+    #plt.ylabel('Counts of degree')
     #plt.show()
 
 def adjmat(Y, title=''):
@@ -163,25 +167,6 @@ def adjmat(Y, title=''):
     plt.imshow(Y, cmap="Greys", interpolation="none", origin='upper')
     title = 'Adjacency matrix, N = %d\n%s' % (Y.shape[0], title)
     plt.title(title)
-
-def adjshow_(Y, cmap=None, pixelspervalue=20, minvalue=None, maxvalue=None, title='', ax=None):
-        """ Make a colormap image of a matrix
-        :key Y: the matrix to be used for the colormap.
-        """
-        if minvalue == None:
-            minvalue = np.amin(Y)
-        if maxvalue == None:
-            maxvalue = np.amax(Y)
-        if not cmap:
-            cmap = plt.cm.hot
-            if not ax:
-                plt.axis('off')
-                implot = plt.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-                plt.title(title)
-            else:
-                ax.axis('off')
-                implot = ax.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        #plt.savefig(filename, fig=fig, facecolor='white', edgecolor='black')
 
 def adjshow(Y, cmap=None, pixelspervalue=20, minvalue=None, maxvalue=None, title='', ax=None):
         """ Make a colormap image of a matrix
@@ -198,15 +183,13 @@ def adjshow(Y, cmap=None, pixelspervalue=20, minvalue=None, maxvalue=None, title
                 #fig = plt.figure(figsize=figsize)
                 #fig.set_size_inches(figsize)
                 #plt.axes([0, 0, 1, 1]) # Make the plot occupy the whole canvas
-                fig = plt.figure()
                 plt.axis('off')
-                plt.title(title)
                 implot = plt.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+                plt.title(title)
             else:
                 ax.axis('off')
                 implot = ax.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        #plt.show()
-        plt.draw()
+                plt.title(title)
         #plt.savefig(filename, fig=fig, facecolor='white', edgecolor='black')
 
 def adjshow_l(Y,title=[], pixelspervalue=20):

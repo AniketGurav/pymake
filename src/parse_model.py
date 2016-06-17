@@ -3,6 +3,7 @@
 
 from util.frontend import ModelManager, FrontendManager
 from util.frontendnetwork import frontendNetwork
+from util.frontend_io import *
 
 import numpy as np
 import scipy as sp
@@ -10,6 +11,8 @@ import os
 
 if __name__ == '__main__':
 
+    ####################################################
+    ### Config
     spec = dict(
         base = ['networks'],
         hook_dir = ['debug5/'],
@@ -46,7 +49,7 @@ if __name__ == '__main__':
                 'bdir': '../data',
                 #'save_data': True,
                }
-    configs = frontendNetwork.make_conf(spec)
+    configs = make_forest_conf(spec)
 
     for config in configs:
         config.update(def_conf)
@@ -59,19 +62,14 @@ if __name__ == '__main__':
         frontend = FrontendManager.get(config)
         data = frontend.load_data(randomize=False)
         data = frontend.sample()
-        model = ModelManager(None, config)
-
-        ouf = config['output_path'][:-len('.out')] + '.pk'
-        if not os.path.isfile(ouf) or os.stat(ouf).st_size == 0:
-            continue
-
-        #if frontend.get_json():
-        #    continue
+        model = ModelManager(config=config)
 
         # Generate Data model
         if config.get('load_model'):
             ### Generate data from a fitted model
             model = model.load()
+            if model is None:
+                continue
 
             ## For zipf: do the script
             #y, theta, phi = model.generate(config['N'])
@@ -81,6 +79,9 @@ if __name__ == '__main__':
             model = model.model
             y, theta, phi = model.generate(config['N'], config['K'])
 
+        ### Homophily measures
         d = frontend.assort(model)
+
+
         frontend.update_json(d)
 

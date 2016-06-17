@@ -574,7 +574,7 @@ class BetaSampler(GibbsSampler):
 
     def _update_dirichlet_params(self):
         m_dotk_augmented = np.append(self.msampler.m_dotk, self.gmma)
-        lgg.info( 'Beta Dirichlet Prior: %s' % (m_dotk_augmented))
+        lgg.info( 'Beta Dirichlet Prior: %s, alpha0: %.4f ' % (m_dotk_augmented, self.msampler.zsampler.alpha_0))
         self.dirichlet_params = m_dotk_augmented
 
 class NP_CGS(GibbsSampler):
@@ -593,9 +593,9 @@ class NP_CGS(GibbsSampler):
 
         if hyper.startswith( 'auto' ):
             self.hyper = hyper
-            self.a_alpha = 1
+            self.a_alpha = 10
             self.b_alpha = 1
-            self.a_gmma = 1
+            self.a_gmma = 10
             self.b_gmma = 1
             self.optimize_hyper_hdp()
         elif hyper.startswith( 'fix' ):
@@ -722,16 +722,35 @@ class GibbsRun(ModelBase):
                 break
             if i >= self.burnin:
                 if i % self.thinning == 0:
-                    self.samples.append([self.theta, self.phi])
+                    self.samples.append([self._theta, _self.phi])
 
         ### Clean Things
         if not self.samples:
-            self.samples.append([self.theta, self.phi])
+            self.samples.append([self._theta, self._phi])
         self.close()
         return
 
-    def generate(self, N, K=None, alpha=0.01, delta=[0.4, 0.2]):
-        #alpha = self.s.zsampler.alpha
+    def update_hyper(self, hyper):
+        alpha, gmma, delta = hyper
+        if delta:
+            self.s.zsampler.likelihood.delta = delta
+        if alpha:
+            self.s.zsampler.alpha_0 = alpha
+        if gmma:
+            if hasattr(self.s.betasampler, 'gmma'):
+                self.s.betasampler.gmma = gmma
+
+    def get_hyper(self):
+        delta = self.s.zsampler.likelihood.delta
+        alpha_0 = self.s.zsampler.alpha_0
+        try:
+            gmma = self.s.betasampler.gmma
+        except:
+            gmma = np.nan
+        return alpha_0, gmma, delta
+
+    def generate(self, N, K=None, hyper=None):
+        self.update_hyper(hyper)
         N = int(N)
         if K is not None:
             K = int(K)
@@ -743,7 +762,7 @@ class GibbsRun(ModelBase):
             delta = delta
             theta = dirichlet(alpha, size=N)
             phi = beta(delta[0], delta[1], size=(K,K))
-            phi = np.triu(phi) + np.triu(phi, 1).T
+            #phi = np.triu(phi) + np.triu(phi, 1).T
         else:
             theta, phi = self.reduce_latent()
             K = theta.shape[1]
@@ -763,6 +782,7 @@ class GibbsRun(ModelBase):
         #        Y[j, i] = sp.stats.bernoulli.rvs(B[zj, zi])
         self.theta = theta
         self.phi = phi
+        self.K = K
         return Y, theta, phi
 
     # Nasty hack to make serialisation possible
@@ -779,7 +799,7 @@ class GibbsRun(ModelBase):
         self.s.zsampler.likelihood = None
 
     def evaluate_perplexity(self, data=None):
-        self.theta, self.phi = self.s.zsampler.estimate_latent_variables()
+        self._theta, self._phi = self.s.zsampler.estimate_latent_variables()
         return self.s.zsampler.perplexity(data)
 
     # keep only the most representative dimension (number of topics) in the samples
@@ -839,6 +859,7 @@ class GibbsRun(ModelBase):
                'Rappel': rappel,
                'g_precision': g_precision,
                'mask_density': mask_density,
+               'clusters': list(c),
                'Community_Distribution': community_distribution,
                'Local_Attachment': local_attach
               }
@@ -853,7 +874,7 @@ class GibbsRun(ModelBase):
         else:
             symmetric = True
 
-        clusters = np.argmax(theta, axis=1)
+        clusters = self.get_clusters()
         community_distribution = list(np.bincount(clusters))
 
         local_attach = {}
@@ -867,7 +888,5 @@ class GibbsRun(ModelBase):
             local_attach[comm] = local
 
         return community_distribution, local_attach, clusters
-
-
 
 

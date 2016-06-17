@@ -112,28 +112,33 @@ if __name__ == '__main__':
     frontend = FrontendManager.get(config)
     data = frontend.load_data(randomize=False)
     data = frontend.sample()
+    model = ModelManager(config=config)
 
+    N = frontend.N
     if config.get('load_model'):
         ### Generate data from a fitted model
-        model = ModelManager(None, config)
         model = model.load()
-        y, theta, phi = model.generate(config['N'])
-        y = np.triu(y) + np.triu(y, 1).T
-        R = rescal(data, config['K'])
-        #np.fill_diagonal(y,1)
+        y, theta, phi = model.generate(N)
+        #y = np.triu(y) + np.triu(y, 1).T
     else:
         ### Generate data from a un-fitted model
-        delta = .1
         alpha = .5
         gmma = 1.
-        hyperparams = {'alpha': alpha, 'delta': delta, 'gmma': gmma}
-        config['hyperparams'] = hyperparams
-        model = ModelManager(data, config)
+        delta = .1
         model = model.model
-        y, theta, phi = model.generate(config['N'], config['K'])
-        R = None
+        model.update_hyper((alpha, gmma, delta)
+        y, theta, phi = model.generate(N, config['K'])
+
+    ### Baselines
+    #R = rescal(data, config['K'])
+    R = None
 
     K = theta.shape[1]
+    ###############################################################
+    ### Expe Wrap up debug
+    print 'model: %s, corpus: %s \
+    K = %s, N =  %s'% (frontend.corpus_name, frontend.corpus_name, model.K, frontend.N)
+
     from plot import *
 
     ### Analysis On Generated Model
@@ -169,6 +174,8 @@ if __name__ == '__main__':
         print 'waring: could execute: frontend.communities_analysis(); probabily self.clusters not defined'
         local_attach_source = d['Local_Attachment']
         community_distribution_source = d['Community_Distribution']
+        ### In the future
+        #cluster_source = d['clusters']
         clusters_source = clusters_learn
 
     try:
@@ -203,6 +210,7 @@ if __name__ == '__main__':
 
     #adjshow_l([data, y], title=['Data', 'Bayesian'])
     #adjshow_l([data_r, y_r], title=['Data reorderded', 'Bayesian reordered'])
+    print data.shape, y.shape
     adjshow_ll([data, y, data_r, y_r], title=['Data', 'Bayesian', 'Data reorderded', 'Bayesian reordered'])
 
     if R is not None:
@@ -239,53 +247,55 @@ if __name__ == '__main__':
     plt.title('Global Degree Distribution')
     plt.legend()
 
-    plt.figure()
-    plt.suptitle('Local Degree Distribution')
-    plt.subplot(2,2,1)
-    x = np.arange(1, len(max_local_attach_source)+1)
-    plt.loglog(x, max_local_attach_source, marker=marker, label='source')
-    x = np.arange(1, len(max_local_attach_learn)+1)
-    plt.loglog(x, max_local_attach_learn, marker=marker, label='learn')
-    plt.title('biggest')
-    plt.legend()
-    plt.subplot(2,2,2)
-    x = np.arange(1, len(rd_local_attach_source_1)+1)
-    plt.loglog(x, rd_local_attach_source_1, marker=marker, label='source')
-    x = np.arange(1, len(rd_local_attach_learn_1)+1)
-    plt.loglog(x, rd_local_attach_learn_1, marker=marker, label='learn')
-    plt.title('random class 1')
-    plt.legend()
-    plt.subplot(2,2,3)
-    x = np.arange(1, len(rd_local_attach_source_2)+1)
-    plt.loglog(x, rd_local_attach_source_2, marker=marker, label='source')
-    x = np.arange(1, len(rd_local_attach_learn_2)+1)
-    plt.loglog(x, rd_local_attach_learn_2, marker=marker, label='learn')
-    plt.title('random class 2')
-    plt.legend()
-    plt.subplot(2,2,4)
-    x = np.arange(1, len(min_local_attach_source)+1)
-    plt.loglog(x, min_local_attach_source, marker=marker, label='source')
-    x = np.arange(1, len(min_local_attach_learn)+1)
-    plt.loglog(x, min_local_attach_learn, marker=marker, label='learn')
-    plt.title('lowest')
-    plt.legend()
 
-    #for c, d in local_attach.items():
-    #    plt.subplot(len(local_attach), 1, int(c)+1)
-    #    plt.loglog(sorted(d, reverse=True))
-    #    plt.title('Communities ' + c)
+    #### Locall Preferential attachment
+    #plt.figure()
+    #plt.suptitle('Local Degree Distribution')
+    #plt.subplot(2,2,1)
+    #x = np.arange(1, len(max_local_attach_source)+1)
+    #plt.loglog(x, max_local_attach_source, marker=marker, label='source')
+    #x = np.arange(1, len(max_local_attach_learn)+1)
+    #plt.loglog(x, max_local_attach_learn, marker=marker, label='learn')
+    #plt.title('biggest')
+    #plt.legend()
+    #plt.subplot(2,2,2)
+    #x = np.arange(1, len(rd_local_attach_source_1)+1)
+    #plt.loglog(x, rd_local_attach_source_1, marker=marker, label='source')
+    #x = np.arange(1, len(rd_local_attach_learn_1)+1)
+    #plt.loglog(x, rd_local_attach_learn_1, marker=marker, label='learn')
+    #plt.title('random class 1')
+    #plt.legend()
+    #plt.subplot(2,2,3)
+    #x = np.arange(1, len(rd_local_attach_source_2)+1)
+    #plt.loglog(x, rd_local_attach_source_2, marker=marker, label='source')
+    #x = np.arange(1, len(rd_local_attach_learn_2)+1)
+    #plt.loglog(x, rd_local_attach_learn_2, marker=marker, label='learn')
+    #plt.title('random class 2')
+    #plt.legend()
+    #plt.subplot(2,2,4)
+    #x = np.arange(1, len(min_local_attach_source)+1)
+    #plt.loglog(x, min_local_attach_source, marker=marker, label='source')
+    #x = np.arange(1, len(min_local_attach_learn)+1)
+    #plt.loglog(x, min_local_attach_learn, marker=marker, label='learn')
+    #plt.title('lowest')
+    #plt.legend()
+
+    ##for c, d in local_attach.items():
+    ##    plt.subplot(len(local_attach), 1, int(c)+1)
+    ##    plt.loglog(sorted(d, reverse=True))
+    ##    plt.title('Communities ' + c)
 
 
-    ### Analyse of phi and theta  ?
-    plt.figure()
-    plt.imshow(np.repeat(theta, 10, axis=1))
-    plt.title('theta')
-    plt.colorbar()
+    #### Analyse of phi and theta  ?
+    #plt.figure()
+    #plt.imshow(np.repeat(theta, 10, axis=1))
+    #plt.title('theta')
+    #plt.colorbar()
 
-    plt.figure()
-    plt.imshow(phi)
-    plt.title('phi')
-    plt.colorbar()
+    #plt.figure()
+    #plt.imshow(phi)
+    #plt.title('phi')
+    #plt.colorbar()
 
     display(True)
 

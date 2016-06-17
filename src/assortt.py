@@ -110,7 +110,7 @@ if __name__ == '__main__':
     data = frontend.load_data(randomize=False)
     data = frontend.sample()
     # Load model
-    model = ModelManager(None, config)
+    model = ModelManager(config=config)
 
     #### Run Inference / Learning Model
     #model.run()

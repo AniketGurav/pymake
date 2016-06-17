@@ -185,7 +185,6 @@ class IBPGibbsSampling(IBP, ModelBase):
             if iter >= self.burnin:
                 self.samples.append([self._Z, self._W])
 
-
         self.time_sampling = datetime.now() - begin
 
         ### Clean Things
@@ -461,20 +460,17 @@ class IBPGibbsSampling(IBP, ModelBase):
         # loglikelihood_W ? Z ?
         return self.log_likelihood_Y()
 
-    # Pickle class
-    def save(self, target_dir=None):
-        filen = 'ilfm_mcmc.pk'
-        bdir = target_dir or 'tmp'
-        with open(bdir + filen, 'w') as _f:
-            return cPickle.dump(self, _f)
-    @classmethod
-    def load(cls, target_dir=None):
-        filen = 'ilfm_mcmc.pk'
-        bdir = target_dir or 'tmp'
-        with open(bdir + filen, 'r') as _f:
-            return cPickle.load(_f)
+    def update_hyper(self, hyper):
+        alpha, _ = hyper
+        if alpha:
+            self._alpha = alpha
 
-    def generate(self, N, K=None, nodelist=None):
+    def get_hyper(self):
+        alpha = self._alpha
+        return (alpha,)
+
+    def generate(self, N, K=None, nodelist=None, hyper=None):
+        self.update_hyper(hyper)
         N = int(N)
         if K is not None:
             raise NotImplementedError('IBP Generation')
@@ -493,6 +489,7 @@ class IBPGibbsSampling(IBP, ModelBase):
         Y = sp.stats.bernoulli.rvs(likelihood)
         self.theta = Z
         self.phi = W
+        self.K = K
         return Y, Z, W
 
     def reduce_latent(self):
@@ -551,6 +548,7 @@ class IBPGibbsSampling(IBP, ModelBase):
                'Rappel': rappel,
                'g_precision': g_precision,
                'mask_density': mask_density,
+               'clusters': list(c),
                'Community_Distribution': community_distribution,
                'Local_Attachment': local_attach
               }

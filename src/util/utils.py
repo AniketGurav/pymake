@@ -59,7 +59,7 @@ def argParse(usage="Usage ?"):
             argdict['corpus_name'] = _arg
         elif arg in ('-m',):
             _arg = sys.argv.pop(i+1)
-            argdict['model'] = _arg
+            argdict['model_name'] = _arg
         elif arg in ('-d',):
             _arg = sys.argv.pop(i+1)
             argdict['bdir'] = _arg+'/'
@@ -185,6 +185,11 @@ def getGraph(target='', **conf):
     g[[e[1] for e in edges],  [e[0] for e in edges]] = 1
     return g
 
+from scipy import ndimage
+def dilate(y):
+    mask = ndimage.generate_binary_structure(2, 2)
+    y_f = ndimage.binary_dilation(y, structure=mask).astype(y.dtype)
+    return y_f
 
 def getClique(N=100, K=4):
     from scipy.linalg import block_diag
@@ -205,7 +210,7 @@ def kmeans(M, K=4):
     km = KMeans( init='k-means++',  n_clusters=K)
     km.fit(M)
     clusters = km.predict(M.astype(float))
-    return clusters
+    return clusters.astype(int)
 
 from matplotlib import pyplot as plt
 def kmeans_plus(X=None, K=4):

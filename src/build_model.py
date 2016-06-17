@@ -65,7 +65,7 @@ if __name__ == '__main__':
         extra_feat                    = False,
         ##### Models Hyperparameters
         #model                         = 'lda_cgs',
-        model                         = 'ilda',
+        model_name                    = 'ilda',
         hyper                         = 'auto',
         K                             = 3,
         N                             = 3,
@@ -115,7 +115,6 @@ if __name__ == '__main__':
     ############################################################
     ##### Load Data
     frontend = FrontendManager.get(config)
-    print 'debug why error and i get walue superior to 6000 in the striling matrix ????'
 
     now = datetime.now()
     data = frontend.load_data(randomize=False)
@@ -123,6 +122,8 @@ if __name__ == '__main__':
     last_d = ellapsed_time('Data Preprocessing Time', now)
 
     if 'Text' in str(type(frontend)):
+        lgg.warning('check WHY and WHEN overflow in stirling matrix !?')
+        print 'debug why error and i get walue superior to 6000 in the striling matrix ????'
         data, data_t = frontend.cross_set(ratio=0.8)
     elif 'Network' in str(type(frontend)):
         if config['refdir'] in ('debug11', 'debug1111','debug111111'):

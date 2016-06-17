@@ -10,6 +10,7 @@ from multiprocessing import Process
 from itertools import cycle
 from collections import OrderedDict
 
+from util.frontend_io import *
 from local_utils import *
 from expe_icdm import *
 
@@ -28,7 +29,8 @@ if __name__ ==  '__main__':
     ### Expe Forest
     map_parameters = OrderedDict((
         ('debug'  , ('debug10', 'debug11')),
-        ('corpus' , ('Graph7', 'Graph12', 'Graph4', 'Graph10')),
+        ('corpus' , ('fb_uc', 'manufacturing')),
+        #('corpus' , ('Graph7', 'Graph12', 'Graph10', 'Graph4')),
         ('model'  , ('immsb', 'ibp')),
         ('K'      , (5, 10, 15, 20)),
         ('N'      , ('all',)),
@@ -38,7 +40,7 @@ if __name__ ==  '__main__':
     ))
 
     ### Seek experiments results
-    target_files = make_path_v2(map_parameters, sep=None)
+    target_files = make_forest_path(map_parameters, 'json',  sep=None)
     ### Make Tensor Forest of results
     rez = results_tensor(target_files, map_parameters, verbose=False)
 
@@ -50,7 +52,7 @@ if __name__ ==  '__main__':
     ### Expe 1 settings
     # debug10, immsb
     expe_1 = OrderedDict((
-        ('debug' , 'debug11') ,
+        ('debug' , 'debug10') ,
         ('corpus', '*'),
         ('model' , 'immsb')   ,
         ('K'     , '*')         ,
@@ -58,7 +60,7 @@ if __name__ ==  '__main__':
         ('hyper' , 'auto')     ,
         ('homo'  , 0) ,
         #('repeat', '*'),
-        ('measure', 2),
+        ('measure', 0),
         ))
     if model:
         expe_1.update(model=model)
@@ -68,7 +70,7 @@ if __name__ ==  '__main__':
 
     ###################################
     ### Extract Resulst *** in: setting - out: table
-    headers = [ 'global', 'precision', 'rappel', 'K->']
+    headers = [ 'global', 'precision', 'recall', 'K->']
 
     ### Make the ptx index
     ptx = []
@@ -110,7 +112,7 @@ if __name__ ==  '__main__':
     table = np.column_stack((keys, table))
     print
     #print tabulate(table, headers=headers)
-    print tabulate(table, headers=headers, tablefmt='latex')
+    print tabulate(table, headers=headers, tablefmt='latex', floatfmt='.4f')
     print '\t\t--> precision'
 
 

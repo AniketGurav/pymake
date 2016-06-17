@@ -1,25 +1,14 @@
 import sys, os
-import cPickle
-import json
+import cPickle, json
 from itertools import chain
 from string import Template
 from collections import defaultdict
 import logging
 lgg = logging.getLogger('root')
 
+from frontend_io import *
 from local_utils import *
 from vocabulary import Vocabulary, parse_corpus
-
-############################################################
-############################################################
-#### Aim at be a frontend for corpus data manipulation.
-####   * First, purpose is to be the frontend for model/algorithm input,
-####   * Second, frontend for data observation. States of corpus or results analysis,
-####   * Third, operate on corpus various operation as filtering, merging etc.
-
-
-####  load_corpus->load_text_corpus->text_loader
-####  (frontent) -> (choice) -> (adapt preprocessing)
 
 ### @Debug :
 #   * update config path !
@@ -30,6 +19,23 @@ from vocabulary import Vocabulary, parse_corpus
 #    * view of file confif.... and path creation....
 
 class DataBase(object):
+    """
+###################################################################
+### Root Class for Frontend Manipulation over Corpuses and Models.
+
+    Given Data Y, and Model M = {\theta, \Phi}
+    E[Y] = \theta \phi^T
+
+    Fonctionality are of the frontend decline as:
+    1. Frontend for model/algorithm I/O,
+    2. Frontend for Corpus Information, and Result Gathering for
+        Machine Learning Models.
+    3. Data Analisis and Prediction..
+
+    load_corpus -> load_text_corpus -> text_loader
+    (frontent)  ->   (choice)       -> (adapt preprocessing)
+
+"""
 
     def __init__(self, config):
         if config.get('seed'):
@@ -37,7 +43,7 @@ class DataBase(object):
         self.seed = np.random.get_state()
         self.config = config
         self.corpus_name = config.get('corpus_name')
-        self.model_name = config.get('model')
+        self.model_name = config.get('model_name')
 
         self.K = config.get('K', 10)
         self.C = config.get('C', 10)
@@ -53,6 +59,7 @@ class DataBase(object):
 
         # Read Directory
         #self.make_output_path()
+
 
     def make_output_path(self, corpus_name=None):
         # Write Path (for models results)
@@ -70,6 +77,10 @@ class DataBase(object):
                                              config.get('refdir', ''),
                                              config.get('repeat', ''),
                                              fname_out)
+
+    @staticmethod
+    def corpus_walker(bdir):
+        raise NotImplementedError()
 
     def load_data(self):
         raise NotImplementedError()
@@ -126,9 +137,11 @@ class DataBase(object):
 from util.frontendtext import frontendText
 from util.frontendnetwork import frontendNetwork
 class FrontendManager(object):
-
+    """ Utility Class who aims at mananing the frontend at the higher level.
+    """
     @staticmethod
     def get(config):
+        """ Return: The frontend suited for the given configuration"""
         corpus = config.get('corpus_name')
         corpus_typo = {'network': ['facebook','generator', 'bench', 'clique', 'fb_uc', 'manufacturing'],
                        'text': ['reuter50', 'nips12', 'nips', 'enron', 'kos', 'nytimes', 'pubmed', '20ngroups', 'odp', 'wikipedia', 'lucene']}
@@ -143,22 +156,23 @@ class FrontendManager(object):
 
         if frontend is None:
             raise ValueError('Unknown Corpus `%s\'!' % corpus)
-
         return frontend
 
-# @debug, have to be before the ModelManager import
+# @debug, have to be called before the ModelManager import
 class ModelBase(object):
+    """"  Root Class for all the Models.
+
+    * Suited for unserpervised model
+    * Virtual methods for the desired propertie of models
+    """
     def __init__(self):
         self._samples = []
         super(ModelBase, self).__init__()
 
-    def write_some(self, samples, f=None, fmt=None, buff=20):
-        if not f:
-            f = self._f
-        if not fmt:
-            fmt = self.fmt
-
-        #samples = np.array([samples])
+    # Write data with buffer manager
+    def write_some(self, samples, buff=20):
+        f = self._f
+        fmt = self.fmt
 
         if samples is None:
             buff=1
@@ -174,13 +188,11 @@ class ModelBase(object):
     def close(self):
         if not hasattr(self, '_f'):
             return
-
+        # Write remaining data
         if self._samples:
             self.write_some(None)
         self._f.close()
 
-    def run(self):
-        raise NotImplementedError
 
     def similarity_matrix(self, theta=None, phi=None, sim='cos'):
         if theta is None:
@@ -196,6 +208,37 @@ class ModelBase(object):
             sim = np.dot(features, features.T)/norm/norm.T
         return sim
 
+    def get_params(self):
+        return self.reduce_latent()
+        if hasattr(self, 'theta') and hasattr(self, 'phi'):
+            return self.theta, self.phi
+        else:
+            return self.reduce_latent()
+
+    def get_clusters(self):
+        theta, phi = self.get_params()
+        return np.argmax(theta, axis=1)
+
+    # Remove variable that are non serializable.
+    def purge(self):
+        return
+
+    def update_hyper(self):
+        raise NotImplementedError
+    def get_hyper(self):
+        raise NotImplementedError
+    # Just for MCMC ?():
+    def reduce_latent(self):
+        raise NotImplementedError
+    def communities_analysis():
+        raise NotImplementedError
+    def generate(self):
+        raise NotImplementedError
+    def predict(self):
+        raise NotImplementedError
+    def run(self):
+        raise NotImplementedError
+
 
 # Model Import
 from hdp import mmsb, lda
@@ -207,11 +250,13 @@ from gensim.models import ldamodel, ldafullbaye
 Models = {'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
 
 class ModelManager(object):
-    def __init__(self, data, config, data_t=None):
+    """ Utility Class for Managing I/O and debugging Models
+    """
+    def __init__(self, data=None, config=None, data_t=None):
         self.data = data
         self.data_t = data_t
 
-        self.model_name = config.get('model')
+        self.model_name = config.get('model_name')
         #models = {'ilda' : HDP_LDA_CGS,
         #          'lda_cgs' : LDA_CGS, }
         self.hyperparams = config.get('hyperparams')
@@ -223,6 +268,8 @@ class ModelManager(object):
         self.config = config
 
         if self.config.get('load_model'):
+            return
+        if not self.model_name:
             return
 
         if self.model_name in ('ilda', 'lda_cgs', 'immsb', 'mmsb_cgs'):
@@ -367,6 +414,7 @@ class ModelManager(object):
     # Pickle class
     def save(self):
         fn = self.output_path[:-len('.out')] + '.pk'
+        ### Debug for non serializable variables
         #for u, v in vars(self.model).items():
         #    with open(f, 'w') as _f:
         #        try:
@@ -374,16 +422,26 @@ class ModelManager(object):
         #        except:
         #            print 'not serializable here: %s, %s' % (u, v)
         self.model._f = None
-        if hasattr(self.model, 'purge'):
-            self.model.purge()
+        self.model.purge()
 
         with open(fn, 'w') as _f:
             return cPickle.dump(self.model, _f)
 
+    # Debug classmethod and ecrasement d'object en jeux.
     #@classmethod
-    def load(self):
-        fn = self.output_path[:-len('.out')] + '.pk'
+    def load(self, spec=None):
+        if spec == None:
+            fn = self.output_path[:-len('.out')] + '.pk'
+        else:
+            fn = make_output_path(spec, 'pk')
+        if not os.path.isfile(fn) or os.stat(fn).st_size == 0:
+            print 'No file for this model: %s' %fn
+            for f in model_walker(os.path.dirname(fn), fmt='list'):
+                print f
+            print 'Pick the right models, maestro !'
+            raise IOError
         with open(fn, 'r') as _f:
             return cPickle.load(_f)
+
 
 

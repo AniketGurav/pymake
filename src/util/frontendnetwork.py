@@ -58,11 +58,12 @@ class frontendNetwork(DataBase):
     def sample(self, N=None, symmetric=False, randomize=False):
         N = N or self.N
         n = self.data.shape[0]
-        if not N or N == 'all':
-            self.N = 'all'
+        N_config = self.config['N']
+        if not N_config or N_config == 'all':
+            self.N = N
         else:
             # Can't get why modification inside self.nodes_list is not propagated ?
-            N = int(N)
+            N = int(N_config)
             if randomize is True:
                 nodes_list = [np.random.permutation(N), np.random.permutation(N)]
                 self.reorder_node(nodes_list)
@@ -571,7 +572,7 @@ class frontendNetwork(DataBase):
         sim_source = self.similarity_matrix(sim='cos')
 
         y, _, _ = model.generate(N)
-        y = np.triu(y) + np.triu(y, 1).T
+        #y = np.triu(y) + np.triu(y, 1).T
         sim_learn = model.similarity_matrix(sim='cos')
 
         np.fill_diagonal(indic_source, ma.masked)
@@ -610,50 +611,5 @@ class frontendNetwork(DataBase):
 
         d = {'NMI' : NMI, 'homo_ind1_source' : homo_ind1_source, 'homo_ind1_learn' : homo_ind1_learn}
         return d
-
-    @staticmethod
-    def make_conf(spec):
-        targets = []
-        for base in spec['base']:
-            for hook in spec['hook_dir']:
-                for c in spec['corpus']:
-                    p = os.path.join(base, c, hook)
-                    for n in spec['Ns']:
-                        for m in spec['models']:
-                            for k in spec['Ks']:
-                                for h in spec['hyper']:
-                                    for hm in spec['homo']:
-                                        for repeat in spec.get('repeat'):
-                                            # generate path trick wrong
-                                            #t = 'inference-%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
-                                            #t = os.path.join(p, t)
-                                            #filen = os.path.join(os.path.dirname(__file__), "../../data/", t)
-                                            #if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
-                                            #    continue
-                                            d = {'N' : n,
-                                                 'K' : k,
-                                                 'hyper': h,
-                                                 'homo': hm,
-                                                 'model': m,
-                                                 'corpus_name': c,
-                                                 'refdir': hook,
-                                                 'repeat': repeat,
-                                                }
-                                            targets.append(d)
-        return targets
-
-
-    #@staticmethod
-    #def make_path
-    #   first make_dir ('' path are ignored in join !
-    #   then make expe file.
-
-
-    #@staticmethod
-    #def get_expe_file_prop
-    #   rebuild the dict of prop according to a file, but don't consider null value in make conf
-
-
-
 
 

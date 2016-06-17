@@ -10,6 +10,7 @@ from multiprocessing import Process
 from itertools import cycle
 from collections import OrderedDict
 
+from util.frontend_io import *
 from local_utils import *
 
 def display(block=False):
@@ -52,90 +53,6 @@ def csv_row(s):
         row = s
     return row
 
-def make_path_v2(spec, sep=None, ):
-    targets = []
-    for base in ('networks',):
-        for hook in spec['debug']:
-            for c in spec['corpus']:
-                _c = 'generator/' + c
-                if spec.get('repeat'):
-                    _p = [os.path.join(base, _c, hook, rep) for rep in spec['repeat']]
-                else:
-                    _p = [ os.path.join(base, _c, hook) ]
-                for p in _p:
-                    for n in spec['N']:
-                        for m in spec['model']:
-                            for k in spec['K']:
-                                for h in spec['hyper']:
-                                    for hm in spec['homo']:
-                                        t = 'inference-%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
-                                        t = os.path.join(p, t)
-                                        filen = os.path.join(os.path.dirname(__file__), "../data/", t)
-                                        if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
-                                            continue
-                                        if sum(1 for line in open(filen)) <= 1:
-                                            # empy file
-                                            continue
-                                        targets.append(t)
-
-    return targets
-
-
-# Return dictionary of property for an expe file. (format inference-model_K_hyper_N)
-def get_expe_file_prop(target):
-    _id = target.split('_')
-    model = ''
-    st = 0
-    for s in _id:
-        try:
-            int(s)
-            break
-        except:
-            st += 1
-            model += s
-
-
-    # @debug
-    try:
-        int(target.split('/')[-2])
-        id_debug = -3
-        id_corpus = -4
-    except:
-        id_debug = -2
-        id_corpus = -3
-
-    _id = _id[st:]
-    prop = dict(
-        model = model.split('-')[-1],
-        repeat = target.split('/')[-2],
-        debug = target.split('/')[id_debug],
-        corpus = target.split('/')[id_corpus],
-        K     = _id[0],
-        hyper = _id[1],
-        homo = _id[2],
-        N     = _id[3],)
-
-    # @debug
-    try:
-        int(target.split('/')[-2])
-    except:
-        del prop['repeat']
-
-    return prop
-
-# Return size of proportie in a list if expe files
-def get_expe_file_set_prop(targets):
-    template = 'networks/generator/Graph13/debug11/inference-immsb_10_auto_0_all'
-    c = []
-    for t in targets:
-        c.append(get_expe_file_prop(t))
-
-    sets = {}
-    keys_name = get_expe_file_prop(template).keys()
-    for p in keys_name:
-        sets[p] = len(set([ _p[p] for _p in c ]))
-
-    return sets
 
 def get_expe_json(fn):
     try:
@@ -155,7 +72,7 @@ def results_tensor(target_files, map_parameters, verbose=True):
     # measure:
     #   * 0: global precision,
     #   * 1: local precision,
-    #   * 2: rappel
+    #   * 2: recall
 
     ### Output: rez.shape rez_map_l rez_map
     # Those valuea are get from file expe see get_expe_file()
@@ -198,19 +115,23 @@ def results_tensor(target_files, map_parameters, verbose=True):
                 raise ValueError
             pt[rez_map.index(k)] = idx
 
+        #--
         f = os.path.join(os.path.dirname(__file__), "../data/", _f) + '.json'
         d = os.path.dirname(f)
+
         corpus_type = ('/').join(d.split('/')[-2:])
+
         f = os.path.basename(f)[len('inference-'):]
         fn = os.path.join(d, f)
         d = get_expe_json(fn)
+        #--
         if not d:
             not_finished.append( '%s not finish...\n' % fn)
             continue
 
         g_precision = d.get('g_precision')
         precision = d.get('Precision')
-        rappel = d.get('Rappel')
+        recall = d.get('Recall')
         K = len(d['Local_Attachment'])
         #density = d['density_all']
         #mask_density = d['mask_density']
@@ -224,7 +145,7 @@ def results_tensor(target_files, map_parameters, verbose=True):
         pt[-1] = 1
         rez[zip(pt)] = precision
         pt[-1] = 2
-        rez[zip(pt)] = rappel
+        rez[zip(pt)] = recall
         pt[-1] = 3
         rez[zip(pt)] = K
 
@@ -247,8 +168,13 @@ if __name__ ==  '__main__':
     #import argparse
     largs = sys.argv
     model = None
+    K = None
     if len(largs) > 1:
-        model = largs[-1]
+        for arg in largs[1:]:
+            try:
+                K = int(arg)
+            except:
+                model = arg
     ###################################################################
     # Data Forest config
     #
@@ -256,7 +182,8 @@ if __name__ ==  '__main__':
     ### Expe Forest
     map_parameters = OrderedDict((
         ('debug'  , ('debug10', 'debug11')),
-        ('corpus' , ('Graph7', 'Graph12', 'Graph4', 'Graph10')),
+        #('corpus' , ('fb_uc', 'manufacturing')),
+        ('corpus' , ('Graph7', 'Graph12', 'Graph10', 'Graph4')),
         ('model'  , ('immsb', 'ibp')),
         ('K'      , (5, 10, 15, 20)),
         ('N'      , ('all',)),
@@ -266,10 +193,9 @@ if __name__ ==  '__main__':
     ))
 
     ### Seek experiments results
-    target_files = make_path_v2(map_parameters, sep=None)
+    target_files = make_forest_path(map_parameters, 'json', sep=None)
     ### Make Tensor Forest of results
     rez = results_tensor(target_files, map_parameters, verbose=False)
-
 
     ###################################################################
     # Experimentation
@@ -278,10 +204,10 @@ if __name__ ==  '__main__':
     ### Expe 1 settings
     # debug10, immsb
     expe_1 = OrderedDict((
-        ('debug' , 'debug11') ,
+        ('debug' , 'debug10') ,
         ('corpus', '*'),
         ('model' , 'immsb')   ,
-        ('K'     , 20)         ,
+        ('K'     , 5)         ,
         ('N'     , 'all')     ,
         ('hyper' , 'auto')     ,
         ('homo'  , 0) ,
@@ -292,6 +218,8 @@ if __name__ ==  '__main__':
         expe_1.update(model=model)
         if model == 'ibp':
             expe_1.update(hyper='fix')
+    if K:
+        expe_1.update(K=K)
     assert(expe_1.keys()[:len(map_parameters)] == map_parameters.keys())
 
     ###################################
@@ -319,18 +247,18 @@ if __name__ ==  '__main__':
     print 'Expe 1:'
     print tabulate([expe_1.keys(), expe_1.values()])
     # Headers
-    headers = [ 'global', 'precision', 'rappel', 'K->']
+    headers = [ 'global', 'precision', 'recall', 'K->']
     h_mask = 'mask all' if '11' in expe_1['debug'] else 'mask sub1'
-    h = expe_1['model'] + ' / ' + h_mask
+    h = expe_1['model'].upper() + ' / ' + h_mask
     headers.insert(0, h)
     # Row
     keys = map_parameters['corpus']
-    keys = [''.join(k) for k in zip(keys, ['b/h', ' b/-h', ' -b/h', ' -b/-h'])]
+    keys = [''.join(k) for k in zip(keys, [' b/h', ' b/-h', ' -b/h', ' -b/-h'])]
     ## Results
     table = rez[ptx]
     table = np.column_stack((keys, table))
     print
     #print tabulate(table, headers=headers)
-    print tabulate(table, headers=headers, tablefmt='latex')
+    print tabulate(table, headers=headers, tablefmt='latex', floatfmt='.4f')
 
 

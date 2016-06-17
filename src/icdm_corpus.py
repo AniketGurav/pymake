@@ -35,39 +35,36 @@ if __name__ == '__main__':
     ### Non Bursty
     #corpuses = ( 'generator4', 'generator5', 'generator6', 'generator9', 'generator10',)
 
+
     ### Expe
-    Corpuses = ( 'generator4', )
-    Corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7',)
-    Corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7', 'generator13')
-    Corpuses = ( 'generator10', )
-    Corpuses = ( 'manufacturing', 'fb_uc',)
 
-    ### Models
-    Model = dict ((
-    ('debug'        , 'debug10') ,
-    ('model'        , 'immsb')   ,
-    ('K'            , 15)        ,
-    ('N'            , 'all')     ,
-    ('hyper'        , 'fix')     ,
-    ('homo'         , 0)         ,
-    #('repeat'      , '*')       ,
-    ))
+    corpuses = (('generator4', 'Network 4 -b/h', 'g4'),
+                ('generator10','Network 3 -b/-h', 'g3'),
+                ('generator12','Network 2 b/-h', 'g2'),
+                ('generator7' ,'Network 1  b/h ', 'g1'),
+                )
 
+    corpuses = (('manufacturing', 'Manufacturing', 'manufacturing'),
+                ('fb_uc', 'UC Irvine', 'irvine' )
+               )
 
     ############################################################
     ##### Simulation Output
     if config.get('simul'):
         print '''--- Simulation settings ---
-        Build Corpuses %s''' % (str(Corpuses))
+        Build Corpuses %s''' % (str(corpuses))
         exit()
 
-    for corpus_name in Corpuses:
+    for corpus_ in corpuses:
+        corpus_name = corpus_[0]
+        title = corpus_[1]
+        fn = corpus_[2]
+
         frontend = frontendNetwork(config)
         data = frontend.load_data(corpus_name)
         prop = frontend.get_data_prop()
         msg = frontend.template(prop)
         #print msg
-
 
         #################################################
         ### Homophily Analysis
@@ -104,13 +101,12 @@ if __name__ == '__main__':
             community_distribution_source, local_attach_source, clusters_source = frontend.communities_analysis()
         except TypeError:
             'Getting Latent Classes from Latent Models...'
-            #d = frontend.get_json()
+            d = frontend.get_json()
             #local_attach_source = d['Local_Attachment']
             #community_distribution_source = d['Community_Distribution']
             ### In the future
             #cluster_source = d['clusters']
-            Model.update(corpus=corpus_name)
-            model = ModelManager(config=config).load(Model)
+            model = ModelManager(config=config).load()
             clusters_source = model.get_clusters()
         except Exception, e:
             print 'Skypping reordering adjacency matrix: %s' % e
@@ -121,23 +117,30 @@ if __name__ == '__main__':
             nodelist = [k[0] for k in sorted(zip(range(len(clusters_source)), clusters_source), key=lambda k: k[1])]
             data_r = data[nodelist, :][:, nodelist]
 
+        ### Filtering
+        if fn != 'manufacturing':
+            data_r = dilate(data_r)
+
         #################################################
         ### Plotting
 
         ### Plot Adjacency matrix
-        #figsize=(30, 40)
-        plt.figure(figsize=None)
-        plt.suptitle(corpus_name)
-        plt.subplot(1,2,1)
-        adjshow(data_r, title='Adjacency Matrix')
+        path = '../../../papers/personal/relational_models/git/img/'
+        figsize=(4.7, 4.7)
+        plt.figure(figsize=figsize)
+        #plt.subplot(1,2,1)
+        np.fill_diagonal(data_r, 0)
+        adjshow(data_r, title=title)
         #plt.figtext(.15, .1, homo_text, fontsize=12)
+        plt.savefig(path+fn+'.pdf', facecolor='white', edgecolor='black')
 
         ### Plot Degree
-        plt.subplot(1,2,2)
-        #plot_degree_(data, title='Overall Degree')
+        figsize=(3.8, 4.3)
+        #figsize=(3.3, 4.3)
+        plt.figure(figsize=figsize)
+        #plt.subplot(1,2,2)
         plot_degree_2(data)
 
-        fn = corpus_name+'.pdf'
-        #plt.savefig(fn, facecolor='white', edgecolor='black')
-        display(False)
-    display(True)
+        plt.savefig(path+fn+'_d'+'.pdf', facecolor='white', edgecolor='black')
+   #     display(False)
+   # display(True)
