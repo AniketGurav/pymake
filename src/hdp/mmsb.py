@@ -751,10 +751,10 @@ class GibbsRun(ModelBase):
             gmma = np.nan
         return alpha_0, gmma, delta
 
-    def generate(self, N, K=None, hyper=None):
+    def generate(self, N, K=None, hyper=None, _type='predictive'):
         self.update_hyper(hyper)
         N = int(N)
-        if K is not None:
+        if _type == 'evidence':
             K = int(K)
             #alpha = np.ones(K) * alpha
             alpha = np.ones(K) * 1/(K*10)
@@ -765,7 +765,7 @@ class GibbsRun(ModelBase):
             theta = dirichlet(alpha, size=N)
             phi = beta(delta[0], delta[1], size=(K,K))
             #phi = np.triu(phi) + np.triu(phi, 1).T
-        else:
+        elif _type == 'predictive':
             theta, phi = self.reduce_latent()
             K = theta.shape[1]
 

@@ -32,6 +32,8 @@ This code was modified from the code originally written by Zhai Ke (kzhai@umd.ed
 * poisson-gamma ipb for real valued relation
 * Oprimization:
 *   - updating only the subset of relation affected by feature modified (active in both sides).
+* Structure:
+    * Sample methods, divide and conquer
 """
 
 W_diag = -2
@@ -471,12 +473,12 @@ class IBPGibbsSampling(IBP, ModelBase):
         alpha = self._alpha
         return (alpha,)
 
-    def generate(self, N, K=None, nodelist=None, hyper=None):
+    def generate(self, N, K=None, nodelist=None, hyper=None, _type='predictive'):
         self.update_hyper(hyper)
         N = int(N)
-        if K is not None:
+        if _type == 'evidence':
             raise NotImplementedError('IBP Generation')
-        else:
+        elif _type == 'predictive':
             Z, W = self.reduce_latent()
 
         if nodelist:

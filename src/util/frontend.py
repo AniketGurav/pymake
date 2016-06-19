@@ -152,6 +152,12 @@ class DataBase(object):
         with open(f, 'r') as _f:
             return cPickle.load(_f)
 
+    @staticmethod
+    def symmetrize(self, data=None):
+        if data is None:
+            return None
+        data = np.triu(data) + np.triu(data, 1).T
+
 
 from util.frontendtext import frontendText
 from util.frontendnetwork import frontendNetwork

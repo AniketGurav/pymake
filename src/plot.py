@@ -189,7 +189,8 @@ def plot_degree_2_l(Y, ax=None):
         #ba_x,ba_y = log_binning(ba_c2,50)
         _X.append(ba_c2.keys())
         _Y.append(ba_c2.values())
-        if _Y[-1][0] == 0:
+        # Remove degree 0
+        if _X[-1][0] == 0:
             _X[-1] = _X[-1][1:]
             _Y[-1] = _Y[-1][1:]
         size.append(len(_Y[-1]))
@@ -202,23 +203,20 @@ def plot_degree_2_l(Y, ax=None):
 
     X = np.array(_X)
     Y = np.array(_Y)
-    print X
-    print Y
     x = X.mean(0)
     y = Y.mean(0)
+    yerr = Y.var(0)
 
     #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
     plt.xscale('log')
     plt.yscale('log')
 
     fit = np.polyfit(np.log(x), np.log(y), deg=1)
-    plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'g--')
+    plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'g--', label='power %.2f' % fit[1])
     #plt.scatter(x,y,c='b',marker='o')
+    leg = plt.legend(loc=1,prop={'size':10})
 
-    yerr = y / 2
     plt.errorbar(x, y, yerr=yerr, fmt='o')
-
-
 
     #plt.xlim((1,1e4))
     plt.ylim((.9,1e3))
