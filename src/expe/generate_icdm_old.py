@@ -29,9 +29,8 @@ config = defaultdict(lambda: False, dict(
     ###### I/O settings
     bdir = '../data',
     generative = 'predictive',
-    K = 10,
-    gen_size = 10000,
-    epoch = 20
+    gen_size = 1000,
+    epoch = 100
 ))
 config.update(argParse(_USAGE))
 
@@ -82,19 +81,15 @@ if config.get('arg'):
         Models = [None]
         pass
 
-############################################################
-##### Simulation Output
-if config.get('simul'):
-    print '''--- Simulation settings ---
-    Model : %s
-    Corpus : %s
-    K : %s
-    N : %s
-    hyper : %s
-    Output : %s''' % (config['model'], config['corpus_name'],
-                     config['K'], config['N'], config['hyper'],
-                     config['output_path'])
-    exit()
+alpha = .5
+gmma = 1.
+delta = .1
+if Model['model'] == 'ibp':
+    hyper = (alpha, delta)
+elif Model['model'] == 'immsb':
+    hyper = (alpha, gmma, delta)
+else:
+    raise NotImplementedError
 
 for corpus_ in Corpuses:
     for Model in Models:
@@ -109,7 +104,6 @@ for corpus_ in Corpuses:
         frontend = frontendNetwork(config)
         data = frontend.load_data(corpus_name)
         data = frontend.sample()
-        model = ModelManager(config=config)
 
         Y = []
         N = config['gen_size']
@@ -117,35 +111,36 @@ for corpus_ in Corpuses:
         if config['generative'] == 'predictive':
             ### Generate data from a fitted model
             Model.update(corpus=corpus_name)
-            model = model.load(Model)
+            model = ModelManager(config=config).load(Model)
+            #model = model.load(Model)
         elif config['generative'] == 'evidence':
             ### Generate data from a un-fitted model
-            model = model.model
-            alpha = .5
-            gmma = 1.
-            delta = .1
             if Model['model'] == 'ibp':
+                keys_hyper = ('alpha','gmma','delta')
                 hyper = (alpha, delta)
-            elif Model['model'] == 'immsb':
-                hyper = (alpha, gmma, delta)
-            else:
-                raise NotImplementedError
-            model.update_hyper(hyper)
+            Model['hyperparams'] = dict(zip(keys_hyper, hyper))
+            Model['hyper'] = 'fix'
+            #model.data = np.zeros((1,1))
+            model = ModelManager(config=config).load(Model, init=True)
+            #model.update_hyper(hyper)
         else:
             raise NotImplementedError
 
         for i in range(config.get('epoch',1)):
-            y, theta, phi = model.generate(N, config['K'], _type=config['generative'])
+            y, theta, phi = model.generate(N, Model['K'], _type=config['generative'])
             Y += [y]
 
         ### Baselines
         #R = rescal(data, config['K'])
         R = None
 
+        N = theta.shape[0]
         K = theta.shape[1]
         if frontend.is_symmetric():
-            frontend.symmetrize(y)
-            frontend.symmetrize(R)
+            for y in Y:
+                frontend.symmetrize(y)
+                frontend.symmetrize(R)
+
         ###############################################################
         ### Expe Wrap up debug
         print 'corpus: %s, model: %s, K = %s, N =  %s'.replace(',','\n') % (frontend.corpus_name, model.model_name, model.K, frontend.N)

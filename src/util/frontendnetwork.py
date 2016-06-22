@@ -22,17 +22,21 @@ Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
 class frontendNetwork(DataBase):
 
     def __init__(self, config):
-        self.bdir = os.path.join(config['bdir'], 'networks')
+        self.bdir = 'networks'
         super(frontendNetwork, self).__init__(config)
 
     # /!\ Will set the name of output_path.
+
+    #Todo; remove conflit wih loader...
+    #def load(self, **kwargs):
+    #    return self.load_data(**kwargs)
     def load_data(self, corpus_name=None, randomize=False):
         """ Load data according to different scheme:
             * Corpus from file dataset
             * Corpus from random generator
             """
         if corpus_name is not None:
-            self.corpus_name = corpus_name
+            self.update_spec(**{'corpus_name': corpus_name})
         else:
             corpus_name = self.corpus_name
 
@@ -154,12 +158,8 @@ class frontendNetwork(DataBase):
         return True
 
     ### Redirect to correct path depending on the corpus_name
-    def get_corpus(self, corpus_name=None):
-        config = self.config
-        corpus_name = corpus_name or self.corpus_name
-        self.make_output_path(corpus_name)
-        self.corpus_name = corpus_name
-        data_t = None
+    def get_corpus(self, corpus_name):
+        self.make_output_path()
         try:
             N = int(self.N)
         except:
@@ -167,35 +167,15 @@ class frontendNetwork(DataBase):
             pass
 
         if corpus_name.startswith('generator'):
-            # Reroot basedir
-            K = int(corpus_name[len('generator'):])
-            self.basedir = self.basedir[:-len(str(K))]
-            corpus_name = self.corpus_name =  'Graph' + str(K)
-            self.basedir = os.path.join(self.basedir, self.corpus_name)
-            self.make_output_path()
-
             fn = os.path.join(self.basedir, 't0.graph')
             data = self.networkloader(fn)
         elif corpus_name in ('bench1'):
             raise NotImplementedError()
         elif corpus_name.startswith('clique'):
-            # Reroot basedir
             K = int(corpus_name[len('clique'):])
-            self.basedir = os.path.join(os.path.dirname(self.basedir), 'generator', os.path.basename(self.basedir[:-len(str(K))]))
-            corpus_name = self.corpus_name = 'clique' + str(K)
-            self.basedir = os.path.join(self.basedir, self.corpus_name)
-            self.make_output_path()
-
             data = getClique(N, K=K)
-            #G = nx.from_numpy_matrix(data, nx.Graph())
-            #data = nx.adjacency_matrix(G, np.random.permutation(range(N))).A
         elif corpus_name.startswith('facebook'):
-            bdir = self.basedir.split('/')[-1].split['_'][0]
-            corpus_name = self.basedir.split('/')[-1].split['_'][1]
-            self.basedir = os.path.join(os.path.dirname(self.basedir), bdir)
-            self.make_output_path()
-
-            fn = os.path.join(self.basedir, corpus_name, '0.edges')
+            fn = os.path.join(self.basedir, '0.edges')
             data = self.networkloader(fn)
         elif corpus_name == 'manufacturing':
             fn = os.path.join(self.basedir, 'manufacturing.csv')
@@ -222,7 +202,7 @@ class frontendNetwork(DataBase):
         data = None
         if self._load_data and os.path.isfile(fn+'.pk'):
             try:
-                data = self.load(fn+'.pk')
+                data = self.load(fn)
             except:
                 data = None
         if data is None:
@@ -239,7 +219,7 @@ class frontendNetwork(DataBase):
                 raise ValueError('extension of network data unknown')
 
         if self._save_data:
-            self.save(data, fn+'.pk')
+            self.save(data, fn)
 
         return data
 

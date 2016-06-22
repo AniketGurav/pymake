@@ -48,43 +48,36 @@ Examples:
 
 '''
 
-##################
-###### MAIN ######
-##################
 if __name__ == '__main__':
     config = defaultdict(lambda: False, dict(
         ##### Global settings
-        verbose                       = logging.INFO,
-        host                          = 'localhost',
-        index                         = 'search',
-        ##### Input Features / Corpus
-        corpus_name                   = 'clique2',
-        vsm                           = 'tf',
-        limit_train                   = 10000,
-        limit_predict                 = None,
-        extra_feat                    = False,
-        ##### Models Hyperparameters
-        #model                         = 'lda_cgs',
-        model_name                    = 'immsb',
-        hyper                         = 'auto',
-        K                             = 3,
-        N                             = 3,
-        chunk                         = 10000,
-        iterations                    = 2,
-        repeat                        = '1',
-        ###
-        homo                          = False, # learn W in IBP
+        verbose             = logging.INFO,
+        host                = 'localhost',
+        index               = 'search',
         ###### I/O settings
-        refdir                        = 'debug',
-        bdir                          = '../data',
-        load_data                   = True,
-        save_data                   = False,
-        load_model                    = False,
-        save_model                    = True,
-        write                         = False, # -w/-nw
+        refdir              = 'debug',
+        load_data           = True,
+        save_data           = False,
+        load_model          = False,
+        save_model          = True,
+        write               = False, # -w/-nw
         #####
-        predict                       = False,
+        predict             = False,
+        repeat      = False,
     ))
+    ##### Experience Settings
+    Expe = dict(
+        corpus_name = 'clique2',
+        model_name  = 'immsb',
+        hyper       = 'auto',
+        K           = 3,
+        N           = 10,
+        chunk       = 10000,
+        iterations  = 2,
+        homo        = 0, # learn W in IBP
+    )
+
+    config.update(Expe)
     config.update(argParse(_USAGE))
 
     lgg = setup_logger('root','%(message)s', config.get('verbose') )

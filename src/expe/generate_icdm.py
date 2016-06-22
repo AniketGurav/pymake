@@ -24,7 +24,7 @@ config = defaultdict(lambda: False, dict(
     ###### I/O settings
     generative = 'predictive',
     gen_size = 1000,
-    epoch = 10
+    epoch = 100
 ))
 config.update(argParse())
 
@@ -66,6 +66,12 @@ keys_hyper = ('alpha','gmma','delta')
 hyper = (alpha, gmma, delta)
 for corpus_name in Corpuses:
     for Model in Models:
+        #### Expe ID
+        path = '../../../papers/personal/relational_models/git/img/'
+        model_name = Model['model']
+        corpus_name = corpus_[0]
+        title = model_name + corpus_[1]
+        fn = model_name +'_'+corpus_[2]
 
         # Initializa Model
         frontend = frontendNetwork(config)
@@ -108,20 +114,14 @@ for corpus_name in Corpuses:
                 frontend.symmetrize(y)
                 frontend.symmetrize(R)
 
-        ###############################################################
-        ### Expe Wrap up debug
-        print 'corpus: %s, model: %s, K = %s, N =  %s'.replace(',','\n') % (frontend.corpus_name, Model['model'], K, N)
-
         #################################################
         ### Plot Degree
-        plt.figure()
-        #plot_degree_(y, title='Overall Degree')
+        figsize=(3.8, 4.3)
+        plt.figure(figsize=figsize)
         plot_degree_2_l(Y)
         plot_degree_2(data, scatter=False)
 
         fn = corpus_name+'.pdf'
-        #plt.savefig(fn, facecolor='white', edgecolor='black')
-        display(False)
-    display(True)
+        plt.savefig(path+fn+'_d'+'.pdf', facecolor='white', edgecolor='black')
 
 

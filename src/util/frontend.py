@@ -42,6 +42,8 @@ class DataBase(object):
             np.random.seed(config.get('seed'))
         self.seed = np.random.get_state()
         self.config = config
+        config['data_type'] = self.bdir
+
         self.corpus_name = config.get('corpus_name')
         self.model_name = config.get('model_name')
 
@@ -60,26 +62,40 @@ class DataBase(object):
         # Read Directory
         #self.make_output_path()
 
+        # self._init()
+        # self.data = self.load_data(spec)
 
-    def make_output_path(self, corpus_name=None):
+
+    #def make_output_path(self, corpus_name=None):
+    #    # Write Path (for models results)
+    #    config = self.config
+    #    if not hasattr(self, 'basedir') or corpus_name:
+    #        self.basedir = os.path.join(self.bdir, corpus_name)
+    #    corpus_name = corpus_name or self.corpus_name
+    #    fname_out = '%s_%s_%s_%s_%s' % (self.model_name,
+    #                                        self.K,
+    #                                        self.hyper_optimiztn,
+    #                                        self.homo,
+    #                                        self.N)
+
+    #    config['output_path'] = os.path.join(self.basedir,
+    #                                         config.get('refdir', ''),
+    #                                         str(config.get('repeat', '')),
+    #                                         fname_out)
+    #    self.output_path = config['output_path']
+    def make_output_path(self):
         # Write Path (for models results)
-        config = self.config
-        if not hasattr(self, 'basedir') or corpus_name:
-            self.basedir = os.path.join(self.bdir, corpus_name)
-        corpus_name = corpus_name or self.corpus_name
-        fname_out = '%s_%s_%s_%s_%s' % (self.model_name,
-                                            self.K,
-                                            self.hyper_optimiztn,
-                                            self.homo,
-                                            self.N)
+        self.basedir, self.output_path = make_output_path(self.config)
+        self.config['output_path'] = self.output_path
 
-        config['output_path'] = os.path.join(self.basedir,
-                                             config.get('refdir', ''),
-                                             config.get('repeat', ''),
-                                             fname_out)
+    def update_spec(self, **spec):
+        if len(spec) == 1:
+            k, v = spec.items()[0]
+            setattr(self, k, v)
+        self.config.update(spec)
 
     @staticmethod
-    def corpus_walker(bdir):
+    def corpus_walker(path):
         raise NotImplementedError()
 
     #######
@@ -89,15 +105,15 @@ class DataBase(object):
     def load_data(self):
         raise NotImplementedError()
 
-    def save_json(self):
+    def save_json(self, res):
         fn = self.output_path + '.json'
         return json.dump(res, open(fn,'w'))
     def get_json(self):
-        fn = self.config['output_path'] + '.json'
+        fn = self.output_path + '.json'
         d = json.load(open(fn,'r'))
         return d
     def update_json(self, d):
-        fn = self.config['output_path'] + '.json'
+        fn = self.output_path + '.json'
         res = json.load(open(fn,'r'))
         res.update(d)
         print 'updating json: %s' % fn
@@ -144,12 +160,14 @@ class DataBase(object):
         return bow
 
     # Pickle class
-    def save(self, data, f):
-        with open(f, 'w') as _f:
+    def save(self, data, fn):
+        fn = fn + '.pk'
+        with open(fn, 'w') as _f:
             return cPickle.dump(data, _f)
 
-    def load(self, f):
-        with open(f, 'r') as _f:
+    def load(self, fn):
+        fn = fn + '.pk'
+        with open(fn, 'r') as _f:
             return cPickle.load(_f)
 
     @staticmethod
@@ -176,8 +194,10 @@ class FrontendManager(object):
             if corpus.startswith(tuple(cps)):
                 if key == 'text':
                     frontend = frontendText(config)
+                    break
                 elif key == 'network':
                     frontend = frontendNetwork(config)
+                    break
 
         if frontend is None:
             raise ValueError('Unknown Corpus `%s\'!' % corpus)
@@ -279,7 +299,10 @@ class ModelManager(object):
     """ Utility Class for Managing I/O and debugging Models
     """
     def __init__(self, data=None, config=None, data_t=None):
-        self.data = data
+        if data is None:
+            self.data = np.zeros((1,1))
+        else:
+            self.data = data
         self.data_t = data_t
 
         self._init(config)
@@ -289,40 +312,16 @@ class ModelManager(object):
         if not self.model_name:
             return
 
-        if self.model_name in ('ilda', 'lda_cgs', 'immsb', 'mmsb_cgs'):
-            self.model = self.loadgibbs(self.model_name)
-        elif self.model_name in ('lda_vb'):
-            self.model = self.lda_gensim(model='ldafullbaye')
-        elif self.model_name in ('ilfrm', 'ibp', 'ibp_cgs'):
-            if '_cgs' in self.model_name:
-                metropolis_hastings_k_new = False
-            else:
-                metropolis_hastings_k_new = True
-                if self.config['homo'] == 2:
-                    raise NotImplementedError('Warning !: Metropolis Hasting not implemented with matrix normal. Exiting....')
-            alpha_hyper_parameter = self.config['hyper']
-            sigma_w_hyper_parameter = None #(1., 1.)
-            symmetric = self.config['symmetric']
-            assortativity = self.config['homo']
-            # Hyper parameter init
-            alpha = self.hyperparams['alpha']
-            sigma_w = 1.
-            self.model = IBPGibbsSampling(symmetric, assortativity, alpha_hyper_parameter, sigma_w_hyper_parameter, metropolis_hastings_k_new,
-                                         iterations=self.config['iterations'], output_path=self.output_path, write=self.write)
-            self.model._initialize(data, alpha, sigma_w, KK=self.K)
-            print 'Warning: K is IBP initialized...'
-            #self.model._initialize(data, alpha, sigma_w, KK=None)
-        else:
-            raise NotImplementedError()
+        self.model = self.get_model(config)
 
     # Base class for Gibbs, VB ... ?
-    def loadgibbs(self, target, likelihood=None):
-        delta = self.hyperparams['delta']
-        alpha = self.hyperparams['alpha']
-        gmma = self.hyperparams['gmma']
-        mask = self.config['mask']
+    def loadgibbs_1(self, target, likelihood=None):
+        delta = self.hyperparams.get('delta',1)
+        alpha = self.hyperparams.get('alpha',1)
+        gmma = self.hyperparams.get('gmma',1)
+
         symmetric = self.config.get('symmetric',False)
-        assortativity = self.config['homo']
+        assortativity = self.config.get('homo')
         K = self.K
 
         if 'mmsb' in target:
@@ -331,20 +330,66 @@ class ModelManager(object):
             kernel = lda
 
         if likelihood is None:
-            likelihood = kernel.DirMultLikelihood(delta, self.data, symmetric=symmetric, assortativity=assortativity)
+            likelihood = kernel.DirMultLikelihood(delta,
+                                                  self.data,
+                                                  symmetric=symmetric,
+                                                  assortativity=assortativity)
 
         if target.split('_')[-1] == 'cgs':
             # Parametric case
-            jointsampler = kernel.CGS(kernel.ZSamplerParametric(alpha, likelihood, K, data_t=self.data_t))
+            jointsampler = kernel.CGS(kernel.ZSamplerParametric(alpha,
+                                                                likelihood,
+                                                                K,
+                                                                data_t=self.data_t))
         else:
             # Nonparametric case
-            zsampler = kernel.ZSampler(alpha, likelihood, K_init=K, data_t=self.data_t)
+            zsampler = kernel.ZSampler(alpha,
+                                       likelihood,
+                                       K_init=K,
+                                       data_t=self.data_t)
             msampler = kernel.MSampler(zsampler)
-            betasampler = kernel.BetaSampler(gmma, msampler)
-            jointsampler = kernel.NP_CGS(zsampler, msampler, betasampler, hyper=self.config['hyper'],)
+            betasampler = kernel.BetaSampler(gmma,
+                                             msampler)
+            jointsampler = kernel.NP_CGS(zsampler,
+                                         msampler,
+                                         betasampler,
+                                         hyper=self.config['hyper'],)
 
-        return kernel.GibbsRun(jointsampler, iterations=self.config['iterations'],
-                        output_path=self.output_path, write=self.write, data_t=self.data_t)
+        return kernel.GibbsRun(jointsampler,
+                               iterations=self.iterations,
+                        output_path=self.output_path,
+                               write=self.write,
+                               data_t=self.data_t)
+
+    def loadgibbs_2(self, model_name):
+        alpha_hyper_parameter = self.config['hyper']
+        symmetric = self.config.get('symmetric',False)
+        assortativity = self.config.get('homo')
+        K = self.K
+        # Hyper parameter init
+        alpha = self.hyperparams.get('alpha',1)
+        sigma_w = 1.
+        sigma_w_hyper_parameter = None #(1., 1.)
+
+        if '_cgs' in model_name:
+            metropolis_hastings_k_new = False
+        else:
+            metropolis_hastings_k_new = True
+            if self.config['homo'] == 2:
+                raise NotImplementedError('Warning !: Metropolis Hasting not implemented with matrix normal. Exiting....')
+
+        model = IBPGibbsSampling(symmetric,
+                                 assortativity,
+                                 alpha_hyper_parameter,
+                                 sigma_w_hyper_parameter,
+                                 metropolis_hastings_k_new,
+                                 iterations=self.iterations,
+                                 output_path=self.output_path,
+                                 write=self.write)
+        model._initialize(self.data, alpha, sigma_w, KK=K)
+        print 'Warning: K is IBP initialized...'
+        #self.model._initialize(data, alpha, sigma_w, KK=None)
+        return model
 
     def lda_gensim(self, id2word=None, save=False, model='ldamodel', load=False, updatetype='batch'):
         #lgg.setLevel(logging.DEBUG)
@@ -441,22 +486,25 @@ class ModelManager(object):
 
     # Debug classmethod and ecrasement d'object en jeux.
     #@classmethod
-    def load(self, spec=None):
-        if spec == None:
-            fn = self.output_path + '.pk'
-        else:
-            fn = make_output_path(spec, 'pk')
-        if not os.path.isfile(fn) or os.stat(fn).st_size == 0:
-            print 'No file for this model: %s' %fn
-            for f in model_walker(os.path.dirname(fn), fmt='list'):
-                print f
-            print 'Pick the right models, maestro !'
-            raise IOError
-        with open(fn, 'r') as _f:
-            model =  cPickle.load(_f)
-
+    def load(self, spec=None, init=False):
         if spec:
             self._init(spec)
+
+        if init is True:
+            model = self.get_model(spec)
+        else:
+            if spec == None:
+                fn = self.output_path + '.pk'
+            else:
+                fn = make_output_path(spec, 'pk')
+            if not os.path.isfile(fn) or os.stat(fn).st_size == 0:
+                print 'No file for this model: %s' %fn
+                for f in model_walker(os.path.dirname(fn), fmt='list'):
+                    print f
+                print 'Pick the right model, maestro !'
+                raise IOError
+            with open(fn, 'r') as _f:
+                model =  cPickle.load(_f)
         self.model = model
         return model
 
@@ -464,15 +512,25 @@ class ModelManager(object):
         self.model_name = spec.get('model_name') or spec.get('model')
         #models = {'ilda' : HDP_LDA_CGS,
         #          'lda_cgs' : LDA_CGS, }
-        self.hyperparams = spec.get('hyperparams')
+        self.hyperparams = spec.get('hyperparams', dict())
         self.output_path = spec.get('output_path')
         self.K = spec.get('K')
         self.inference_method = '?'
+        self.iterations = spec.get('iterations', 0)
 
         self.write = spec.get('write', False)
         # **kwargs
         self.config = spec
 
+    def get_model(self, spec):
+        if self.model_name in ('ilda', 'lda_cgs', 'immsb', 'mmsb_cgs'):
+            model = self.loadgibbs_1(self.model_name)
+        elif self.model_name in ('lda_vb'):
+            model = self.lda_gensim(model='ldafullbaye')
+        elif self.model_name in ('ilfrm', 'ibp', 'ibp_cgs'):
+            model = self.loadgibbs_2(self.model_name)
+        else:
+            raise NotImplementedError()
 
-
+        return model
 

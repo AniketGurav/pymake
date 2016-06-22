@@ -52,14 +52,6 @@ if __name__ == '__main__':
     config = defaultdict(lambda: False, dict(
         ##### Global settings
         verbose                       = logging.INFO,
-        host                          = 'localhost',
-        index                         = 'search',
-        ##### Input Features / Corpus
-        corpus_name                   = 'kos',
-        vsm                           = 'tf',
-        limit_train                   = 10000,
-        limit_predict                 = None,
-        extra_feat                    = False,
         ##### Models Hyperparameters
         #model                         = 'lda_cgs',
         model                         = 'ilda',
@@ -72,7 +64,6 @@ if __name__ == '__main__':
         homo                          = False, # learn W in IBP
         ###### I/O settings
         refdir                        = 'debug',
-        bdir                          = '../data',
         load_data                   = True,
         save_data                   = True,
         load_model                    = False,

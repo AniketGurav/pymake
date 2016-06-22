@@ -3,7 +3,7 @@ import subprocess
 
 
 tests = ( 'topics',
-         'expe_icdm',
+         'expe_meas',
          'expe_k',
          'check_networks',
         )

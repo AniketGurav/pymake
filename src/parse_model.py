@@ -14,26 +14,26 @@ if __name__ == '__main__':
     ####################################################
     ### Config
     spec = dict(
-        base = ['networks'],
-        hook_dir = ['debug5/'],
+        data_type = ['networks'],
+        refdir = ['debug5/'],
         #corpus   = ['kos', 'nips12', 'nips', 'reuter50', '20ngroups'],
         #corpus   = ['generator3', 'generator4'],
         #corpus   = ['generator5', 'generator6'],
         corpus   = [ 'generator6'],
         #models   = ['ibp', 'ibp_cgs', 'mmsb_cgs', 'immsb'],
-        models   = ['ibp_cgs', 'mmsb_cgs'],
+        model   = ['ibp_cgs', 'mmsb_cgs'],
         #Ns       = [250, 1000, 'all'],
-        Ns       = [1000,],
-        Ks       = [5, 10, 30],
+        N       = [1000,],
+        K       = [5, 10, 30],
         homo     = [0,1,2],
         hyper    = ['fix', 'auto'],
     )
 
-    #spec['models'] = ['ibp_cgs']
+    #spec['model'] = ['ibp_cgs']
     #spec['homo'] = ['2']
     #spec['hyper'] = ['auto']
-    #spec['Ks'] = ['10']
-    #spec['Ns'] = ['1000']
+    #spec['K'] = ['10']
+    #spec['N'] = ['1000']
 
     def exception_config(config):
         if config['model'] is 'mmsb_cgs':
@@ -46,7 +46,6 @@ if __name__ == '__main__':
 
     def_conf = {'load_data':False, # Need to compute feature and communities ground truth (no stored in pickle)
                 'load_model': True, # Load model vs Gnerate random data
-                'bdir': '../data',
                 #'save_data': True,
                }
     configs = make_forest_conf(spec)

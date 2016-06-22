@@ -753,6 +753,7 @@ class GibbsRun(ModelBase):
 
     def generate(self, N, K=None, hyper=None, _type='predictive'):
         self.update_hyper(hyper)
+        alpha, gmma, delta = self.get_hyper()
         N = int(N)
         if _type == 'evidence':
             K = int(K)

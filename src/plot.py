@@ -127,7 +127,7 @@ def log_binning(counter_dict,bin_count=35):
     return bin_means_x,bin_means_y
 
 from collections import Counter
-def plot_degree_2(y, ax=None):
+def plot_degree_2(y, ax=None, scatter=True):
     # To convert normalized degrees to raw degrees
     #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
     if (y == y.T).all():
@@ -157,8 +157,11 @@ def plot_degree_2(y, ax=None):
     plt.yscale('log')
 
     fit = np.polyfit(np.log(x), np.log(y), deg=1)
-    plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'g--')
-    plt.scatter(x,y,c='b',marker='o')
+    plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'g--', label='power %.2f' % fit[1])
+    leg = plt.legend(loc=1,prop={'size':10})
+
+    if scatter:
+        plt.scatter(x,y,c='b',marker='o')
 
     #plt.xlim((1,1e4))
     plt.ylim((.9,1e3))
@@ -205,18 +208,18 @@ def plot_degree_2_l(Y, ax=None):
     Y = np.array(_Y)
     x = X.mean(0)
     y = Y.mean(0)
-    yerr = Y.var(0)
+    yerr = Y.std(0)
 
     #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
     plt.xscale('log')
     plt.yscale('log')
 
     fit = np.polyfit(np.log(x), np.log(y), deg=1)
-    plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'g--', label='power %.2f' % fit[1])
-    #plt.scatter(x,y,c='b',marker='o')
+    plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'm:', label='model power %.2f' % fit[1])
     leg = plt.legend(loc=1,prop={'size':10})
 
     plt.errorbar(x, y, yerr=yerr, fmt='o')
+    #plt.scatter(_X, _Y, marker='o')
 
     #plt.xlim((1,1e4))
     plt.ylim((.9,1e3))

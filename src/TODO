@@ -1,9 +1,13 @@
-
+### Structure Tree
+# Make the modelbase and dataBase inherit from a serialisble class (pickle ?)
+#
+#
+#
+#
 
 ### Propriété:
     * homophily (ya t'il homophilie par attaachement préférentiel)
     * attachement préférentiel par homopholie (nouveux liens / nouveaux noeud?) 
-    * CHECK generative model (typically LDA) if it has or not Zipf LAW !!!! Like said but with no proove !
 
 ##### communauté
 * equivalence struturelle (economie / partenariat)

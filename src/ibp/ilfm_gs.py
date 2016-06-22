@@ -16,25 +16,25 @@ from local_utils import *
 from util.frontend import DataBase, ModelBase
 
 # We will be taking log(0) = -Inf, so turn off this warning
-np.seterr(divide='ignore')
+#np.seterr(divide='ignore')
 
 """
-@author: Adrien Dulac (adrien.dulac@imag.fr)
-
 Implements MCMC inference for the Infinite Latent Feature Relationnal Model [1].
 This code was modified from the code originally written by Zhai Ke (kzhai@umd.edu).
 
 [1] Kurt Miller, Michael I Jordan, and Thomas L Griffiths. Nonparametric latent feature models for link prediction. In Advances in neural information processing systems 2009.
+
+@author: Adrien Dulac
 """
 
-""" @TODO
-* 2 parameter ibp
-* poisson-gamma ipb for real valued relation
-* Oprimization:
-*   - updating only the subset of relation affected by feature modified (active in both sides).
-* Structure:
-    * Sample methods, divide and conquer
-"""
+### @TODO
+#   * 2 parameter ibp
+#   * poisson-gamma ipb for real valued relation
+#   * Oprimization:
+#   *   - updating only the subset of relation affected by feature modified (active in both sides).
+#   * Structure:
+#       * Sample methods, divide and conquer
+#
 
 W_diag = -2
 
@@ -475,6 +475,7 @@ class IBPGibbsSampling(IBP, ModelBase):
 
     def generate(self, N, K=None, nodelist=None, hyper=None, _type='predictive'):
         self.update_hyper(hyper)
+        alpha = self.get_hyper()
         N = int(N)
         if _type == 'evidence':
             raise NotImplementedError('IBP Generation')

@@ -15,14 +15,9 @@ import scipy as sp
 ### Config
 config = defaultdict(lambda: False, dict(
     ##### Global settings
-    verbose     = 0,
-    ##### Input Features / Corpus
-    limit_train = None,
     ###### I/O settings
-    bdir = '../data',
-    load_data = False, # Fasle because if not cluster and feature are not loaded
 ))
-config.update(argParse(_USAGE))
+config.update(argParse())
 
 ### Bursty
 #corpuses = ( 'generator3', 'generator11', 'generator12', 'generator7', 'generator14',)
@@ -33,12 +28,13 @@ config.update(argParse(_USAGE))
 ### Expe
 Corpuses = ( 'generator4', )
 Corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7',)
+Corpuses = ( 'generator10', )
 Corpuses = ( 'manufacturing', 'fb_uc',)
 Corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7', 'generator13')
-Corpuses = ( 'generator10', )
 
 ### Models
 Model = dict ((
+('data_type'    , 'networks'),
 ('debug'        , 'debug11') ,
 ('model'        , 'ibp')   ,
 ('K'            , 20)        ,

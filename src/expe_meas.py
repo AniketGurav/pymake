@@ -7,7 +7,6 @@ import numpy as np
 
 from util.frontend_io import *
 from local_utils import *
-from expe_meas import *
 
 
 if __name__ ==  '__main__':
@@ -15,8 +14,13 @@ if __name__ ==  '__main__':
     #import argparse
     largs = sys.argv
     model = None
+    K = None
     if len(largs) > 1:
-        model = largs[-1]
+        for arg in largs[1:]:
+            try:
+                K = int(arg)
+            except:
+                model = arg
     ###################################################################
     # Data Forest config
     #
@@ -25,18 +29,18 @@ if __name__ ==  '__main__':
     map_parameters = OrderedDict((
         ('data_type', ('networks',)),
         ('debug'  , ('debug10', 'debug11')),
-        ('corpus' , ('fb_uc', 'manufacturing')),
-        #('corpus' , ('Graph7', 'Graph12', 'Graph10', 'Graph4')),
+        #('corpus' , ('fb_uc', 'manufacturing')),
+        ('corpus' , ('Graph7', 'Graph12', 'Graph10', 'Graph4')),
         ('model'  , ('immsb', 'ibp')),
         ('K'      , (5, 10, 15, 20)),
         ('N'      , ('all',)),
         ('hyper'  , ('fix', 'auto')),
-        ('homo'   , (0, 1, 2)),
+        ('homo'   , (0, 1)),
         #('repeat'   , (0, 1, 2, 4, 5)),
     ))
 
     ### Seek experiments results
-    target_files = make_forest_path(map_parameters, 'json',  sep=None)
+    target_files = make_forest_path(map_parameters, 'json')
     ### Make Tensor Forest of results
     rez = forest_tensor(target_files, map_parameters)
 
@@ -51,22 +55,23 @@ if __name__ ==  '__main__':
         ('debug' , 'debug10') ,
         ('corpus', '*'),
         ('model' , 'immsb')   ,
-        ('K'     , '*')         ,
+        ('K'     , 5)         ,
         ('N'     , 'all')     ,
         ('hyper' , 'auto')     ,
         ('homo'  , 0) ,
         #('repeat', '*'),
-        ('measure', 0),
+        ('measure', '*'),
         ))
     if model:
         expe_1.update(model=model)
         if model == 'ibp':
             expe_1.update(hyper='fix')
+    if K:
+        expe_1.update(K=K)
     assert(expe_1.keys()[:len(map_parameters)] == map_parameters.keys())
 
     ###################################
     ### Extract Resulst *** in: setting - out: table
-    headers = [ 'global', 'precision', 'recall', 'K->']
 
     ### Make the ptx index
     ptx = []
@@ -75,13 +80,7 @@ if __name__ ==  '__main__':
         if v in ( '*', ':'): #wildcar / indexing ...
             ptx.append(slice(None))
         else:
-            if k in map_parameters:
-                ptx.append(map_parameters[k].index(v))
-            elif type(v) is int:
-                ptx.append(v)
-            else:
-                raise ValueError('Unknow data type for tensor forest')
-
+            ptx.append(map_parameters[k].index(v))
     ptx = tuple(ptx)
 
     ### Output
@@ -96,9 +95,9 @@ if __name__ ==  '__main__':
     print 'Expe 1:'
     print tabulate([expe_1.keys(), expe_1.values()])
     # Headers
-    headers = list(map_parameters['K'])
+    headers = [ 'global', 'precision', 'recall', 'K->']
     h_mask = 'mask all' if '11' in expe_1['debug'] else 'mask sub1'
-    h = expe_1['model'] + ' / ' + h_mask
+    h = expe_1['model'].upper() + ' / ' + h_mask
     headers.insert(0, h)
     # Row
     keys = map_parameters['corpus']
@@ -109,7 +108,5 @@ if __name__ ==  '__main__':
     print
     #print tabulate(table, headers=headers)
     print tabulate(table, headers=headers, tablefmt='latex', floatfmt='.4f')
-    print '\t\t--> precision'
-
 
 

@@ -12,17 +12,10 @@ np.set_printoptions(threshold='nan')
 
 _USAGE = '-s'
 
-##################
-###### MAIN ######
-##################
 if __name__ == '__main__':
     config = defaultdict(lambda: False, dict(
         ##### Global settings
-        verbose     = 0,
-        ##### Input Features / Corpus
-        limit_train = None,
         ###### I/O settings
-        bdir = '../data',
         load_data = False,
         save_data = True,
     ))
