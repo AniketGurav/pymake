@@ -10,20 +10,33 @@ from util.frontend_io import *
 from expe.spec import *
 from expe.run import *
 
+### Parsing CLI
+if args.flags.contains('---help') or args.flags.contains('-h'):
+    print '''Usage:
+    zymake.py runcmd SPEC
+    or
+    zymake path SPEC Filetype(pk|json|inf)
+    ''';  exit()
 
-args = args.grouped['_']
-if len(args) == 2:
-    OUT_TYPE = args.get(0)
-    SPEC = globals()[args.get(1)]
+gargs = args.grouped['_']
+OUT_TYPE = gargs.get(0) or 'path'
+if OUT_TYPE == 'runcmd' and len(gargs) == 2:
+    SPEC = globals()[gargs.get(1)]
+elif OUT_TYPE == 'path' and len(gargs) == 3:
+    SPEC = globals()[gargs.get(1)]
+    FTYPE = gargs.get(2)
+    STATUS = None
 else:
-    OUT_TYPE = 'path'
+    print 'Debug Specification /!\ '
     SPEC = RUN_DD
+    FTYPE = 'pk'
+    STATUS = None
 
-### Makes target files
-if OUT_TYPE in ('path', 'files'):
-    source_files = make_forest_path(SPEC, 'pk', status=None)
-elif OUT_TYPE == 'runcmd':
+### Makes OUT Files
+if OUT_TYPE == 'runcmd':
     source_files = make_forest_runcmd(SPEC)
+elif OUT_TYPE == 'path':
+    source_files = make_forest_path(SPEC, FTYPE, status=STATUS)
 else:
     raise NotImplementedError
 
