@@ -112,11 +112,6 @@ if __name__ == '__main__':
     # Load model
     model = ModelManager(config=config)
 
-    #### Run Inference / Learning Model
-    #model.run()
-
-    #### Predict Future
-    #model.predict(frontend)
 
     if config.get('load_model'):
         ### Generate data from a fitted model

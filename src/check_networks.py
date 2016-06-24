@@ -1,51 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from local_utils import *
-from vocabulary import Vocabulary, parse_corpus
 from util.frontend import ModelManager, FrontendManager
 from util.frontendnetwork import frontendNetwork
 from plot import *
+from local_utils import *
+from expe.spec import *
 
-import numpy as np
-import scipy as sp
-#np.set_printoptions(threshold='nan')
 
-####################################################
 ### Config
 config = defaultdict(lambda: False, dict(
-    ##### Global settings
-    ###### I/O settings
 ))
 config.update(argParse())
 
-### Bursty
-#corpuses = ( 'generator3', 'generator11', 'generator12', 'generator7', 'generator14',)
+### Specification
+Corpuses = CORPUS_SYN_ICDM_1
+Model = MODEL_FOR_CLUSTER_IBP
 
-### Non Bursty
-#corpuses = ( 'generator4', 'generator5', 'generator6', 'generator9', 'generator10',)
-
-### Expe
-Corpuses = ( 'generator4', )
-Corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7',)
-Corpuses = ( 'generator10', )
-Corpuses = ( 'manufacturing', 'fb_uc',)
-Corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7', 'generator13')
-
-### Models
-Model = dict ((
-('data_type'    , 'networks'),
-('debug'        , 'debug11') ,
-('model'        , 'ibp')   ,
-('K'            , 20)        ,
-('N'            , 'all')     ,
-('hyper'        , 'fix')     ,
-('homo'         , 0)         ,
-#('repeat'      , '*')       ,
-))
-
-############################################################
-##### Simulation Output
+### Simulation Output
 if config.get('simul'):
     print '''--- Simulation settings ---
     Build Corpuses %s''' % (str(Corpuses))
@@ -107,7 +79,7 @@ for corpus_name in Corpuses:
         data_r = data
 
     ### Reordering Adjacency Mmatrix based on Clusters/Class/Communities
-    if globals().get('clusters_source'):
+    if globals().get('clusters_source') is not None:
         nodelist = [k[0] for k in sorted(zip(range(len(clusters_source)), clusters_source), key=lambda k: k[1])]
         data_r = data[nodelist, :][:, nodelist]
 
@@ -130,4 +102,5 @@ for corpus_name in Corpuses:
     fn = corpus_name+'.pdf'
     #plt.savefig(fn, facecolor='white', edgecolor='black')
     display(False)
+
 display(True)

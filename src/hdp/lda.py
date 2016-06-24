@@ -659,7 +659,7 @@ class GibbsRun(ModelBase):
         measures = [pp, pp_t, k, alpha_0, gmma, alpha_mean, delta_mean, alpha_var, delta_var]
         return measures
 
-    def run(self):
+    def fit(self):
         time_it = 0
         for i in xrange(self.iterations):
 

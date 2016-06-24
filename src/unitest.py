@@ -2,10 +2,12 @@
 import subprocess
 
 
-tests = ( 'topics',
+tests = ( 'fit',
          'expe_meas',
          'expe_k',
          'check_networks',
+         'generate',
+         'zymake'
         )
 
 for t in tests:

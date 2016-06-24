@@ -67,7 +67,7 @@ hyper = (alpha, gmma, delta)
 for corpus_name in Corpuses:
     for Model in Models:
         #### Expe ID
-        path = '../../../papers/personal/relational_models/git/img/'
+        path = '../../../../papers/personal/relational_models/git/img/'
         model_name = Model['model']
         corpus_name = corpus_[0]
         title = model_name + corpus_[1]

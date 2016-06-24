@@ -1,56 +1,28 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
-from random import choice
-from local_utils import *
-from vocabulary import Vocabulary, parse_corpus
 from util.frontend import ModelManager, FrontendManager
 from util.frontendnetwork import frontendNetwork
+from local_utils import *
 from plot import *
 from util.frontend_io import *
+from expe.spec import *
 
-import numpy as np
-import scipy as sp
-#np.set_printoptions(threshold='nan')
-
-import logging
-import os
-import os.path
 
 ####################################################
 ### Config
 config = defaultdict(lambda: False, dict(
-    ##### Global settings
-    ###### I/O settings
     generative = 'predictive',
     gen_size = 1000,
     epoch = 10
 ))
 config.update(argParse())
 
-### Bursty
-#corpuses = ( 'generator3', 'generator11', 'generator12', 'generator7', 'generator14',)
 
-### Non Bursty
-#corpuses = ( 'generator4', 'generator5', 'generator6', 'generator9', 'generator10',)
-
-### Expe Spec
-
-Corpuses = ( 'manufacturing', 'fb_uc',)
-Corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7',)
-Corpuses = ( 'generator10', )
+Corpuses = NETWORKS_DD
+Models = MODELS_DD
 
 ### Models
-Models = [ dict ((
-('data_type'    , 'networks'),
-('debug'        , 'debug10') ,
-('model'        , 'ibp')   ,
-('K'            , 10)        ,
-('N'            , 'all')     ,
-('hyper'        , 'auto')     ,
-('homo'         , 0)         ,
-#('repeat'      , '*')       ,
-))]
 
 if config.get('arg'):
     try:
@@ -65,12 +37,10 @@ delta = 10
 keys_hyper = ('alpha','gmma','delta')
 hyper = (alpha, gmma, delta)
 for corpus_name in Corpuses:
+    frontend = frontendNetwork(config)
+    data = frontend.load_data(corpus_name)
+    data = frontend.sample()
     for Model in Models:
-
-        # Initializa Model
-        frontend = frontendNetwork(config)
-        data = frontend.load_data(corpus_name)
-        data = frontend.sample()
 
         Y = []
         N = config['gen_size']
@@ -87,7 +57,6 @@ for corpus_name in Corpuses:
                 hyper = (alpha, delta)
             Model['hyperparams'] = dict(zip(keys_hyper, hyper))
             Model['hyper'] = 'fix'
-            #model.data = np.zeros((1,1))
             model = ModelManager(config=config).load(Model, init=True)
             #model.update_hyper(hyper)
         else:
@@ -122,6 +91,6 @@ for corpus_name in Corpuses:
         fn = corpus_name+'.pdf'
         #plt.savefig(fn, facecolor='white', edgecolor='black')
         display(False)
-    display(True)
 
+display(True)
 

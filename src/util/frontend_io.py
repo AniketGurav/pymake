@@ -1,8 +1,9 @@
 import re, os, sys, json, logging
+from collections import defaultdict
 import fnmatch
 import numpy as np
 
-LOCAL_BDIR = '../../data'
+LOCAL_BDIR = '../../data/' # Last slash(/) necessary.
 """
     #### I/O
     Corpus are load/saved using Pickle format in:
@@ -19,6 +20,10 @@ LOCAL_BDIR = '../../data'
                                         self.homo,
                                         self.N)
 """
+
+# Factorize the io; One argument / One options.
+# ALign file and args generation
+# support opt: list of str or int
 
 # @DEBUG: Align topic config and frontend_io
 # * refdir vs debug
@@ -47,44 +52,63 @@ def model_walker(bdir, fmt='list'):
     return tree
 
 
-def make_forest_path(spec, _type, sep=None, status='f'):
-    """ Make a list of path from a spec/dict
+#def make_forest_path(spec, _type, sep=None, status='f'):
+#    """ Make a list of path from a spec/dict
+#        @status: f finished,  e exist.
+#        @type: pk, json or inference.
+#    """
+#    targets = []
+#    for base in spec['data_type']:
+#        for hook in spec['debug']:
+#            for c in spec['corpus']:
+#                if c.startswith(('clique', 'Graph', 'generator')):
+#                    c = c.replace('generator', 'Graph')
+#                    _c = 'generator/' + c
+#                else:
+#                    _c = c
+#                if spec.get('repeat'):
+#                    _p = [os.path.join(base, _c, hook, rep) for rep in spec['repeat']]
+#                else:
+#                    _p = [ os.path.join(base, _c, hook) ]
+#                for p in _p:
+#                    for n in spec['N']:
+#                        for m in spec['model']:
+#                            for k in spec['K']:
+#                                for h in spec['hyper']:
+#                                    for hm in spec['homo']:
+#                                        t = '%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
+#                                        filen = os.path.join(p, t)
+#                                        ext = ext_status(filen, _type)
+#                                        if ext:
+#                                            filen = ext
+#                                        else:
+#                                            pass
+#
+#                                        _f = os.path.join(os.path.dirname(__file__), LOCAL_BDIR, filen)
+#                                        if status is 'f' and is_empty_file(_f):
+#                                            continue
+#
+#                                        targets.append(filen)
+#
+#    return targets
+def make_forest_path(dol_spec, _type, sep=None, status='f'):
+    """ Make a list of path from a spec/dict, the filename are
+        oredered need to be align with teh get_from_conf_file.
+
         @status: f finished,  e exist.
         @type: pk, json or inference.
     """
     targets = []
-    for base in spec['data_type']:
-        for hook in spec['debug']:
-            for c in spec['corpus']:
-                if c.startswith(('clique', 'Graph', 'generator')):
-                    c = c.replace('generator', 'Graph')
-                    _c = 'generator/' + c
-                else:
-                    _c = c
-                if spec.get('repeat'):
-                    _p = [os.path.join(base, _c, hook, rep) for rep in spec['repeat']]
-                else:
-                    _p = [ os.path.join(base, _c, hook) ]
-                for p in _p:
-                    for n in spec['N']:
-                        for m in spec['model']:
-                            for k in spec['K']:
-                                for h in spec['hyper']:
-                                    for hm in spec['homo']:
-                                        t = '%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
-                                        filen = os.path.join(p, t)
-                                        ext = ext_status(filen, _type)
-                                        if ext:
-                                            filen = ext
-                                        else:
-                                            pass
-
-                                        _f = os.path.join(os.path.dirname(__file__), LOCAL_BDIR, filen)
-                                        if status is 'f' and is_empty_file(_f):
-                                            continue
-
-                                        targets.append(filen)
-
+    check_spec(dol_spec)
+    lod_spec = make_forest_conf(dol_spec)
+    for spec in lod_spec:
+        filen = make_output_path(spec, _type, status=status)
+        if filen:
+            s = filen.find(LOCAL_BDIR)
+            pt = 0
+            if s >= 0:
+                pt = s + len(LOCAL_BDIR)
+            targets.append(filen[pt:])
     return targets
 
 def make_output_path(spec, _type=None, sep=None, status=False):
@@ -109,8 +133,8 @@ def make_output_path(spec, _type=None, sep=None, status=False):
     hm = spec['homo']
     n = spec['N']
     t = '%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
-    t = os.path.join(p, t)
-    filen = os.path.join(os.path.dirname(__file__), LOCAL_BDIR, t)
+    filen = os.path.join(p, t)
+    filen = os.path.join(os.path.dirname(__file__), LOCAL_BDIR, filen)
 
     ext = ext_status(filen, _type)
     if ext:
@@ -150,40 +174,96 @@ def ext_status(filen, _type):
                  inference='inference-'+filen)
     return nf
 
-def make_forest_conf(spec):
-    """ Make a list of config/dict """
+#def make_forest_conf_old(spec):
+#    """ Make a list of config/dict """
+#    targets = []
+#    for base in spec.get('data_type'):
+#        for hook in spec.get('refdir'):
+#            for c in spec.get('corpus'):
+#                p = os.path.join(base, c, hook)
+#                for n in spec.get('N'):
+#                    for m in spec.get('model'):
+#                        for k in spec.get('K'):
+#                            for h in spec.get('hyper'):
+#                                for hm in spec.get('homo'):
+#                                    for repeat in spec.get('repeat',[False]):
+#                                        d = {'N' : n,
+#                                             'K' : k,
+#                                             'hyper': h,
+#                                             'homo': hm,
+#                                             'model': m,
+#                                             'corpus_name': c,
+#                                             'refdir': hook,
+#                                             'repeat': repeat,
+#                                            }
+#                                        targets.append(d)
+#    return targets
+
+from operator import mul
+from itertools import product
+def make_forest_conf(dol_spec):
+    """ Make a list of config/dict.
+        Convert a dict of list to a list of dict.
+    """
+    check_spec(dol_spec)
+    len_l = [len(l) for l in dol_spec.values()]
+    _len = reduce(mul, len_l )
+    keys = sorted(dol_spec)
+    lod = [dict(zip(keys, prod)) for prod in product(*(dol_spec[key] for key in keys))]
+
     targets = []
-    for base in spec.get('data_type'):
-        for hook in spec.get('refdir'):
-            for c in spec.get('corpus'):
-                p = os.path.join(base, c, hook)
-                for n in spec.get('N'):
-                    for m in spec.get('model'):
-                        for k in spec.get('K'):
-                            for h in spec.get('hyper'):
-                                for hm in spec.get('homo'):
-                                    for repeat in spec.get('repeat'):
-                                        d = {'N' : n,
-                                             'K' : k,
-                                             'hyper': h,
-                                             'homo': hm,
-                                             'model': m,
-                                             'corpus_name': c,
-                                             'refdir': hook,
-                                             'repeat': repeat,
-                                            }
-                                        targets.append(d)
+    for d in lod:
+        _d = defaultdict(lambda: False)
+        _d.update(d)
+        targets.append(_d)
+
     return targets
 
-def get_conf_from_file(target):
+def check_spec(dol_spec):
+    for k, v in dol_spec.items():
+        if not isinstance(v, (list, tuple, set)):
+            dol_spec[k] = [v]
+        else:
+            pass
+    return True
+
+
+def make_forest_runcmd(spec):
+    optkeys = {
+    'N'           : '-n',
+    'K'           : '-k',
+    'hyper'       : '--hyper',
+    'homo'        : '--homo',
+    'model'       : '-m',
+    'model_name'  : '-m',
+    'corpus_name' : '-c',
+    'corpus'      : '-c',
+    'refdir'      : '--refdir',
+    'debug'       : '--refdir',
+    'repeat'      : '--repeat',
+    'iterations'  : '-i',
+    'data_type'  : 'null',
+    }
+    opts = []
+    confs = make_forest_conf(spec)
+    for expe in confs:
+        if '' in expe:
+            expe.pop('')
+        opt = [' '.join(map(str, (optkeys[i], j))) for i, j in expe.items() if optkeys[i] != 'null']
+        opt = ' '.join(opt)
+        opts.append(opt)
+    return opts
+
+
+def get_conf_from_file(target, mp):
     """ Return dictionary of property for an expe file.
-    * format inference-model_K_hyper_N.
-    * @template_file order important to align the dictionnary.
+        format inference-model_K_hyper_N.
+        @template_file order important to align the dictionnary.
         """
     ##template = 'networks/generator/Graph13/debug11/inference-immsb_10_auto_0_all'
-    template_file = [ 'data_type', 'corpus', 'debug',
-        'model', 'K', 'hyper', 'homo', 'N', ]
-    path = target.split('/')
+    #template_file = [ 'data_type', 'corpus', 'debug',
+    template_file = mp.keys()
+    path = target.lstrip('/').split('/')
 
     # Add repeat setting
     for i, v in enumerate(path):
@@ -201,15 +281,16 @@ def get_conf_from_file(target):
     prop = {k: _prop[i] for i, k in enumerate(template_file)}
     return prop
 
-def get_conf_dim_from_files(targets):
+def get_conf_dim_from_files(targets, mp):
     """ Return size of proportie in a list for expe files """
     template = 'networks/generator/Graph13/debug11/inference-immsb_10_auto_0_all'
     c = []
     for t in targets:
-        c.append(get_conf_from_file(t))
+        c.append(get_conf_from_file(t, mp))
 
     sets = {}
-    keys_name = get_conf_from_file(template).keys()
+    #keys_name = get_conf_from_file(template).keys()
+    keys_name = mp.keys()
     for p in keys_name:
         sets[p] = len(set([ _p[p] for _p in c ]))
 
@@ -223,7 +304,9 @@ def get_json(fn):
         return None
 
 def forest_tensor(target_files, map_parameters, verbose=False):
-    """ @in target_files has to be orderedDict to align the the tensor access. """
+    """ @in target_files has to be orderedDict to align the the tensor access.
+        It has to be ordered the same way than the file properties.
+    """
     # Expe analyser / Tabulyze It
 
     # res shape ([expe], [model], [measure]
@@ -240,7 +323,7 @@ def forest_tensor(target_files, map_parameters, verbose=False):
         print 'Target Files empty'
         return None
 
-    dim = get_conf_dim_from_files(target_files)
+    dim = get_conf_dim_from_files(target_files, map_parameters)
     map_parameters = map_parameters
 
     rez_map = map_parameters.keys() # order !
@@ -262,10 +345,9 @@ def forest_tensor(target_files, map_parameters, verbose=False):
     not_finished = []
     info_file = []
     for _f in target_files:
-        prop = get_conf_from_file(_f)
+        prop = get_conf_from_file(_f, map_parameters)
         pt = np.empty(rez.ndim)
 
-        #print prop
         assert(len(pt) - len(new_dims) == len(prop))
         for k, v in prop.items():
             try:

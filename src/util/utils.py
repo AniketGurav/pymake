@@ -7,6 +7,8 @@ import logging
 import numpy as np
 import scipy as sp
 
+# use https://github.com/kennethreitz/args
+
 def argParse(usage="Usage ?"):
     argdict = defaultdict(lambda: False)
     for i, arg in enumerate(sys.argv):

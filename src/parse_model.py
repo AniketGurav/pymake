@@ -4,30 +4,14 @@
 from util.frontend import ModelManager, FrontendManager
 from util.frontendnetwork import frontendNetwork
 from util.frontend_io import *
+from expe.spec import *
 
-import numpy as np
-import scipy as sp
-import os
 
 if __name__ == '__main__':
 
     ####################################################
     ### Config
-    spec = dict(
-        data_type = ['networks'],
-        refdir = ['debug5/'],
-        #corpus   = ['kos', 'nips12', 'nips', 'reuter50', '20ngroups'],
-        #corpus   = ['generator3', 'generator4'],
-        #corpus   = ['generator5', 'generator6'],
-        corpus   = [ 'generator6'],
-        #models   = ['ibp', 'ibp_cgs', 'mmsb_cgs', 'immsb'],
-        model   = ['ibp_cgs', 'mmsb_cgs'],
-        #Ns       = [250, 1000, 'all'],
-        N       = [1000,],
-        K       = [5, 10, 30],
-        homo     = [0,1,2],
-        hyper    = ['fix', 'auto'],
-    )
+    spec = SPEC_TO_PARSE
 
     #spec['model'] = ['ibp_cgs']
     #spec['homo'] = ['2']
@@ -69,10 +53,6 @@ if __name__ == '__main__':
             model = model.load()
             if model is None:
                 continue
-
-            ## For zipf: do the script
-            #y, theta, phi = model.generate(config['N'])
-            #y = np.triu(y) + np.triu(y, 1).T
         else:
             ### Generate data from a un-fitted model
             model = model.model
@@ -81,5 +61,6 @@ if __name__ == '__main__':
         ### Homophily measures
         d = frontend.assort(model)
 
-        frontend.update_json(d)
+        print d
+        #frontend.update_json(d)
 

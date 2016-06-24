@@ -44,7 +44,7 @@ class DataBase(object):
         self.config = config
         config['data_type'] = self.bdir
 
-        self.corpus_name = config.get('corpus_name')
+        self.corpus_name = config.get('corpus_name') or config.get('corpus')
         self.model_name = config.get('model_name')
 
         self.K = config.get('K', 10)
@@ -185,7 +185,7 @@ class FrontendManager(object):
     @staticmethod
     def get(config):
         """ Return: The frontend suited for the given configuration"""
-        corpus = config.get('corpus_name')
+        corpus = config.get('corpus_name') or config.get('corpus')
         corpus_typo = {'network': ['facebook','generator', 'bench', 'clique', 'fb_uc', 'manufacturing'],
                        'text': ['reuter50', 'nips12', 'nips', 'enron', 'kos', 'nytimes', 'pubmed', '20ngroups', 'odp', 'wikipedia', 'lucene']}
 
@@ -282,7 +282,7 @@ class ModelBase(object):
         raise NotImplementedError
     def predict(self):
         raise NotImplementedError
-    def run(self):
+    def fit(self):
         raise NotImplementedError
 
 
@@ -433,9 +433,9 @@ class ModelManager(object):
             lda.save(fname)
         return lda
 
-    def run(self):
-        if hasattr(self.model, 'run'):
-            self.model.run()
+    def fit(self):
+        if hasattr(self.model, 'fit'):
+            self.model.fit()
 
     def predict(self, frontend):
         if not hasattr(self.model, 'predict'):

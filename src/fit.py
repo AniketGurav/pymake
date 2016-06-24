@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from local_utils import *
-from vocabulary import Vocabulary, parse_corpus
 from util.frontend import ModelManager, FrontendManager
 
 import numpy as np
@@ -10,8 +9,6 @@ import scipy as sp
 #np.set_printoptions(threshold='nan')
 
 import logging
-import os
-import os.path
 
 _USAGE = '''build_model [-vhswp] [-k [rvalue] [-n N] [-d basedir] [-lall] [-l type] [-m model] [-c corpus] [-i iterations]
 
@@ -41,9 +38,9 @@ Examples:
 # Load corpus and model:
 ./lda_run.py -k 6 -m ldafullbaye -lall -p
 # Network corpus:
-./topics.py -m immsb -c generator1 -n 100 -i 10
+./fit.py -m immsb -c generator1 -n 100 -i 10
 # Various networks setting:
-./topics.py -m ibp_cgs --homo 0 -c clique6 -n 100 -k 3 -i 20
+./fit.py -m ibp_cgs --homo 0 -c clique6 -n 100 -k 3 -i 20
 
 
 '''
@@ -164,7 +161,7 @@ if __name__ == '__main__':
     last_d = ellapsed_time('Init Model Time', last_d)
 
     #### Run Inference / Learning Model
-    model.run()
+    model.fit()
     last_d = ellapsed_time('Inference Time: %s'%(model.output_path), last_d)
 
     #### Predict Future

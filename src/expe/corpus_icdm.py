@@ -61,7 +61,7 @@ if config.get('simul'):
     exit()
 
 for corpus_ in Corpuses:
-    path = '../../../papers/personal/relational_models/git/img/'
+    path = '../../../../papers/personal/relational_models/git/img/'
     corpus_name = corpus_[0]
     title = corpus_[1]
     fn = corpus_[2]
@@ -121,7 +121,7 @@ for corpus_ in Corpuses:
         data_r = data
 
     ### Reordering Adjacency Matrix based on Clusters/Class/Communities
-    if globals().get('clusters_source'):
+    if globals().get('clusters_source') is not None:
         nodelist = [k[0] for k in sorted(zip(range(len(clusters_source)), clusters_source), key=lambda k: k[1])]
         data_r = data[nodelist, :][:, nodelist]
 

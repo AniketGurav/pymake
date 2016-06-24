@@ -1,7 +1,10 @@
 ### Structure Tree
 # Make the modelbase and dataBase inherit from a serialisble class (pickle ?)
+# no....
+# Manage the i/o coherence instead. 
+# How should be the backende to make big scale learning with database and search engine interface...
 #
-#
+# use args...https://github.com/kennethreitz/args
 #
 #
 

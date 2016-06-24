@@ -125,7 +125,7 @@ class IBPGibbsSampling(IBP, ModelBase):
 
     """
     sample the corpus to train the parameters """
-    def run(self):
+    def fit(self):
         iterations = self.iterations
 
         assert(self._Z.shape == (self._N, self._K))

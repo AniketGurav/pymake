@@ -28,14 +28,14 @@ if __name__ ==  '__main__':
     ### Expe Forest
     map_parameters = OrderedDict((
         ('data_type', ('networks',)),
-        ('debug'  , ('debug10', 'debug11')),
         #('corpus' , ('fb_uc', 'manufacturing')),
         ('corpus' , ('Graph7', 'Graph12', 'Graph10', 'Graph4')),
+        ('debug'  , ('debug10', 'debug11')),
         ('model'  , ('immsb', 'ibp')),
         ('K'      , (5, 10, 15, 20)),
-        ('N'      , ('all',)),
         ('hyper'  , ('fix', 'auto')),
         ('homo'   , (0, 1)),
+        ('N'      , ('all',)),
         #('repeat'   , (0, 1, 2, 4, 5)),
     ))
 
@@ -52,13 +52,13 @@ if __name__ ==  '__main__':
     # debug10, immsb
     expe_1 = OrderedDict((
         ('data_type', 'networks'),
-        ('debug' , 'debug10') ,
         ('corpus', '*'),
+        ('debug' , 'debug10') ,
         ('model' , 'immsb')   ,
         ('K'     , 5)         ,
-        ('N'     , 'all')     ,
         ('hyper' , 'auto')     ,
         ('homo'  , 0) ,
+        ('N'     , 'all')     ,
         #('repeat', '*'),
         ('measure', '*'),
         ))
