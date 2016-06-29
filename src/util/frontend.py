@@ -499,10 +499,10 @@ class ModelManager(object):
                 fn = make_output_path(spec, 'pk')
             if not os.path.isfile(fn) or os.stat(fn).st_size == 0:
                 print 'No file for this model: %s' %fn
+                print 'The following are available:'
                 for f in model_walker(os.path.dirname(fn), fmt='list'):
                     print f
-                print 'Pick the right model, maestro !'
-                raise IOError
+                return None
             with open(fn, 'r') as _f:
                 model =  cPickle.load(_f)
         self.model = model

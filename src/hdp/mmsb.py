@@ -735,21 +735,24 @@ class GibbsRun(ModelBase):
             return
         alpha, gmma, delta = hyper
         if delta:
-            self.s.zsampler.likelihood.delta = delta
+            self._delta = delta
         if alpha:
-            self.s.zsampler.alpha_0 = alpha
+            self._alpha = alpha
         if gmma:
-            if hasattr(self.s.betasampler, 'gmma'):
-                self.s.betasampler.gmma = gmma
+            self._gmma = gmma
 
     def get_hyper(self):
-        delta = self.s.zsampler.likelihood.delta
-        alpha_0 = self.s.zsampler.alpha_0
-        try:
-            gmma = self.s.betasampler.gmma
-        except:
-            gmma = np.nan
-        return alpha_0, gmma, delta
+        if not hasattr(self, '_alpha'):
+            try:
+                self._delta = self.s.zsampler.likelihood.delta
+                self._alpha = self.s.zsampler.alpha_0
+                self._gmma = self.s.betasampler.gmma
+            except:
+                lgg.debug('Need propagate hyperparameters to BaseModel class')
+                self._delta = None
+                self._alpha = None
+                self._gmma =  None
+        return self._alpha, self._gmma, self._delta
 
     def generate(self, N, K=None, hyper=None, _type='predictive'):
         self.update_hyper(hyper)

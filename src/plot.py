@@ -163,7 +163,7 @@ def plot_degree_2(y, ax=None, scatter=True):
     if scatter:
         plt.scatter(x,y,c='b',marker='o')
 
-    #plt.xlim((1,1e4))
+    plt.xlim(left=1)
     plt.ylim((.9,1e3))
     plt.xlabel('Degree')
     #plt.ylabel('Counts of degree')
@@ -239,6 +239,9 @@ def adjshow(Y, cmap=None, pixelspervalue=20, minvalue=None, maxvalue=None, title
         """ Make a colormap image of a matrix
         :key Y: the matrix to be used for the colormap.
         """
+        # Artefact
+        np.fill_diagonal(Y, 0)
+
         if minvalue == None:
             minvalue = np.amin(Y)
         if maxvalue == None:

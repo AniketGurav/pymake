@@ -3,19 +3,23 @@
 
 from util.frontend import ModelManager, FrontendManager
 from util.frontendnetwork import frontendNetwork
-from plot import *
 from local_utils import *
-from expe.spec import *
+from plot import *
+from expe.spec import _spec_
+from expe.format import corpus_icdm
+from util.argparser import argparser
 
 
 ### Config
 config = defaultdict(lambda: False, dict(
+    write_to_file = False,
 ))
-config.update(argParse())
+config.update(argparser.generate())
 
 ### Specification
-Corpuses = CORPUS_SYN_ICDM_1
-Model = MODEL_FOR_CLUSTER_IBP
+Corpuses = _spec_.CORPUS_SYN_ICDM_1
+Corpuses += _spec_.CORPUS_REAL_ICDM_1
+Model = _spec_.MODEL_FOR_CLUSTER_IBP
 
 ### Simulation Output
 if config.get('simul'):
@@ -62,10 +66,10 @@ for corpus_name in Corpuses:
 
     ### Get the Class/Cluster and local degree information
     try:
-        'Getting Cluster from Dataset...'
+        msg =  'Getting Cluster from Dataset...'
         community_distribution_source, local_attach_source, clusters_source = frontend.communities_analysis()
     except TypeError:
-        'Getting Latent Classes from Latent Models...'
+        msg =  'Getting Latent Classes from Latent Models...'
         #d = frontend.get_json()
         #local_attach_source = d['Local_Attachment']
         #community_distribution_source = d['Community_Distribution']
@@ -75,20 +79,24 @@ for corpus_name in Corpuses:
         model = ModelManager(config=config).load(Model)
         clusters_source = model.get_clusters()
     except Exception, e:
-        print 'Skypping reordering adjacency matrix: %s' % e
+        msg = 'Skypping reordering adjacency matrix: %s' % e
         data_r = data
+    print msg
 
     ### Reordering Adjacency Mmatrix based on Clusters/Class/Communities
     if globals().get('clusters_source') is not None:
         nodelist = [k[0] for k in sorted(zip(range(len(clusters_source)), clusters_source), key=lambda k: k[1])]
         data_r = data[nodelist, :][:, nodelist]
 
+
     #################################################
     ### Plotting
+    if config.get('write_to_file'):
+        corpus_icdm(data=data_r,  corpus_name=corpus_name)
+        continue
 
     ### Plot Adjacency matrix
-    #figsize=(30, 40)
-    plt.figure(figsize=None)
+    plt.figure()
     plt.suptitle(corpus_name)
     plt.subplot(1,2,1)
     adjshow(data_r, title='Adjacency Matrix')
@@ -99,8 +107,7 @@ for corpus_name in Corpuses:
     #plot_degree_(data, title='Overall Degree')
     plot_degree_2(data)
 
-    fn = corpus_name+'.pdf'
-    #plt.savefig(fn, facecolor='white', edgecolor='black')
     display(False)
 
-display(True)
+if not config.get('write_to_file'):
+    display(True)

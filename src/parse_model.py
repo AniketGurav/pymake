@@ -4,14 +4,14 @@
 from util.frontend import ModelManager, FrontendManager
 from util.frontendnetwork import frontendNetwork
 from util.frontend_io import *
-from expe.spec import *
+from expe.spec import _spec_
 
 
 if __name__ == '__main__':
 
     ####################################################
     ### Config
-    spec = SPEC_TO_PARSE
+    spec = _spec_.SPEC_TO_PARSE
 
     #spec['model'] = ['ibp_cgs']
     #spec['homo'] = ['2']

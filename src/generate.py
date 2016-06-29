@@ -6,30 +6,36 @@ from util.frontendnetwork import frontendNetwork
 from local_utils import *
 from plot import *
 from util.frontend_io import *
-from expe.spec import *
+from expe.spec import _spec_
+from expe.format import generate_icdm
+from util.argparser import argparser
 
 
 ####################################################
 ### Config
 config = defaultdict(lambda: False, dict(
-    generative = 'predictive',
-    gen_size = 1000,
-    epoch = 10
+    write_to_file = False,
+    generative    = 'predictive',
+    gen_size      = 1000,
+    epoch         = 10
 ))
-config.update(argParse())
+config.update(argparser.generate())
 
-
-Corpuses = NETWORKS_DD
-Models = MODELS_DD
-
+# Corpuses
+Corpuses = _spec_.CORPUS_SYN_ICDM_1
 ### Models
+Models = _spec_.MODELS_GENERATE
 
+# Hook
 if config.get('arg'):
     try:
         Models =  [get_conf_from_file(config['arg'])]
     except:
         Models = [None]
         pass
+if config.get('K'):
+    for m in Models:
+        m['K'] = config['K']
 
 alpha = .01
 gmma = 0.5
@@ -62,6 +68,9 @@ for corpus_name in Corpuses:
         else:
             raise NotImplementedError
 
+        if model is None:
+            continue
+
         for i in range(config.get('epoch',1)):
             y, theta, phi = model.generate(N, Model['K'], _type=config['generative'])
             Y += [y]
@@ -83,14 +92,19 @@ for corpus_name in Corpuses:
 
         #################################################
         ### Plot Degree
+        if config.get('write_to_file'):
+            generate_icdm(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'])
+            continue
+
         plt.figure()
         #plot_degree_(y, title='Overall Degree')
         plot_degree_2_l(Y)
         plot_degree_2(data, scatter=False)
+        plt.title('%s on %s'% (Model['model'], corpus_name))
 
-        fn = corpus_name+'.pdf'
-        #plt.savefig(fn, facecolor='white', edgecolor='black')
         display(False)
 
-display(True)
+
+if not config.get('write_to_file'):
+    display(True)
 

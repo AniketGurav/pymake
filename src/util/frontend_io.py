@@ -2,6 +2,7 @@ import re, os, sys, json, logging
 from collections import defaultdict
 import fnmatch
 import numpy as np
+from expe.spec import _spec_
 
 LOCAL_BDIR = '../../data/' # Last slash(/) necessary.
 """
@@ -255,8 +256,9 @@ def make_forest_runcmd(spec):
     return opts
 
 
-def get_conf_from_file(target, mp):
+def get_conf_from_file(target, mp=_spec_.EXPE_DD):
     """ Return dictionary of property for an expe file.
+        @mp: map parameters
         format inference-model_K_hyper_N.
         @template_file order important to align the dictionnary.
         """
@@ -281,8 +283,9 @@ def get_conf_from_file(target, mp):
     prop = {k: _prop[i] for i, k in enumerate(template_file)}
     return prop
 
-def get_conf_dim_from_files(targets, mp):
-    """ Return size of proportie in a list for expe files """
+def get_conf_dim_from_files(targets, mp=_spec_.EXPE_DD):
+    """ Return the sizes of proporties in a list for expe files
+        @mp: map parameters """
     template = 'networks/generator/Graph13/debug11/inference-immsb_10_auto_0_all'
     c = []
     for t in targets:
