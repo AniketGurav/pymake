@@ -17,7 +17,8 @@ import logging
 import os
 import os.path
 
-path = '../../../papers/personal/relational_models/git/img/'
+#path = '../../../papers/personal/relational_models/git/img/'
+path = '../results/networks/generate/'
 
 ### Expe Spec
 corpus_ = dict((
@@ -103,3 +104,31 @@ def corpus_icdm(**kwargs):
     fn = path+fn+'_d'+'.pdf'
     plt.savefig(fn, facecolor='white', edgecolor='black')
 
+
+def generate_icdm_debug(**kwargs):
+    # @Debug: does not make the variable accessible
+    #in the current scope.
+    globals().update(kwargs)
+    model_name = kwargs['model_name']
+    corpus_name = kwargs['corpus_name']
+    Y = kwargs['Y']
+
+    #### Expe ID
+    model_name = model_[model_name]
+    title = model_name +' | '+ corpus_[corpus_name][0]
+    fn = model_name +'_'+ corpus_[corpus_name][1]
+
+    #################################################
+    ### Plot Degree
+    figsize=(3.8, 4.3)
+    plt.figure(figsize=figsize)
+    plot_degree_2_l(Y)
+    plot_degree_2(data, scatter=False)
+    plt.title(title)
+
+    #fn = path+fn+'_d_'+ globals()['K'] +'.pdf'
+    fn = os.path.join(path, '%s_d_%s.pdf' % (fn, globals()['K']))
+    print 'saving %s' % fn
+    plt.savefig(fn, facecolor='white', edgecolor='black')
+
+    return

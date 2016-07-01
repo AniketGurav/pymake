@@ -7,9 +7,16 @@ from local_utils import *
 from plot import *
 from util.frontend_io import *
 from expe.spec import _spec_
-from expe.format import generate_icdm
+from expe.format import generate_icdm, generate_icdm_debug
 from util.argparser import argparser
 
+USAGE = '''\
+# Usage:
+    generate [-w] [-k K]
+
+# Examples
+    parallel ./generate.py -w -k {}  ::: $(echo 5 10 15 20)
+'''
 
 ####################################################
 ### Config
@@ -17,9 +24,9 @@ config = defaultdict(lambda: False, dict(
     write_to_file = False,
     generative    = 'predictive',
     gen_size      = 1000,
-    epoch         = 10
+    epoch         = 200
 ))
-config.update(argparser.generate())
+config.update(argparser.generate(USAGE))
 
 # Corpuses
 Corpuses = _spec_.CORPUS_SYN_ICDM_1
@@ -93,7 +100,8 @@ for corpus_name in Corpuses:
         #################################################
         ### Plot Degree
         if config.get('write_to_file'):
-            generate_icdm(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'])
+            #generate_icdm(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'])
+            generate_icdm_debug(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'], K=K)
             continue
 
         plt.figure()

@@ -11,8 +11,9 @@ from expe.run import *
 
 
 USAGE = '''\
-Usage: zymake path[default] SPEC Filetype(pk|json|inf)
-       zymake runcmd SPEC
+# Usage:
+    zymake path[default] SPEC Filetype(pk|json|inf)
+    zymake runcmd SPEC
 '''
 
 zyvar = argparser.zymake(USAGE)

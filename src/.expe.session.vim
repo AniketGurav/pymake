@@ -235,36 +235,29 @@ set wildmenu
 let s:so_save = &so | let s:siso_save = &siso | set so=0 siso=0
 let v:this_session=expand("<sfile>:p")
 silent only
-cd ~/Desktop/workInProgress/networkofgraphs/process/PyNPB/src
+cd ~/Documents/workInProgress/networkofgraphs/process/PyNPB/src
 if expand('%') == '' && !&modified && line('$') <= 1 && getline(1) == ''
   let s:wipebuf = bufnr('%')
 endif
 set shortmess=aoO
-badd +20 zymake.py
-badd +9 pyrallel.sh
-badd +3 expe/spec.py
-badd +13 expe/run.py
-badd +245 util/frontend.py
-badd +656 hdp/mmsb.py
-badd +662 hdp/lda.py
-badd +128 ibp/ilfm_gs.py
-badd +5 util/frontend_io.py
-badd +9 unitest.py
-badd +39 expe_meas.py
-badd +29 expe_k.py
-badd +1 util/stopwords.txt
-badd +1 \*\*rnd
-badd +1 pysync.sh
-badd +0 util/argparser.py
-badd +1 expe/_i
-badd +0 expe/__init__.py
-badd +23 generate.py
+badd +2 zymake.py
+badd +1 util/argparser.py
+badd +83 expe/spec.py
+badd +8 pysync.sh
+badd +2 pyrallel.sh
+badd +21 generate.py
+badd +10 expe/generate_icdm.py
+badd +40 expe/corpus_icdm.py
 badd +0 expe/format.py
+badd +0 check_networks.py
+badd +0 util/frontend_io.py
+badd +43 util/utils.py
+badd +0 plot.py
 argglobal
 silent! argdel *
 argadd zymake.py
 set stal=2
-edit pyrallel.sh
+edit pysync.sh
 set splitbelow splitright
 wincmd _ | wincmd |
 vsplit
@@ -278,11 +271,11 @@ set nosplitbelow
 set nosplitright
 wincmd t
 set winheight=1 winwidth=1
-exe '1resize ' . ((&lines * 21 + 23) / 46)
-exe 'vert 1resize ' . ((&columns * 63 + 63) / 126)
-exe '2resize ' . ((&lines * 21 + 23) / 46)
-exe 'vert 2resize ' . ((&columns * 63 + 63) / 126)
-exe 'vert 3resize ' . ((&columns * 62 + 63) / 126)
+exe '1resize ' . ((&lines * 23 + 25) / 50)
+exe 'vert 1resize ' . ((&columns * 63 + 83) / 166)
+exe '2resize ' . ((&lines * 23 + 25) / 50)
+exe 'vert 2resize ' . ((&columns * 63 + 83) / 166)
+exe 'vert 3resize ' . ((&columns * 102 + 83) / 166)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -394,15 +387,15 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 7 - ((6 * winheight(0) + 10) / 21)
+let s:l = 8 - ((7 * winheight(0) + 11) / 23)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-7
-normal! 013|
+8
+normal! 0
 wincmd w
 argglobal
-edit pysync.sh
+edit pyrallel.sh
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
@@ -489,7 +482,7 @@ setlocal rightleftcmd=search
 setlocal noscrollbind
 setlocal shiftwidth=4
 setlocal noshortname
-setlocal smartindent
+setlocal nosmartindent
 setlocal softtabstop=4
 setlocal nospell
 setlocal spellcapcheck=[.?!]\\_[\\])'\"\	\ ]\\+
@@ -513,12 +506,12 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 6 - ((3 * winheight(0) + 10) / 21)
+let s:l = 2 - ((1 * winheight(0) + 11) / 23)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-6
-normal! 018|
+2
+normal! 0
 wincmd w
 argglobal
 edit zymake.py
@@ -632,18 +625,18 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 5 - ((4 * winheight(0) + 21) / 43)
+let s:l = 8 - ((7 * winheight(0) + 23) / 47)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-5
-normal! 022|
+8
+normal! 0
 wincmd w
-exe '1resize ' . ((&lines * 21 + 23) / 46)
-exe 'vert 1resize ' . ((&columns * 63 + 63) / 126)
-exe '2resize ' . ((&lines * 21 + 23) / 46)
-exe 'vert 2resize ' . ((&columns * 63 + 63) / 126)
-exe 'vert 3resize ' . ((&columns * 62 + 63) / 126)
+exe '1resize ' . ((&lines * 23 + 25) / 50)
+exe 'vert 1resize ' . ((&columns * 63 + 83) / 166)
+exe '2resize ' . ((&lines * 23 + 25) / 50)
+exe 'vert 2resize ' . ((&columns * 63 + 83) / 166)
+exe 'vert 3resize ' . ((&columns * 102 + 83) / 166)
 tabedit expe/spec.py
 set splitbelow splitright
 wincmd _ | wincmd |
@@ -654,8 +647,8 @@ set nosplitbelow
 set nosplitright
 wincmd t
 set winheight=1 winwidth=1
-exe 'vert 1resize ' . ((&columns * 63 + 63) / 126)
-exe 'vert 2resize ' . ((&columns * 62 + 63) / 126)
+exe 'vert 1resize ' . ((&columns * 83 + 83) / 166)
+exe 'vert 2resize ' . ((&columns * 82 + 83) / 166)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -706,9 +699,9 @@ setlocal foldminlines=1
 setlocal foldnestmax=20
 setlocal foldtext=foldtext()
 setlocal formatexpr=
-setlocal formatoptions=q
+setlocal formatoptions=tcq
 setlocal formatlistpat=^\\s*\\d\\+[\\]:.)}\\t\ ]\\s*
-setlocal grepprg=ag\ --vimgrep
+setlocal grepprg=
 setlocal iminsert=0
 setlocal imsearch=0
 setlocal include=^\\s*\\(from\\|import\\)
@@ -767,12 +760,12 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 2 - ((1 * winheight(0) + 21) / 43)
+let s:l = 99 - ((43 * winheight(0) + 23) / 47)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-2
-normal! 012|
+99
+normal! 07|
 wincmd w
 argglobal
 edit util/argparser.py
@@ -886,15 +879,15 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 80 - ((37 * winheight(0) + 21) / 43)
+let s:l = 82 - ((26 * winheight(0) + 23) / 47)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-80
-normal! 0
+82
+normal! 034|
 wincmd w
-exe 'vert 1resize ' . ((&columns * 63 + 63) / 126)
-exe 'vert 2resize ' . ((&columns * 62 + 63) / 126)
+exe 'vert 1resize ' . ((&columns * 83 + 83) / 166)
+exe 'vert 2resize ' . ((&columns * 82 + 83) / 166)
 tabedit generate.py
 set splitbelow splitright
 wincmd _ | wincmd |
@@ -905,8 +898,8 @@ set nosplitbelow
 set nosplitright
 wincmd t
 set winheight=1 winwidth=1
-exe 'vert 1resize ' . ((&columns * 63 + 63) / 126)
-exe 'vert 2resize ' . ((&columns * 62 + 63) / 126)
+exe 'vert 1resize ' . ((&columns * 93 + 83) / 166)
+exe 'vert 2resize ' . ((&columns * 72 + 83) / 166)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -1018,12 +1011,12 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 22 - ((20 * winheight(0) + 21) / 43)
+let s:l = 37 - ((36 * winheight(0) + 23) / 47)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-22
-normal! 0
+37
+normal! 011|
 wincmd w
 argglobal
 edit expe/format.py
@@ -1137,27 +1130,21 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 24 - ((22 * winheight(0) + 21) / 43)
+let s:l = 105 - ((45 * winheight(0) + 23) / 47)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-24
+105
 normal! 0
 wincmd w
-exe 'vert 1resize ' . ((&columns * 63 + 63) / 126)
-exe 'vert 2resize ' . ((&columns * 62 + 63) / 126)
-tabedit expe_k.py
+exe 'vert 1resize ' . ((&columns * 93 + 83) / 166)
+exe 'vert 2resize ' . ((&columns * 72 + 83) / 166)
+tabedit plot.py
 set splitbelow splitright
-wincmd _ | wincmd |
-vsplit
-1wincmd h
-wincmd w
 set nosplitbelow
 set nosplitright
 wincmd t
 set winheight=1 winwidth=1
-exe 'vert 1resize ' . ((&columns * 63 + 63) / 126)
-exe 'vert 2resize ' . ((&columns * 62 + 63) / 126)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -1269,136 +1256,13 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 41 - ((27 * winheight(0) + 21) / 43)
+let s:l = 319 - ((42 * winheight(0) + 23) / 47)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-41
-normal! 09|
-wincmd w
-argglobal
-edit expe_meas.py
-setlocal keymap=
-setlocal noarabic
-setlocal autoindent
-setlocal backupcopy=
-setlocal nobinary
-setlocal nobreakindent
-setlocal breakindentopt=
-setlocal bufhidden=
-setlocal buflisted
-setlocal buftype=
-setlocal cindent
-setlocal cinkeys=0{,0},0),:,!^F,o,O,e
-setlocal cinoptions=
-setlocal cinwords=if,else,while,do,for,switch
-setlocal colorcolumn=
-setlocal comments=b:#,fb:-
-setlocal commentstring=#\ %s
-setlocal complete=.,w,b,u,t,i
-setlocal concealcursor=
-setlocal conceallevel=0
-setlocal completefunc=
-setlocal nocopyindent
-setlocal cryptmethod=
-setlocal nocursorbind
-setlocal nocursorcolumn
-setlocal nocursorline
-setlocal define=
-setlocal dictionary=
-setlocal nodiff
-setlocal equalprg=
-setlocal errorformat=
-setlocal expandtab
-if &filetype != 'python'
-setlocal filetype=python
-endif
-setlocal fixendofline
-setlocal foldcolumn=0
-set nofoldenable
-setlocal nofoldenable
-setlocal foldexpr=0
-setlocal foldignore=#
-setlocal foldlevel=0
-setlocal foldmarker={{{,}}}
-set foldmethod=indent
-setlocal foldmethod=indent
-setlocal foldminlines=1
-setlocal foldnestmax=20
-setlocal foldtext=foldtext()
-setlocal formatexpr=
-setlocal formatoptions=q
-setlocal formatlistpat=^\\s*\\d\\+[\\]:.)}\\t\ ]\\s*
-setlocal grepprg=
-setlocal iminsert=0
-setlocal imsearch=0
-setlocal include=^\\s*\\(from\\|import\\)
-setlocal includeexpr=substitute(v:fname,'\\.','/','g')
-setlocal indentexpr=GetPythonIndent(v:lnum)
-setlocal indentkeys=!^F,o,O,<:>,0),0],0},=elif,=except
-setlocal noinfercase
-setlocal iskeyword=@,48-57,_,192-255
-setlocal keywordprg=pydoc
-set linebreak
-setlocal linebreak
-setlocal nolisp
-setlocal lispwords=
-setlocal nolist
-setlocal makeprg=
-setlocal matchpairs=(:),{:},[:]
-setlocal modeline
-setlocal modifiable
-setlocal nrformats=bin,octal,hex
-set number
-setlocal number
-setlocal numberwidth=4
-setlocal omnifunc=pythoncomplete#Complete
-setlocal path=
-setlocal nopreserveindent
-setlocal nopreviewwindow
-setlocal quoteescape=\\
-setlocal noreadonly
-setlocal norelativenumber
-setlocal norightleft
-setlocal rightleftcmd=search
-setlocal noscrollbind
-setlocal shiftwidth=4
-setlocal noshortname
-setlocal smartindent
-setlocal softtabstop=4
-setlocal nospell
-setlocal spellcapcheck=[.?!]\\_[\\])'\"\	\ ]\\+
-setlocal spellfile=
-setlocal spelllang=en
-setlocal statusline=
-setlocal suffixesadd=.py
-setlocal swapfile
-setlocal synmaxcol=3000
-if &syntax != 'python'
-setlocal syntax=python
-endif
-setlocal tabstop=4
-setlocal tagcase=
-setlocal tags=
-setlocal textwidth=0
-setlocal thesaurus=
-setlocal noundofile
-setlocal undolevels=-123456
-setlocal nowinfixheight
-setlocal nowinfixwidth
-setlocal wrap
-setlocal wrapmargin=0
-let s:l = 37 - ((32 * winheight(0) + 21) / 43)
-if s:l < 1 | let s:l = 1 | endif
-exe s:l
-normal! zt
-37
-normal! 028|
-wincmd w
-2wincmd w
-exe 'vert 1resize ' . ((&columns * 63 + 63) / 126)
-exe 'vert 2resize ' . ((&columns * 62 + 63) / 126)
-tabnext 4
+319
+normal! 0
+tabnext 3
 set stal=1
 if exists('s:wipebuf')
   silent exe 'bwipe ' . s:wipebuf

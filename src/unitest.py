@@ -2,7 +2,7 @@
 import subprocess
 
 
-tests = ( 'fit',
+tests = ('fit',
          'expe_meas',
          'expe_k',
          'check_networks',
@@ -23,6 +23,9 @@ for t in tests:
         for lin in result:
             if not lin.startswith('#'):
                 print(lin)
+
+    if p.returncode != 0:
+       print("bitcoin failed %d %s %s" % (p.returncode, out, err))
 
     ### Error
 #    print '### exec: %s' % (t)

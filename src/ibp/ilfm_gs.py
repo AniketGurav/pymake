@@ -550,7 +550,7 @@ class IBPGibbsSampling(IBP, ModelBase):
         community_distribution, local_attach, c = self.communities_analysis(Z)
 
         res = {'Precision': precision,
-               'Rappel': rappel,
+               'Recall': rappel,
                'g_precision': g_precision,
                'mask_density': mask_density,
                'clusters': list(c),

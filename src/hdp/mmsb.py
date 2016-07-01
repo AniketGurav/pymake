@@ -862,7 +862,7 @@ class GibbsRun(ModelBase):
         community_distribution, local_attach, c = self.communities_analysis(theta)
 
         res = {'Precision': precision,
-               'Rappel': rappel,
+               'Recall': rappel,
                'g_precision': g_precision,
                'mask_density': mask_density,
                'clusters': list(c),

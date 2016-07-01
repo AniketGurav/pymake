@@ -517,7 +517,7 @@ def json_extract(targets):
                 #print density
                 #print mask_density
                 precision = d['Precision']
-                rappel = d['Rappel']
+                rappel = d['Recall']
                 K = len(d['Local_Attachment'])
                 h_s = d.get('homo_ind1_source', np.inf)
                 h_l = d.get('homo_ind1_learn', np.inf)
