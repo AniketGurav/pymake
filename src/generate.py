@@ -95,7 +95,7 @@ for corpus_name in Corpuses:
 
         ###############################################################
         ### Expe Wrap up debug
-        print 'corpus: %s, model: %s, K = %s, N =  %s'.replace(',','\n') % (frontend.corpus_name, Model['model'], K, N)
+        print('corpus: %s, model: %s, K = %s, N =  %s'.replace(',','\n') % (frontend.corpus_name, Model['model'], K, N) )
 
         #################################################
         ### Plot Degree

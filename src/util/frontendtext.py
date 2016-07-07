@@ -2,14 +2,14 @@ import sys, os
 from itertools import chain
 from string import Template
 
+from util.frontend import DataBase
 from local_utils import *
 from vocabulary import Vocabulary, parse_corpus
-from util.frontend import DataBase
 
 sys.path.insert(1, os.path.join(os.path.dirname(__file__),'../../../gensim'))
 import gensim
 from gensim.models import ldamodel, ldafullbaye
-Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
+Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': None}
 
 ############################################################
 ############################################################
@@ -22,13 +22,17 @@ class frontendText(DataBase):
         super(frontendText, self).__init__(config)
 
     def load_data(self, corpus_name=None, randomize=False):
-        corpus_name = corpus_name or self.config.get('corpus_name')
-        if corpus_name:
-            self.get_corpus(corpus_name)
-        elif self.config.get('random'):
-            self.random()
+        """ Load data according to different scheme:
+            * Corpus from file dataset
+            * Corpus from random generator
+            """
+        if corpus_name is not None:
+            self.update_spec(**{'corpus_name': corpus_name})
         else:
-            raise ValueError()
+            corpus_name = self.corpus_name
+
+        self.get_corpus(corpus_name)
+
         # @DEBUG
         if str(self.N).isdigit() and int(self.N) > self.data.shape[0]:
             raise ValueError('Sampling of corpus %s too big (-n options)' % self.N)
@@ -133,12 +137,14 @@ class frontendText(DataBase):
 
         return data, id2word
 
-    def get_corpus(self, corpus_name=None):
-        config = self.config
-        corpus_name = corpus_name or self.corpus_name
+    def get_corpus(self, corpus_name):
+        self.make_output_path()
         bdir = self.basedir
-        self.corpus_name = corpus_name
         data_t = None
+        data_t = None
+        if corpus_name == 'random':
+            # mmmh speak !
+            data = self.random()
         if corpus_name == 'lucene':
             raise NotImplementedError
             #searcher = warm_se(config)

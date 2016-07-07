@@ -25,7 +25,7 @@ class askhelp(object):
         # function name
         #(inspect.currentframe().f_code.co_name
         if clargs.flags.contains('--help') or clargs.flags.contains('-h') or self.help:
-            print usage
+            print(usage)
             exit()
 
         response = self.func(*args, **kwargs)

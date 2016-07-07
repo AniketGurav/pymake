@@ -136,8 +136,9 @@ class IBPGibbsSampling(IBP, ModelBase):
         begin = datetime.now()
 
         likelihood_Y = self.log_likelihood_Y()
-        print 'Init Likelihood: %f' % likelihood_Y
+        lgg.info( 'Init Likelihood: %f' % likelihood_Y)
         for iter in xrange(iterations):
+            print('.'),
             begin_it = datetime.now()
 
             # Can't get why I need this !!!!!
@@ -187,6 +188,7 @@ class IBPGibbsSampling(IBP, ModelBase):
             if iter >= self.burnin:
                 self.samples.append([self._Z, self._W])
 
+        print()
         self.time_sampling = datetime.now() - begin
 
         ### Clean Things
@@ -379,7 +381,7 @@ class IBPGibbsSampling(IBP, ModelBase):
         indices = np.nonzero(Z_sum == 0)
 
         if 0 in Z_sum:
-            print "need to regularize matrices, feature to all zeros !"
+            lgg.warn( "need to regularize matrices, feature to all zeros !")
 
         #self._Z = self._Z[:, [k for k in range(self._K) if k not in indices]]
         #self._W = self._W[[k for k in range(self._K) if k not in indices], :]

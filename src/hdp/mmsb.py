@@ -90,7 +90,7 @@ class DirMultLikelihood(object):
     def get_nfeat(self):
         nfeat = self.data_ma.max() + 1
         if nfeat == 1:
-            print 'Warning, only zeros in adjacency matrix...'
+            print.warn( 'Warning, only zeros in adjacency matrix...')
             nfeat = 2
         return nfeat
 
@@ -455,7 +455,7 @@ class ZSamplerParametric(ZSampler):
         super(ZSamplerParametric, self).__init__(alpha_0, likelihood, self.K, data_t=data_t)
 
     def __call__(self):
-        print('Sample z...')
+        lgg.info('Sample z...')
         lgg.debug('#J \t #I \t #topic')
         doc_order = np.random.permutation(self.J)
         # @debug: symmetric matrix !
@@ -593,9 +593,9 @@ class NP_CGS(GibbsSampler):
 
         if hyper.startswith( 'auto' ):
             self.hyper = hyper
-            self.a_alpha = 10
+            self.a_alpha = 1
             self.b_alpha = 1
-            self.a_gmma = 10
+            self.a_gmma = 1
             self.b_gmma = 1
             self.optimize_hyper_hdp()
         elif hyper.startswith( 'fix' ):
@@ -705,6 +705,7 @@ class GibbsRun(ModelBase):
         self.evaluate_perplexity()
         for i in xrange(self.iterations):
             ### Output / Measures
+            print('.'),
             measures = self.measures()
             sample = [i, time_it] + measures
             k = self.s.zsampler._K
@@ -722,8 +723,9 @@ class GibbsRun(ModelBase):
                 break
             if i >= self.burnin:
                 if i % self.thinning == 0:
-                    self.samples.append([self._theta, _self.phi])
+                    self.samples.append([self._theta, self._phi])
 
+        print()
         ### Clean Things
         if not self.samples:
             self.samples.append([self._theta, self._phi])

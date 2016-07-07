@@ -35,4 +35,5 @@ RUNS=${RUNS::-2}
 
 ###--- Gnu Parallel ---###
 #parallel --no-notice -k -j$JOBS  $RUN ::: {1..4}
+#parallel --delay 10 ./generate.py -w -k {}  ::: $(echo 5 10 15 20)
 echo -e "$RUNS" | parallel --delay 1 --load 42 --eta -k -j$JOBS --colsep ' ' "$COMMAND {}"

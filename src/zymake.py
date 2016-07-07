@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
-from joblib import Parallel, delayed
+#from joblib import Parallel, delayed
 import multiprocessing
 
 from util.argparser import argparser

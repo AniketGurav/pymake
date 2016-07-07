@@ -54,6 +54,8 @@ _MASTERKEYS_ = OrderedDict((
     ('N'           , 'all'),
 ))
 
+_New_Dims = [{'measure':4}]
+
 
 # Factorize the io; One argument / One options.
 # ALign file and args generation
@@ -115,7 +117,7 @@ def make_output_path(spec, _type=None, sep=None, status=False):
     if c.startswith(('clique', 'Graph', 'generator')):
         c = c.replace('generator', 'Graph')
         c = 'generator/' + c
-    if 'repeat' in spec:
+    if 'repeat' in spec and ( spec['repeat'] is not None and spec['repeat'] is not False):
         p = os.path.join(base, c, hook, str(spec['repeat']))
     else:
         p = os.path.join(base, c, hook)
@@ -297,12 +299,12 @@ def forest_tensor(target_files, map_parameters):
         lgg.info('Target Files empty')
         return None
 
-    dim = get_conf_dim_from_files(target_files, map_parameters)
-    map_parameters = map_parameters
+    #dim = get_conf_dim_from_files(target_files, map_parameters) # Rely on Spec...
+    dim = dict( (k, len(v)) if isinstance(v, (list, tuple)) else (k, len([v])) for k, v in map_parameters.items() )
 
     rez_map = map_parameters.keys() # order !
     # Expert knowledge value
-    new_dims = [{'measure':4}]
+    new_dims = _New_Dims
     # Update Mapping
     [dim.update(d) for d in new_dims]
     [rez_map.append(n.keys()[0]) for n in new_dims]
@@ -370,11 +372,12 @@ def forest_tensor(target_files, map_parameters):
 
     lgg.debug(''.join(not_finished))
     #lgg.debug(''.join(info_file))
+    rez = np.ma.masked_array(rez, np.isnan(rez))
     return rez
 
 def clean_extra_expe(expe, map_parameters):
     for k in expe:
-        if k not in map_parameters:
+        if k not in map_parameters and k not in [ k for d in _New_Dims for k in d.keys() ] :
             del expe[k]
     return expe
 
@@ -383,10 +386,16 @@ def make_tensor_expe_index(expe, map_parameters):
     expe = clean_extra_expe(expe, map_parameters)
     for i, o in enumerate(expe.items()):
         k, v = o[0], o[1]
+        print i, k, v
         if v in ( '*', ':'): #wildcar / indexing ...
             ptx.append(slice(None))
-        else:
+        elif k in map_parameters:
             ptx.append(map_parameters[k].index(v))
+        elif type(v) is int:
+            ptx.append(v)
+        else:
+            raise ValueError('Unknow data type for tensor forest')
+
     ptx = tuple(ptx)
     return ptx
 

@@ -55,7 +55,7 @@ def generate_icdm(**kwargs):
     plt.title(title)
 
     fn = path+fn+'_d'+'.pdf'
-    print 'saving %s' % fn
+    print('saving %s' % fn)
     plt.savefig(fn, facecolor='white', edgecolor='black')
 
     return
@@ -128,7 +128,7 @@ def generate_icdm_debug(**kwargs):
 
     #fn = path+fn+'_d_'+ globals()['K'] +'.pdf'
     fn = os.path.join(path, '%s_d_%s.pdf' % (fn, globals()['K']))
-    print 'saving %s' % fn
+    print('saving %s' % fn)
     plt.savefig(fn, facecolor='white', edgecolor='black')
 
     return

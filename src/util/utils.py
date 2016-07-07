@@ -114,6 +114,9 @@ def ask_sure_exit(question):
 
 def setup_logger(name, fmt, verbose, file=None):
     #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
+    #logging.basicConfig(format='Gensim : %(message)s', level=logging.DEBUG)
+    logging.basicConfig(format=fmt, level=verbose)
+
     formatter = logging.Formatter(fmt=fmt)
 
     handler = logging.StreamHandler()

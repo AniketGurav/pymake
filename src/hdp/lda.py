@@ -68,6 +68,7 @@ class DirMultLikelihood(object):
         self.delta = delta if isinstance(delta, np.ndarray) else np.asarray([delta] * self.nfeat)
         self.w_delta = self.delta.sum()
 
+        print self.data_mat.shape, self.nfeat
         assert(self.data_mat.shape[1] == self.nfeat)
         #self.data_mat = sppy.csarray(self.data_mat)
 

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import logging
 from tabulate import tabulate
 from collections import OrderedDict
 from util.frontend_io import *
@@ -26,13 +27,14 @@ map_parameters = OrderedDict((
     ('data_type', ('networks',)),
     #('corpus' , ('fb_uc', 'manufacturing')),
     ('corpus' , ('Graph7', 'Graph12', 'Graph10', 'Graph4')),
-    ('debug'  , ('debug10', 'debug11')),
+    #('debug'  , ('debug10', 'debug11')),
+    ('debug'  , ('debug101010', 'debug111111')),
     ('model'  , ('immsb', 'ibp')),
     ('K'      , (5, 10, 15, 20)),
     ('hyper'  , ('fix', 'auto')),
     ('homo'   , (0, 1, 2)),
     ('N'      , ('all',)),
-    #('repeat'   , (0, 1, 2, 4, 5)),
+    ('repeat'   , (0, 1, 2, 4, 5)),
 ))
 
 ### Seek experiments results
@@ -49,7 +51,7 @@ rez = forest_tensor(target_files, map_parameters)
 expe_1 = OrderedDict((
     ('data_type', 'networks'),
     ('corpus', '*'),
-    ('debug' , 'debug11') ,
+    ('debug' , 'debug101010') ,
     ('model' , 'immsb')   ,
     ('K'     , 5)         ,
     ('hyper' , 'auto')     ,
@@ -93,9 +95,22 @@ keys = map_parameters['corpus']
 keys = [''.join(k) for k in zip(keys, [' b/h', ' b/-h', ' -b/h', ' -b/-h'])]
 ## Results
 table = rez[ptx]
-table = np.column_stack((keys, table))
+
+try:
+    table = np.column_stack((keys, table))
+except ValueError, e:
+    lgg.warn('ValueError, assumming repeat mean variance reduction: %d repetition' % table.shape[1])
+    table_mean = np.char.array(table.mean(1))
+    table_std = np.char.array(table.std(1))
+    #table_mean = np.char.array(np.around(table.mean(1), decimals=3))
+    #table_std = np.char.array(np.around(table.std(1), decimals=3))
+    #table = table_mean + ' \pm ' + table_std
+    table_mean[:, 3] = table_mean[:, 3] + ' p2m ' + table_std[:, 3]
+    table = table_mean
+    table = np.column_stack((keys, table))
+
+tablefmt = 'latex' # 'latex'
 print
-#print tabulate(table, headers=headers)
-print tabulate(table, headers=headers, tablefmt='latex', floatfmt='.4f')
+print tabulate(table, headers=headers, tablefmt=tablefmt, floatfmt='.3f')
 
 

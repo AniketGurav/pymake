@@ -392,9 +392,6 @@ class ModelManager(object):
         return model
 
     def lda_gensim(self, id2word=None, save=False, model='ldamodel', load=False, updatetype='batch'):
-        #lgg.setLevel(logging.DEBUG)
-        #logging.getLogger().setLevel(logging.DEBUG)
-        #logging.basicConfig(format='Gensim : %(message)s', level=logging.DEBUG)
         fname = self.output_path if self.write else None
         iter = self.config['iterations']
         data = self.data

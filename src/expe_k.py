@@ -2,11 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import logging
 from tabulate import tabulate
 from collections import OrderedDict
 from util.frontend_io import *
 from local_utils import *
 from util.argparser import argparser
+
+lgg = logging.getLogger('root')
 
 USAGE = '''\
 # Usage:
@@ -23,15 +26,15 @@ model = zyvar.get('model')
 ### Expe Forest
 map_parameters = OrderedDict((
     ('data_type', ('networks',)),
-    ('corpus' , ('fb_uc', 'manufacturing')),
-    #('corpus' , ('Graph7', 'Graph12', 'Graph10', 'Graph4')),
-    ('debug'  , ('debug10', 'debug11')),
+    #('corpus' , ('fb_uc', 'manufacturing')),
+    ('corpus' , ('Graph7', 'Graph12', 'Graph10', 'Graph4')),
+    ('debug'  , ('debug101010', 'debug111111')),
     ('model'  , ('immsb', 'ibp')),
     ('K'      , (5, 10, 15, 20)),
     ('hyper'  , ('fix', 'auto')),
     ('homo'   , (0, 1, 2)),
     ('N'      , ('all',)),
-    #('repeat'   , (0, 1, 2, 4, 5)),
+    ('repeat'   , (0, 1, 2, 4, 5)),
 ))
 
 ### Seek experiments results
@@ -48,13 +51,13 @@ rez = forest_tensor(target_files, map_parameters)
 expe_1 = OrderedDict((
     ('data_type', 'networks'),
     ('corpus', '*'),
-    ('debug' , 'debug10') ,
+    ('debug' , 'debug101010') ,
     ('model' , 'immsb')   ,
     ('K'     , '*')         ,
     ('hyper' , 'auto')     ,
     ('homo'  , 0) ,
     ('N'     , 'all')     ,
-    #('repeat', '*'),
+    ('repeat', '*'),
     ('measure', 0),
     ))
 if model:
@@ -65,23 +68,9 @@ assert(expe_1.keys()[:len(map_parameters)] == map_parameters.keys())
 
 ###################################
 ### Extract Resulst *** in: setting - out: table
-headers = [ 'global', 'precision', 'recall', 'K->']
 
 ### Make the ptx index
-ptx = []
-for i, o in enumerate(expe_1.items()):
-    k, v = o[0], o[1]
-    if v in ( '*', ':'): #wildcar / indexing ...
-        ptx.append(slice(None))
-    else:
-        if k in map_parameters:
-            ptx.append(map_parameters[k].index(v))
-        elif type(v) is int:
-            ptx.append(v)
-        else:
-            raise ValueError('Unknow data type for tensor forest')
-
-ptx = tuple(ptx)
+ptx = make_tensor_expe_index(expe_1, map_parameters)
 
 ### Output
 ## Forest setting
@@ -97,17 +86,29 @@ print tabulate([expe_1.keys(), expe_1.values()])
 # Headers
 headers = list(map_parameters['K'])
 h_mask = 'mask all' if '11' in expe_1['debug'] else 'mask sub1'
-h = expe_1['model'] + ' / ' + h_mask
+h = expe_1['model'].upper() + ' / ' + h_mask
 headers.insert(0, h)
 # Row
 keys = map_parameters['corpus']
 keys = [''.join(k) for k in zip(keys, [' b/h', ' b/-h', ' -b/h', ' -b/-h'])]
 ## Results
 table = rez[ptx]
-table = np.column_stack((keys, table))
+
+try:
+    table = np.column_stack((keys, table))
+except ValueError, e:
+    lgg.warn('ValueError, assumming repeat mean variance reduction: %d repetition' % table.shape[2])
+    print table.shape
+    #table_mean = np.char.array(table.mean(2))
+    #table_std = np.char.array(table.std(2))
+    table_mean = np.char.array(np.around(table.mean(2), decimals=3)).astype("|S20")
+    table_std = np.char.array(np.around(table.std(2), decimals=3)).astype("|S20")
+    table = table_mean + ' p2m ' + table_std
+    table = np.column_stack((keys, table))
+
+tablefmt = 'latex' # 'latex'
 print
-#print tabulate(table, headers=headers)
-print tabulate(table, headers=headers, tablefmt='latex', floatfmt='.4f')
+print tabulate(table, headers=headers, tablefmt=tablefmt, floatfmt='.3f')
 print '\t\t--> precision'
 
 
