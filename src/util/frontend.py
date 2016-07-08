@@ -1,12 +1,12 @@
 import sys, os
-import cPickle, json
+import pickle, json
 from itertools import chain
 from string import Template
 from collections import defaultdict
 import logging
 lgg = logging.getLogger('root')
 
-from frontend_io import *
+from .frontend_io import *
 from local_utils import *
 from vocabulary import Vocabulary, parse_corpus
 
@@ -116,7 +116,7 @@ class DataBase(object):
         fn = self.output_path + '.json'
         res = json.load(open(fn,'r'))
         res.update(d)
-        print 'updating json: %s' % fn
+        print('updating json: %s' % fn)
         json.dump(res, open(fn,'w'))
         return fn
 
@@ -163,12 +163,12 @@ class DataBase(object):
     def save(self, data, fn):
         fn = fn + '.pk'
         with open(fn, 'w') as _f:
-            return cPickle.dump(data, _f)
+            return pickle.dump(data, _f)
 
     def load(self, fn):
         fn = fn + '.pk'
         with open(fn, 'r') as _f:
-            return cPickle.load(_f)
+            return pickle.load(_f)
 
     @staticmethod
     def symmetrize(self, data=None):
@@ -252,6 +252,9 @@ class ModelBase(object):
         elif sim == 'cos':
             norm = np.linalg.norm(features, axis=1)
             sim = np.dot(features, features.T)/norm/norm.T
+        else:
+            lgg.error('Similaririty metric unknow: %s' % sim)
+            sim = None
         return sim
 
     def get_params(self):
@@ -319,6 +322,8 @@ class ModelManager(object):
         delta = self.hyperparams.get('delta',1)
         alpha = self.hyperparams.get('alpha',1)
         gmma = self.hyperparams.get('gmma',1)
+        hyper = self.config['hyper']
+        hyper_prior = self.config.get('hyper_prior')
 
         symmetric = self.config.get('symmetric',False)
         assortativity = self.config.get('homo')
@@ -353,7 +358,7 @@ class ModelManager(object):
             jointsampler = kernel.NP_CGS(zsampler,
                                          msampler,
                                          betasampler,
-                                         hyper=self.config['hyper'],)
+                                         hyper=hyper, hyper_prior=hyper_prior)
 
         return kernel.GibbsRun(jointsampler,
                                iterations=self.iterations,
@@ -387,7 +392,7 @@ class ModelManager(object):
                                  output_path=self.output_path,
                                  write=self.write)
         model._initialize(self.data, alpha, sigma_w, KK=K)
-        print 'Warning: K is IBP initialized...'
+        lgg.warn('Warning: K is IBP initialized...')
         #self.model._initialize(data, alpha, sigma_w, KK=None)
         return model
 
@@ -436,7 +441,7 @@ class ModelManager(object):
 
     def predict(self, frontend):
         if not hasattr(self.model, 'predict'):
-            print 'No predict method for self._name_ ?'
+            print('No predict method for self._name_ ?')
             return
 
         ### Prediction Measures
@@ -462,7 +467,7 @@ class ModelManager(object):
             pp.append( self.model.s.zsampler.perplexity() )
             self.model = self.loadgibbs(self.model_name, likelihood)
 
-        print self.output_path
+        print(self.output_path)
         np.savetxt('t.out', np.log(pp))
 
     # Pickle class
@@ -472,14 +477,14 @@ class ModelManager(object):
         #for u, v in vars(self.model).items():
         #    with open(f, 'w') as _f:
         #        try:
-        #            cPickle.dump(v, _f)
+        #            pickle.dump(v, _f)
         #        except:
         #            print 'not serializable here: %s, %s' % (u, v)
         self.model._f = None
         self.model.purge()
 
         with open(fn, 'w') as _f:
-            return cPickle.dump(self.model, _f)
+            return pickle.dump(self.model, _f)
 
     # Debug classmethod and ecrasement d'object en jeux.
     #@classmethod
@@ -495,13 +500,13 @@ class ModelManager(object):
             else:
                 fn = make_output_path(spec, 'pk')
             if not os.path.isfile(fn) or os.stat(fn).st_size == 0:
-                print 'No file for this model: %s' %fn
-                print 'The following are available:'
+                print('No file for this model: %s' %fn)
+                print('The following are available:')
                 for f in model_walker(os.path.dirname(fn), fmt='list'):
-                    print f
+                    print(f)
                 return None
             with open(fn, 'r') as _f:
-                model =  cPickle.load(_f)
+                model =  pickle.load(_f)
         self.model = model
         return model
 

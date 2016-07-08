@@ -92,7 +92,7 @@ for corpus_name in Corpuses:
     #################################################
     ### Plotting
     if config.get('write_to_file'):
-        corpus_icdm(data=data_r,  corpus_name=corpus_name)
+        corpus_icdm(data=data_r, corpus_name=corpus_name)
         continue
 
     ### Plot Adjacency matrix

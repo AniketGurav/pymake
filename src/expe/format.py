@@ -30,7 +30,7 @@ corpus_ = dict((
     ('generator7'     , ('Network 1', 'g1')),
 ))
 
-model_ = dict( ibp = 'ilfrm',
+model_ = dict(ibp = 'ilfrm',
               immsb = 'immsb')
 
 def generate_icdm(**kwargs):

@@ -11,7 +11,7 @@ LOCAL_BDIR = '../../data/' # Last slash(/) necessary.
     #### I/O
     Corpus are load/saved using Pickle format in:
     * bdir/corpus_name.pk
-    Models are load/saved using cPickle/json/cvs in :
+    Models are load/saved using pickle/json/cvs in :
     * bdir/debug/rept/model_name_parameters.pk <--> ModelManager
     * bdir/debug/rept/model_name_parameters.json <--> DataBase
     * bdir/debug/rept/inference-model_name_parameters <--> ModelBase
@@ -25,7 +25,7 @@ LOCAL_BDIR = '../../data/' # Last slash(/) necessary.
 """
 
 ### Command Line Reference
-_OPTKEYS_ = OrderedDict((
+_FLAGKEYS_ = OrderedDict((
     ('N'           , '-n'),
     ('K'           , '-k'),
     ('hyper'       , '--hyper'),
@@ -37,6 +37,7 @@ _OPTKEYS_ = OrderedDict((
     ('refdir'      , '--refdir'),
     ('debug'       , '--refdir'),
     ('repeat'      , '--repeat'),
+    ('hyper_prior' , '--hyper_prior'),
     ('iterations'  , '-i'),
     ('data_type'   , 'null'),
 ))
@@ -197,7 +198,7 @@ def check_spec(dol_spec):
     return True
 
 def make_forest_runcmd(spec):
-    optkeys = _OPTKEYS_
+    optkeys = _FLAGKEYS_
     opts = []
     confs = make_forest_conf(spec)
     for expe in confs:
@@ -274,7 +275,7 @@ def get_json(fn):
     try:
         d = json.load(open(fn,'r'))
         return d
-    except Exception, e:
+    except Exception as e:
         return None
 
 def forest_tensor(target_files, map_parameters):
@@ -332,7 +333,7 @@ def forest_tensor(target_files, map_parameters):
                 pass
             try:
                 idx = map_parameters[k].index(v)
-            except Exception, e:
+            except Exception as e:
                 lgg.error(prop)
                 lgg.error('key:value error --  %s, %s'% (k, v))
                 raise ValueError
@@ -364,7 +365,7 @@ def forest_tensor(target_files, map_parameters):
             rez[zip(pt)] = recall
             pt[-1] = 3
             rez[zip(pt)] = K
-        except IndexError, e:
+        except IndexError as e:
             lgg.error(e)
             lgg.error('Index Error: Files are probably missing here to complete the results...\n')
 
@@ -386,7 +387,6 @@ def make_tensor_expe_index(expe, map_parameters):
     expe = clean_extra_expe(expe, map_parameters)
     for i, o in enumerate(expe.items()):
         k, v = o[0], o[1]
-        print i, k, v
         if v in ( '*', ':'): #wildcar / indexing ...
             ptx.append(slice(None))
         elif k in map_parameters:

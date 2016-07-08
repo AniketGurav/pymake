@@ -77,10 +77,10 @@ class frontendText(DataBase):
 
         # @debug to remove
         _l =  (self.data >= 6000).sum(1).A.T[0]
-        print _l
+        print(_l)
         tt = self.data[_l > 0]
         for t in tt:
-            print t[t>=6000]
+            print(t[t>=6000])
         self.data = self.data[ _l == 0 ]
         return self.data
 
@@ -115,7 +115,7 @@ class frontendText(DataBase):
             data = gensim.matutils.corpus2csc(data, dtype=int).T
             id2word = dict(gensim.corpora.dictionary.Dictionary.load_from_text(fname + '.dico'))
         else:
-            print 're-Building Corpus...'
+            prin('re-Building Corpus...')
             raw_data, id2word = parse_corpus(target)
 
             # Corpus will be in bag of words format !

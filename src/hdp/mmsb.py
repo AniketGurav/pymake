@@ -90,7 +90,7 @@ class DirMultLikelihood(object):
     def get_nfeat(self):
         nfeat = self.data_ma.max() + 1
         if nfeat == 1:
-            print.warn( 'Warning, only zeros in adjacency matrix...')
+            lgg.warn( 'Warning, only zeros in adjacency matrix...')
             nfeat = 2
         return nfeat
 
@@ -581,7 +581,7 @@ class NP_CGS(GibbsSampler):
 
     # Joint Sampler of topic Assignement, table configuration, and beta proportion.
     # ref to direct assignement Sampling in HDP (Teh 2006)
-    def __init__(self, zsampler, msampler, betasampler, hyper='auto'):
+    def __init__(self, zsampler, msampler, betasampler, hyper='auto', hyper_prior=None):
         zsampler.add_beta_sampler(betasampler)
 
         self.zsampler = zsampler
@@ -593,10 +593,17 @@ class NP_CGS(GibbsSampler):
 
         if hyper.startswith( 'auto' ):
             self.hyper = hyper
-            self.a_alpha = 1
-            self.b_alpha = 1
-            self.a_gmma = 1
-            self.b_gmma = 1
+            if hyper_prior is None:
+                self.a_alpha = 1
+                self.b_alpha = 1
+                self.a_gmma = 1
+                self.b_gmma = 1
+            else:
+                self.a_alpha = hyper_prior[0]
+                self.b_alpha = hyper_prior[1]
+                self.a_gmma = hyper_prior[2]
+                self.b_gmma = hyper_prior[3]
+
             self.optimize_hyper_hdp()
         elif hyper.startswith( 'fix' ):
             self.hyper = hyper
@@ -816,7 +823,7 @@ class GibbsRun(ModelBase):
         ks = [ mat.shape[1] for mat in theta]
         bn = np.bincount(ks)
         k_win = np.argmax(bn)
-        lgg.info('K selected: %d' % k_win)
+        lgg.debug('K selected: %d' % k_win)
 
         ind_rm = []
         [ind_rm.append(i) for i, v in enumerate(theta) if v.shape[1] != k_win]
@@ -824,7 +831,7 @@ class GibbsRun(ModelBase):
             theta.pop(i)
             phi.pop(i)
 
-        lgg.info('Samples Selected: %d over %s' % (len(theta), len(theta)+len(ind_rm) ))
+        lgg.debug('Samples Selected: %d over %s' % (len(theta), len(theta)+len(ind_rm) ))
 
         theta = np.mean(theta, 0)
         phi = np.mean(phi, 0)

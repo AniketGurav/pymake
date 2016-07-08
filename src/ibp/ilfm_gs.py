@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import random, cPickle
+import random
 from datetime import datetime
 from os.path import dirname
 import logging
@@ -11,7 +11,7 @@ from scipy.sparse import csr_matrix
 from scipy.sparse import lil_matrix
 sp_dot = csr_matrix.dot
 
-from ibp import IBP
+from .ibp import IBP
 from local_utils import *
 from util.frontend import DataBase, ModelBase
 
@@ -504,7 +504,7 @@ class IBPGibbsSampling(IBP, ModelBase):
         ks = [ mat.shape[1] for mat in Z]
         bn = np.bincount(ks)
         k_win = np.argmax(bn)
-        lgg.info('K selected: %d' % k_win)
+        lgg.debug('K selected: %d' % k_win)
 
         ind_rm = []
         [ind_rm.append(i) for i, v in enumerate(Z) if v.shape[1] != k_win]
@@ -512,7 +512,7 @@ class IBPGibbsSampling(IBP, ModelBase):
             Z.pop(i)
             W.pop(i)
 
-        lgg.info('Samples Selected: %d over %s' % (len(Z), len(Z)+len(ind_rm) ))
+        lgg.debug('Samples Selected: %d over %s' % (len(Z), len(Z)+len(ind_rm) ))
 
         Z = Z[-1]
         W = np.mean(W, 0)

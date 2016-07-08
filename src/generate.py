@@ -30,6 +30,7 @@ config.update(argparser.generate(USAGE))
 
 # Corpuses
 Corpuses = _spec_.CORPUS_SYN_ICDM_1
+Corpuses = _spec_.CORPUS_REAL_ICDM_1
 ### Models
 Models = _spec_.MODELS_GENERATE
 
@@ -40,6 +41,7 @@ if config.get('arg'):
     except:
         Models = [None]
         pass
+
 if config.get('K'):
     for m in Models:
         m['K'] = config['K']

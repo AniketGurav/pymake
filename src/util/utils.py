@@ -37,6 +37,12 @@ def argParse(usage="Usage ?"):
         elif arg in ('--alpha', '--hyper'):
             _arg = sys.argv.pop(i+1)
             argdict['hyper'] = _arg
+        elif arg in ('--hyper_prior', ):
+            _arg1 = int(sys.argv.pop(i+1))
+            _arg2 = int(sys.argv.pop(i+1))
+            _arg3 = int(sys.argv.pop(i+1))
+            _arg4 = int(sys.argv.pop(i+1))
+            argdict['hyper_prior'] = (_arg1, _arg2, _arg3, _arg4)
         elif arg in ('--refdir',):
             _arg = sys.argv.pop(i+1)
             argdict['refdir'] = _arg
@@ -91,7 +97,7 @@ def argParse(usage="Usage ?"):
         elif arg in ('-g'):
             argdict.update(random = False)
         elif arg in ('--help','-h'):
-            print usage
+            print(usage)
             exit(0)
         else:
             if i == 0:
@@ -130,7 +136,7 @@ def setup_logger(name, fmt, verbose, file=None):
 def ellapsed_time(text, since):
     current = datetime.now()
     delta = current - since
-    print text + ' : %s' % (delta)
+    print(text + ' : %s' % (delta))
     return current
 
 def jsondict(d):

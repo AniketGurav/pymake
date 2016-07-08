@@ -7,7 +7,6 @@ import multiprocessing
 from util.argparser import argparser
 from local_utils import *
 from util.frontend_io import *
-from expe.run import *
 
 
 USAGE = '''\

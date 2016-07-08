@@ -3,7 +3,6 @@ from functools import wraps
 import args as clargs
 from util.frontend_io import *
 from expe.spec import _spec_
-from expe.run import *
 
 #########
 # @TODO:
@@ -83,7 +82,7 @@ class argparser(object):
         # Default request
         req = dict(
             OUT_TYPE = 'path',
-            SPEC = RUN_DD,
+            SPEC = _spec_.RUN_DD,
             FTYPE = 'pk',
             STATUS = None )
 

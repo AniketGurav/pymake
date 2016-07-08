@@ -2,7 +2,7 @@
 from sympy.functions.combinatorial.numbers import stirling
 import sympy as sym
 import numpy as np
-import cPickle as pickle
+import pickle
 from scipy.misc import logsumexp
 
 import os
@@ -41,7 +41,7 @@ class lookup_stirling(object):
 
         # Run stirling computation for (n,m) matrix equal to stirling(n,m) if n <= m else 0
         for n in xrange(k_max):
-            print n
+            print( n)
             self.array_stir[n, 1:] = np.array([ self._stirling_table_dishe(n, m) for m in xrange(1, k_max) ])
             if save:
                 pickle.dump(self.array_stir[n], _f)
@@ -73,7 +73,7 @@ class lookup_stirling(object):
         for x in xrange(new_line):
             n = J + x
             new_l =  np.ones((1, K)) * np.inf
-            print n
+            print(n)
             for m in xrange(1,K):
                 if m > n:
                     continue
@@ -98,7 +98,7 @@ class lookup_stirling(object):
             m = K + x
             new_c =  np.ones((J, 1)) * np.inf
             stir = np.hstack((stir, new_c))
-            print m
+            print(m)
             for n in xrange(K,J):
                 if m > n:
                     continue
@@ -141,4 +141,4 @@ if __name__ == '__main__':
     #    print 'Test2 succesfully passed: %s' % (test2)
     #except:
     #    pass
-    print b.shape
+    print(b.shape)

@@ -18,6 +18,8 @@ class _spec_(object):
     CORPUS_SYN_ICDM_1  = ( 'generator4', 'generator10', 'generator12', 'generator7')
     CORPUS_REAL_ICDM_1 = ( 'manufacturing', 'fb_uc',)
 
+    CORPUS_ALL_3 = CORPUS_SYN_ICDM_1 + CORPUS_REAL_ICDM_1
+
     """
     =================
     === Text
@@ -32,7 +34,7 @@ class _spec_(object):
         ('data_type', ('networks',)),
         ('debug'  , ('debug10', 'debug11')),
         #('corpus' , ('fb_uc', 'manufacturing')),
-        ('corpus' , ('manufacturing', 'Graph7', 'Graph12', 'Graph10', 'Graph4')),
+        ('corpus' , ('generator7', 'generator12', 'generator10', 'generator4')),
         ('model'  , ('immsb', 'ibp')),
         ('K'      , (5,10,15, 20)),
         ('N'      , ('all',)),
@@ -100,3 +102,44 @@ class _spec_(object):
     MODELS_GENERATE = MODELS_GENERATE_IMMSB +  MODELS_GENERATE_IBP
 
 
+
+
+#### Temp
+
+    EXPE_ALL_3_IBP = dict((
+        ('data_type', ('networks',)),
+        ('debug'  , ('debug111111', 'debug101010')),
+        ('corpus' , CORPUS_ALL_3),
+        ('model'  , ('ibp')),
+        ('K'      , (5, 10, 15, 20)),
+        ('N'      , ('all',)),
+        ('hyper'  , ('fix',)),
+        ('homo'   , (0,)),
+        ('repeat'   , (6, 7, 8, 9)),
+    ))
+    EXPE_ALL_3_IMMSB = dict((
+        ('data_type', ('networks',)),
+        ('debug'  , ('debug111111', 'debug101010')),
+        ('corpus' , CORPUS_ALL_3),
+        ('model'  , ('immsb')),
+        ('K'      , (5, 10, 15, 20)),
+        ('N'      , ('all',)),
+        ('hyper'  , ('auto',)),
+        ('homo'   , (0,)),
+        ('repeat'   , (6, 7, 8, 9)),
+    ))
+
+
+
+    RUN_DD = dict((
+        ('data_type', ('networks',)),
+        #('corpus' , ('fb_uc', 'manufacturing')),
+        ('corpus' , ('generator1')),
+        ('model'  , ('immsb', 'ibp')),
+        ('K'      , (5,)),
+        ('N'      , ('all',)),
+        ('hyper'  , ('auto')),
+        ('homo'   , (0)),
+        ('hyper_prior', ('1 2 3 4', '10 2')),
+        ('repeat'   , (0, 1, 2, 4, 5)),
+    ))

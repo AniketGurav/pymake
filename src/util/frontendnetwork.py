@@ -359,7 +359,7 @@ class frontendNetwork(DataBase):
     def get_nfeat(self):
         nfeat = self.data.max() + 1
         if nfeat == 1:
-            print 'Warning, only zeros in adjacency matrix...'
+            lgg.warn('Warning, only zeros in adjacency matrix...')
             nfeat = 2
         return nfeat
 
@@ -484,24 +484,31 @@ class frontendNetwork(DataBase):
             sim[sim < 0] = -1
         return sim
 
-    def homophily(self, sim='cos', type='kleinberg'):
-        data = self.data
+    def homophily(self, model=None, sim='cos', type='kleinberg'):
         N = self.data.shape[0]
         card = N*(N-1)
-        sim_source = self.similarity_matrix(sim=sim)
-        if sim_source is None:
+
+        if model:
+            data, theta, phi = model.generate(N)
+            #y = np.triu(y) + np.triu(y, 1).T
+            gram_matrix = model.similarity_matrix(sim=sim)
+        else:
+            data = self.data
+            gram_matrix = self.similarity_matrix(sim=sim)
+
+        if gram_matrix is None:
             return np.nan, np.nan
 
         connected = data.sum()
         unconnected = N - connected
-        similar = (sim_source > 0).sum()
-        unsimilar = (sim_source <= 0).sum()
+        similar = (gram_matrix > 0).sum()
+        unsimilar = (gram_matrix <= 0).sum()
 
-        indic_source = ma.array(np.ones(sim_source.shape)*-1, mask=ma.masked)
-        indic_source[(data == 1) & (sim_source > 0)] = 0
-        indic_source[(data == 1) & (sim_source <= 0)] = 1
-        indic_source[(data == 0) & (sim_source > 0)] = 2
-        indic_source[(data == 0) & (sim_source <= 0)] = 3
+        indic_source = ma.array(np.ones(gram_matrix.shape)*-1, mask=ma.masked)
+        indic_source[(data == 1) & (gram_matrix > 0)] = 0
+        indic_source[(data == 1) & (gram_matrix <= 0)] = 1
+        indic_source[(data == 0) & (gram_matrix > 0)] = 2
+        indic_source[(data == 0) & (gram_matrix <= 0)] = 3
 
         np.fill_diagonal(indic_source, ma.masked)
         indic_source[indic_source == -1] = ma.masked
@@ -574,9 +581,9 @@ class frontendNetwork(DataBase):
         AMI = metrics.adjusted_mutual_info_score(indic_source.compressed(), indic_learn.compressed())
         NMI = metrics.normalized_mutual_info_score(indic_source.compressed(), indic_learn.compressed())
 
-        print 'homo_ind1 source: %f' % (homo_ind1_source)
-        print 'homo_ind1 learn: %f' % (homo_ind1_learn)
-        print 'AMI: %f, NMI: %f' % (AMI, NMI)
+        print('homo_ind1 source: %f' % (homo_ind1_source))
+        print('homo_ind1 learn: %f' % (homo_ind1_learn))
+        print('AMI: %f, NMI: %f' % (AMI, NMI))
 
         d = {'NMI' : NMI, 'homo_ind1_source' : homo_ind1_source, 'homo_ind1_learn' : homo_ind1_learn}
         return d

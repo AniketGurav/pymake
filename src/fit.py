@@ -10,7 +10,7 @@ import scipy as sp
 
 import logging
 
-_USAGE = '''build_model [-vhswp] [-k [rvalue] [-n N] [-d basedir] [-lall] [-l type] [-m model] [-c corpus] [-i iterations]
+USAGE = '''build_model [-vhswp] [-k [rvalue] [-n N] [-d basedir] [-lall] [-l type] [-m model] [-c corpus] [-i iterations]
 
 Default load corpus and run a model !!
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     )
 
     config.update(Expe)
-    config.update(argParse(_USAGE))
+    config.update(argParse(USAGE))
 
     lgg = setup_logger('root','%(message)s', config.get('verbose') )
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     ############################################################
     ##### Simulation Output
     if config.get('simul'):
-        print '''--- Simulation settings ---
+        print('''--- Simulation settings ---
         Model : %s
         Corpus : %s
         K : %s
@@ -99,7 +99,7 @@ if __name__ == '__main__':
         hyper : %s
         Output : %s''' % (config['model'], config['corpus_name'],
                          config['K'], config['N'], config['hyper'],
-                         config['output_path'])
+                         config['output_path']))
         exit()
 
     ############################################################
@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
     if 'Text' in str(type(frontend)):
         lgg.warning('check WHY and WHEN overflow in stirling matrix !?')
-        print 'debug why error and i get walue superior to 6000 in the striling matrix ????'
+        print('debug why error and i get walue superior to 6000 in the striling matrix ????')
         data, data_t = frontend.cross_set(ratio=0.8)
     elif 'Network' in str(type(frontend)):
         if config['refdir'] in ('debug11', 'debug1111','debug111111'):
@@ -148,6 +148,7 @@ if __name__ == '__main__':
     alpha = .5
     gmma = 1.
     hyperparams = {'alpha': alpha, 'delta': delta, 'gmma': gmma}
+
     config['hyperparams'] = hyperparams
 
     #### Debug

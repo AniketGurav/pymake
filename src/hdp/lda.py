@@ -68,7 +68,7 @@ class DirMultLikelihood(object):
         self.delta = delta if isinstance(delta, np.ndarray) else np.asarray([delta] * self.nfeat)
         self.w_delta = self.delta.sum()
 
-        print self.data_mat.shape, self.nfeat
+        print(self.data_mat.shape, self.nfeat)
         assert(self.data_mat.shape[1] == self.nfeat)
         #self.data_mat = sppy.csarray(self.data_mat)
 
@@ -581,7 +581,7 @@ class NP_CGS(GibbsSampler):
         new_gmma = gamma(self.a_gmma + K -1 + u, 1/(self.b_gmma - np.log(v)), size=5).mean()
         self.betasampler.gmma = new_gmma
 
-        print 'alpha a, b: %s, %s ' % (self.a_alpha + m_dot - u_j.sum(), 1/( self.b_alpha - np.log(v_j).sum()))
+        print('alpha a, b: %s, %s ' % (self.a_alpha + m_dot - u_j.sum(), 1/( self.b_alpha - np.log(v_j).sum())))
         print( 'hyper sample: alpha_0: %s gamma: %s' % (new_alpha0, new_gmma))
         return
 
