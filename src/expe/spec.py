@@ -34,7 +34,7 @@ class _spec_(object):
         ('data_type', ('networks',)),
         ('debug'  , ('debug10', 'debug11')),
         #('corpus' , ('fb_uc', 'manufacturing')),
-        ('corpus' , ('generator7', 'generator12', 'generator10', 'generator4')),
+        ('corpus' , CORPUS_ALL_3),
         ('model'  , ('immsb', 'ibp')),
         ('K'      , (5,10,15, 20)),
         ('N'      , ('all',)),
@@ -100,8 +100,6 @@ class _spec_(object):
         #('repeat'      , '*')       ,
     ))]
     MODELS_GENERATE = MODELS_GENERATE_IMMSB +  MODELS_GENERATE_IBP
-
-
 
 
 #### Temp

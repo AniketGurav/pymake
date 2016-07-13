@@ -639,7 +639,7 @@ class NP_CGS(GibbsSampler):
 
         #print 'm_dot %d, alpha a, b: %s, %s ' % (m_dot, self.a_alpha + m_dot - u_j.sum(), 1/( self.b_alpha - np.log(v_j).sum()))
         #print 'gamma a, b: %s, %s ' % (self.a_gmma + K -1 + u, 1/(self.b_gmma - np.log(v)))
-        lgg.info( 'hyper sample: alpha_0: %s gamma: %s' % (new_alpha0, new_gmma))
+        lgg.info('hyper sample: alpha_0: %s gamma: %s' % (new_alpha0, new_gmma))
         return
 
     def __call__(self):
@@ -783,7 +783,7 @@ class GibbsRun(ModelBase):
             K = theta.shape[1]
 
         Y = np.empty((N,N))
-        pij = theta.dot(phi).dot(theta.T)
+        pij = self.link_expectation(theta, phi)
         #pij[pij >= 0.5 ] = 1
         #pij[pij < 0.5 ] = 0
         #Y = pij
@@ -799,6 +799,11 @@ class GibbsRun(ModelBase):
         self.phi = phi
         self.K = K
         return Y, theta, phi
+
+    def link_expectation(self, theta, phi):
+        likelihood = theta.dot(phi).dot(theta.T)
+        return likelihood
+
 
     # Nasty hack to make serialisation possible
     def purge(self):

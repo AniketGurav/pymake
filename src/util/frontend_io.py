@@ -55,7 +55,13 @@ _MASTERKEYS_ = OrderedDict((
     ('N'           , 'all'),
 ))
 
-_New_Dims = [{'measure':4}]
+
+# Debug put K_end inside the json
+_Key_measures = [ 'g_precision', 'Precision', 'Recall', 'K',
+                 'homo_dot_o', 'homo_dot_e', 'homo_model_o', 'homo_model_e'
+                ]
+
+_New_Dims = [{'measure':len(_Key_measures)}]
 
 
 # Factorize the io; One argument / One options.
@@ -345,26 +351,21 @@ def forest_tensor(target_files, map_parameters):
             not_finished.append( '%s not finish...\n' % _f)
             continue
 
-        g_precision = d.get('g_precision')
-        precision = d.get('Precision')
-        recall = d.get('Recall')
-        K = len(d['Local_Attachment'])
-        #density = d['density_all']
-        #mask_density = d['mask_density']
-        #h_s = d.get('homo_ind1_source', np.inf)
-        #h_l = d.get('homo_ind1_learn', np.inf)
-        #nmi = d.get('NMI', np.inf)
-
         try:
             pt = list(pt.astype(int))
-            pt[-1] = 0
-            rez[zip(pt)] = g_precision
-            pt[-1] = 1
-            rez[zip(pt)] = precision
-            pt[-1] = 2
-            rez[zip(pt)] = recall
-            pt[-1] = 3
-            rez[zip(pt)] = K
+            for i, v in enumerate(_Key_measures):
+                pt[-1] = i
+                # HOOK
+                if v == 'K':
+                    json_v = len(d['Local_Attachment'])
+                elif v == 'homo_model_e':
+                    try:
+                        json_v =  d.get('homo_model_o') - d.get(v)
+                    except: pass
+                else:
+                    json_v = d.get(v)
+                rez[zip(pt)] = json_v
+
         except IndexError as e:
             lgg.error(e)
             lgg.error('Index Error: Files are probably missing here to complete the results...\n')
@@ -387,12 +388,16 @@ def make_tensor_expe_index(expe, map_parameters):
     expe = clean_extra_expe(expe, map_parameters)
     for i, o in enumerate(expe.items()):
         k, v = o[0], o[1]
-        if v in ( '*', ':'): #wildcar / indexing ...
+        if v in ( '*',): #wildcar / indexing ...
             ptx.append(slice(None))
         elif k in map_parameters:
             ptx.append(map_parameters[k].index(v))
         elif type(v) is int:
             ptx.append(v)
+        elif type(v) is str and ':' in v: #wildcar / indexing ...
+            sls = v.split(':')
+            sls = [None if not u else int(u) for u in sls]
+            ptx.append(slice(*sls))
         else:
             raise ValueError('Unknow data type for tensor forest')
 

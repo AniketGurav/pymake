@@ -22,17 +22,18 @@ if __name__ == '__main__':
     config.update(argParse(_USAGE))
 
     # Expe
-    corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7',)
     corpuses = ( 'fb_uc', 'manufacturing', )
     corpuses = ('generator7',)
+    corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7',)
 
-    ask_sure_exit('Sure to overwrite corpus / networks ?')
     ############################################################
     ##### Simulation Output
     if config.get('simul'):
         print '''--- Simulation settings ---
         Build Corpuses %s''' % (str(corpuses))
         exit()
+
+    ask_sure_exit('Sure to overwrite corpus / networks ?')
 
     fn_corpus_build = os.path.join(config['bdir'], 'networks', 'Corpuses.txt')
     _f = open(fn_corpus_build, 'a')

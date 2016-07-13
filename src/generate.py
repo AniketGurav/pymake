@@ -24,23 +24,27 @@ config = defaultdict(lambda: False, dict(
     write_to_file = False,
     generative    = 'predictive',
     gen_size      = 1000,
-    epoch         = 200
+    epoch         = 200 #200
 ))
 config.update(argparser.generate(USAGE))
 
 # Corpuses
-Corpuses = _spec_.CORPUS_SYN_ICDM_1
 Corpuses = _spec_.CORPUS_REAL_ICDM_1
+Corpuses = _spec_.CORPUS_SYN_ICDM_1
 ### Models
 Models = _spec_.MODELS_GENERATE
 
-# Hook
-if config.get('arg'):
-    try:
-        Models =  [get_conf_from_file(config['arg'])]
-    except:
-        Models = [None]
-        pass
+## Hook
+#if config.get('arg'):
+#    try:
+#        Models =  [get_conf_from_file(config['arg'])]
+#    except:
+#        Models = [None]
+#        pass
+
+for m in Models:
+    m['debug'] = 'debug11'
+
 
 if config.get('K'):
     for m in Models:

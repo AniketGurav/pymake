@@ -252,9 +252,15 @@ class ModelBase(object):
         elif sim == 'cos':
             norm = np.linalg.norm(features, axis=1)
             sim = np.dot(features, features.T)/norm/norm.T
+        elif sim == 'model':
+            sim = features.dot(phi).dot(features.T)
         else:
             lgg.error('Similaririty metric unknow: %s' % sim)
             sim = None
+
+        if hasattr(self, 'normalization_fun'):
+            sim = self.normalization_fun(sim)
+            print 'dedzfcze %s' % sim
         return sim
 
     def get_params(self):
@@ -286,6 +292,8 @@ class ModelBase(object):
     def predict(self):
         raise NotImplementedError
     def fit(self):
+        raise NotImplementedError
+    def link_expectation(self):
         raise NotImplementedError
 
 
@@ -529,8 +537,9 @@ class ModelManager(object):
             model = self.loadgibbs_1(self.model_name)
         elif self.model_name in ('lda_vb'):
             model = self.lda_gensim(model='ldafullbaye')
-        elif self.model_name in ('ilfrm', 'ibp', 'ibp_cgs'):
+        elif self.model_name in ('ilfm', 'ibp', 'ibp_cgs'):
             model = self.loadgibbs_2(self.model_name)
+            model.normalization_fun = lambda x : 1/(1 + np.exp(-x))
         else:
             raise NotImplementedError()
 

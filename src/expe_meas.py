@@ -58,7 +58,7 @@ expe_1 = OrderedDict((
     ('homo'  , 0) ,
     ('N'     , 'all')     ,
     ('repeat', '*'),
-    ('measure', '*'),
+    ('measure', ':4'),
     ))
 if model:
     expe_1.update(model=model)
@@ -92,7 +92,7 @@ h = expe_1['model'].upper() + ' / ' + h_mask
 headers.insert(0, h)
 # Row
 keys = map_parameters['corpus']
-keys = [''.join(k) for k in zip(keys, [' b/h', ' b/-h', ' -b/h', ' -b/-h'])]
+keys = [''.join(k) for k in zip(keys, [' b/h', ' b/-h', ' -b/-h', ' -b/h'])]
 ## Results
 table = rez[ptx]
 

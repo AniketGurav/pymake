@@ -488,8 +488,7 @@ class IBPGibbsSampling(IBP, ModelBase):
             Y = Y[nodelist, :][:, nodelist]
             Z = Z[nodelist, :]
 
-        bilinear_form = Z.dot(W).dot(Z.T)
-        likelihood = 1 / (1 + np.exp(- self._sigb * bilinear_form))
+        likelihood = self.link_expectation(Z, W)
         #likelihood[likelihood >= 0.5 ] = 1
         #likelihood[likelihood < 0.5 ] = 0
         #Y = likelihood
@@ -498,6 +497,11 @@ class IBPGibbsSampling(IBP, ModelBase):
         self.phi = W
         self.K = K
         return Y, Z, W
+
+    def link_expectation(self, theta, phi):
+        bilinear_form = theta.dot(phi).dot(theta.T)
+        likelihood = 1 / (1 + np.exp(- self._sigb * bilinear_form))
+        return likelihood
 
     def reduce_latent(self):
         Z, W = map(list, zip(*self.samples))

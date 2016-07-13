@@ -23,7 +23,6 @@ if __name__ == '__main__':
 
     corpuses = ('nips12',)
     corpuses = ('nips12', 'kos','reuter50', 'nips', 'enron', 'nytimes', 'pubmed', '20ngroups')
-    ask_sure_exit('Sure to overwrite corpus / text ?')
 
     ############################################################
     ##### Simulation Output
@@ -31,6 +30,8 @@ if __name__ == '__main__':
         print '''--- Simulation settings ---
         Build Corpuses %s''' % (str(corpuses))
         exit()
+
+    ask_sure_exit('Sure to overwrite corpus / text ?')
 
     fn_corpus_build = os.path.join(config['bdir'], 'text','Corpuses.txt')
     _f = open(fn_corpus_build, 'a')

@@ -28,13 +28,13 @@ map_parameters = OrderedDict((
     ('data_type', ('networks',)),
     #('corpus' , ('fb_uc', 'manufacturing')),
     ('corpus' , ('Graph7', 'Graph12', 'Graph10', 'Graph4')),
-    ('debug'  , ('debug101010', 'debug111111')),
+    ('debug'  , ('debug10', 'debug11')),
     ('model'  , ('immsb', 'ibp')),
     ('K'      , (5, 10, 15, 20)),
     ('hyper'  , ('fix', 'auto')),
     ('homo'   , (0, 1, 2)),
     ('N'      , ('all',)),
-    ('repeat'   , (0, 1, 2, 4, 5)),
+    #('repeat'   , (0, 1, 2, 4, 5)),
 ))
 
 ### Seek experiments results
@@ -51,14 +51,14 @@ rez = forest_tensor(target_files, map_parameters)
 expe_1 = OrderedDict((
     ('data_type', 'networks'),
     ('corpus', '*'),
-    ('debug' , 'debug101010') ,
+    ('debug' , 'debug10') ,
     ('model' , 'immsb')   ,
     ('K'     , '*')         ,
     ('hyper' , 'auto')     ,
     ('homo'  , 0) ,
     ('N'     , 'all')     ,
-    ('repeat', '*'),
-    ('measure', 0),
+    #('repeat', '*'),
+    ('measure', 7),
     ))
 if model:
     expe_1.update(model=model)

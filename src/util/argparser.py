@@ -46,6 +46,10 @@ class askverbose(object):
             self.logger = self.setup_logger('root','%(message)s', logging.INFO)
 
         response = self.func(*args, **kwargs)
+
+        if clargs.flags.contains('-s'):
+            response['simul'] = True
+
         return response
 
     def setup_logger(self, name, fmt, level):
@@ -113,8 +117,8 @@ class argparser(object):
         return req
 
     @staticmethod
-    @askhelp
     @askverbose
+    @askhelp
     def generate(USAGE=''):
         conf = {}
         write_keys = ('-w', 'write', '--write')
@@ -122,6 +126,13 @@ class argparser(object):
         for write_key in write_keys:
             if write_key in clargs.all:
                 conf['write_to_file'] = True
+
+        gargs = clargs.grouped['_'].all
+        if 'homo' in gargs:
+            conf['do'] = 'homo'
+        elif 'burst' in gargs:
+            conf['do'] = 'burst'
+
         # K setting
         if '-k' in clargs.grouped:
             conf['K'] = clargs.grouped['-k'].get(0)

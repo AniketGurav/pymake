@@ -492,6 +492,9 @@ class frontendNetwork(DataBase):
             data, theta, phi = model.generate(N)
             #y = np.triu(y) + np.triu(y, 1).T
             gram_matrix = model.similarity_matrix(sim=sim)
+            delta_treshold = .1
+            gram_matrix[gram_matrix >= delta_treshold] = 1
+            gram_matrix[gram_matrix < delta_treshold] = -1
         else:
             data = self.data
             gram_matrix = self.similarity_matrix(sim=sim)
@@ -500,7 +503,7 @@ class frontendNetwork(DataBase):
             return np.nan, np.nan
 
         connected = data.sum()
-        unconnected = N - connected
+        unconnected = card - connected
         similar = (gram_matrix > 0).sum()
         unsimilar = (gram_matrix <= 0).sum()
 
@@ -519,6 +522,7 @@ class frontendNetwork(DataBase):
         d = (indic_source==3).sum()
 
         if type == 'kleinberg':
+            #print 'a: %s, connected: %s, similar %s, card: %s' % (a, connected,similar, card)
             homo_obs = 1.0 * a / connected # precision; homophily respected
             homo_exp = 1.0 * similar / card # rappel; strenght of homophily
         else:
