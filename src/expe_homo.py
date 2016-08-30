@@ -16,8 +16,7 @@ USAGE = '''\
     expe_k [model]
 '''
 
-zyvar = argparser.expe_tabulate(USAGE)
-model = zyvar.get('model')
+expe_args = argparser.expe_tabulate(USAGE)
 
 ###################################################################
 # Data Forest config
@@ -60,10 +59,12 @@ expe_1 = OrderedDict((
     #('repeat', '*'),
     ('measure', 7),
     ))
-if model:
-    expe_1.update(model=model)
-    if model == 'ibp':
-        expe_1.update(hyper='fix')
+expe_1.update(expe_args)
+
+# Hook
+if expe_1['model'] == 'ibp':
+    expe_1.update(hyper='fix')
+
 assert(expe_1.keys()[:len(map_parameters)] == map_parameters.keys())
 
 ###################################

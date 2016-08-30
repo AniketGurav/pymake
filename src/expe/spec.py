@@ -1,3 +1,4 @@
+from collections import OrderedDict
 
 class _spec_(object):
     #############################################################################
@@ -30,20 +31,34 @@ class _spec_(object):
     #############################################################################
     ### Experimentation / Specification
     #############################################################################
-    EXPE_ICDM = dict((
+    EXPE_ICDM = OrderedDict((
         ('data_type', ('networks',)),
         ('debug'  , ('debug10', 'debug11')),
         #('corpus' , ('fb_uc', 'manufacturing')),
         ('corpus' , CORPUS_ALL_3),
         ('model'  , ('immsb', 'ibp')),
-        ('K'      , (5,10,15, 20)),
+        ('K'      , (5,10,15,20)),
         ('N'      , ('all',)),
         ('hyper'  , ('fix', 'auto')),
         ('homo'   , (0,)),
-        #('repeat'   , (0, 1, 2, 4, 5)),
+        #('repeat'   , (0, 1, 2,3, 4, 5)),
     ))
     ICDM = EXPE_ICDM
     EXPE_DD = ICDM
+
+    EXPE_ICDM_R = OrderedDict((
+        ('data_type', ('networks',)),
+        #('corpus' , ('fb_uc', 'manufacturing')),
+        ('corpus' , ('Graph7', 'Graph12', 'Graph10', 'Graph4')),
+        #('debug'  , ('debug10', 'debug11')),
+        ('debug'  , ('debug101010', 'debug111111')),
+        ('model'  , ('immsb', 'ibp')),
+        ('K'      , (5, 10, 15, 20)),
+        ('hyper'  , ('fix', 'auto')),
+        ('homo'   , (0, 1, 2)),
+        ('N'      , ('all',)),
+        ('repeat'   , range(10)),
+    ))
 
     MODEL_FOR_CLUSTER_IBP = dict ((
         ('data_type'    , 'networks'),
@@ -55,17 +70,6 @@ class _spec_(object):
         ('homo'         , 0)         ,
         #('repeat'      , '*')       ,
     ))
-
-    SPEC_TO_PARSE = dict(
-        data_type     = ['networks'],
-        refdir        = ['debug5'],
-        corpus        = ['generator6'],
-        model         = ['ibp_cgs', 'mmsb_cgs'],
-        N             = [1000,],
-        K             = [5, 10, 30],
-        homo          = [0,1,2],
-        hyper         = ['fix', 'auto'],
-    )
 
     NETWORKS_DD        = ('generator10', )
     MODELS_DD = [ dict ((

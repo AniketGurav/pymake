@@ -838,9 +838,10 @@ class GibbsRun(ModelBase):
 
         lgg.debug('Samples Selected: %d over %s' % (len(theta), len(theta)+len(ind_rm) ))
 
-        theta = np.mean(theta, 0)
-        phi = np.mean(phi, 0)
-        return theta, phi
+        self.theta = np.mean(theta, 0)
+        self.phi = np.mean(phi, 0)
+        self.K = self.theta.shape[1]
+        return self.theta, self.phi
 
     # * Precision on masked data
     # -- On Gen Y
@@ -881,11 +882,17 @@ class GibbsRun(ModelBase):
                'mask_density': mask_density,
                'clusters': list(c),
                'Community_Distribution': community_distribution,
-               'Local_Attachment': local_attach
+               'Local_Attachment': local_attach,
+               'K': self.K
               }
 
         return res
 
+    def get_clusters(self):
+        theta, phi = self.get_params()
+        return np.argmax(theta, axis=1)
+
+    #@wrapper !
     def communities_analysis(self, theta, data=None):
         if data is None:
             likelihood = self.s.zsampler.likelihood

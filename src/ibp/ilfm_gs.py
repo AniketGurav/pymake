@@ -520,6 +520,9 @@ class IBPGibbsSampling(IBP, ModelBase):
 
         Z = Z[-1]
         W = np.mean(W, 0)
+        self.theta = Z
+        self.phi = W
+        self.K = self.theta.shape[1]
         return Z, W
 
     # * Precision on masked data
@@ -561,11 +564,18 @@ class IBPGibbsSampling(IBP, ModelBase):
                'mask_density': mask_density,
                'clusters': list(c),
                'Community_Distribution': community_distribution,
-               'Local_Attachment': local_attach
+               'Local_Attachment': local_attach,
+               'K': self.K
               }
 
         return res
 
+    def get_clusters(self):
+        Z = self.leftordered(Z)
+        clusters = kmeans(Z, K=Z.shape[1])
+        return clusters
+
+    #@wrapper !
     def communities_analysis(self, Z, data=None):
         if data is None:
             data = self._Y.data
@@ -573,8 +583,7 @@ class IBPGibbsSampling(IBP, ModelBase):
         else:
             symmetric = True
 
-        Z = self.leftordered(Z)
-        clusters = kmeans(Z, K=Z.shape[1])
+        clusters = get_clusters()
         #nodes_list = [k[0] for k in sorted(zip(range(len(clusters)), clusters), key=lambda k: k[1])]
         community_distribution = list(np.bincount(clusters))
 

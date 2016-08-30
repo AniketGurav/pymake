@@ -143,8 +143,7 @@ class argparser(object):
     @askverbose
     @askhelp
     def expe_tabulate(USAGE=''):
-        conf = dict( model = None,
-                    K = None)
+        conf = {}
 
         gargs = clargs.grouped['_'].all
         for arg in gargs:

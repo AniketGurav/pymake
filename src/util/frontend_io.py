@@ -356,9 +356,7 @@ def forest_tensor(target_files, map_parameters):
             for i, v in enumerate(_Key_measures):
                 pt[-1] = i
                 # HOOK
-                if v == 'K':
-                    json_v = len(d['Local_Attachment'])
-                elif v == 'homo_model_e':
+                if v == 'homo_model_e':
                     try:
                         json_v =  d.get('homo_model_o') - d.get(v)
                     except: pass

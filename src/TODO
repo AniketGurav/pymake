@@ -10,7 +10,7 @@
 #
 
 ### Propriété:
-    * homophily (ya t'il homophilie par attaachement préférentiel)
+    * homophily (ya t'il homophilie par attachement préférentiel)
     * attachement préférentiel par homopholie (nouveux liens / nouveaux noeud?) 
 
 ##### communauté
@@ -18,7 +18,7 @@
 * algo formelle (une communauté c'est une clique, k-clique / percolation)
 * ensemble de neud fortement connecté, par rapport au reste du réseau.
 
--- voir impossibilité théorem
+-- voir impossibilité theorem
 ###### Dynamic
 
     (DHDP and other )

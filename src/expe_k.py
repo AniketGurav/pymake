@@ -8,6 +8,7 @@ from collections import OrderedDict
 from util.frontend_io import *
 from local_utils import *
 from util.argparser import argparser
+from expe.spec import _spec_
 
 lgg = logging.getLogger('root')
 
@@ -16,29 +17,13 @@ USAGE = '''\
     expe_k [model]
 '''
 
-zyvar = argparser.expe_tabulate(USAGE)
-model = zyvar.get('model')
+expe_args = argparser.expe_tabulate(USAGE)
 
 ###################################################################
 # Data Forest config
-#
-
-### Expe Forest
-map_parameters = OrderedDict((
-    ('data_type', ('networks',)),
-    #('corpus' , ('fb_uc', 'manufacturing')),
-    ('corpus' , ('Graph7', 'Graph12', 'Graph10', 'Graph4')),
-    ('debug'  , ('debug101010', 'debug111111')),
-    ('model'  , ('immsb', 'ibp')),
-    ('K'      , (5, 10, 15, 20)),
-    ('hyper'  , ('fix', 'auto')),
-    ('homo'   , (0, 1, 2)),
-    ('N'      , ('all',)),
-    ('repeat'   , (0, 1, 2, 4, 5)),
-))
-
+map_parameters = _spec_.EXPE_ICDM_R
 ### Seek experiments results
-target_files = make_forest_path(map_parameters, 'json',  sep=None)
+target_files = make_forest_path(map_parameters, 'json')
 ### Make Tensor Forest of results
 rez = forest_tensor(target_files, map_parameters)
 
@@ -51,19 +36,22 @@ rez = forest_tensor(target_files, map_parameters)
 expe_1 = OrderedDict((
     ('data_type', 'networks'),
     ('corpus', '*'),
-    ('debug' , 'debug101010') ,
+    #('debug' , 'debug101010') ,
+    ('debug' , 'debug111111') ,
     ('model' , 'immsb')   ,
     ('K'     , '*')         ,
     ('hyper' , 'auto')     ,
     ('homo'  , 0) ,
     ('N'     , 'all')     ,
     ('repeat', '*'),
-    ('measure', 0),
+    ('measure', 1),
     ))
-if model:
-    expe_1.update(model=model)
-    if model == 'ibp':
-        expe_1.update(hyper='fix')
+expe_1.update(expe_args)
+
+# Hook
+if expe_1['model'] == 'ibp':
+    expe_1.update(hyper='fix')
+
 assert(expe_1.keys()[:len(map_parameters)] == map_parameters.keys())
 
 ###################################

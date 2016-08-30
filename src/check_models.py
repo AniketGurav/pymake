@@ -23,29 +23,9 @@ def_conf.update(argparser.generate(USAGE))
 
 ####################################################
 ### Config
-#spec = _spec_.SPEC_TO_PARSE
-spec = _spec_.EXPE_ICDM
+spec = _spec_.EXPE_ICDM_R
+spec['debug'] = 'hyper101'
 #spec = _spec_.EXPE_ALL_3_IBP
-
-#spec = dict((
-#    ('data_type', ('networks',)),
-#    ('debug'  , ('debug10')),
-#    #('corpus' , ('fb_uc', 'manufacturing')),
-#    ('corpus' , ('generator7', 'generator12', 'generator10', 'generator4')),
-#    #('model'  , ('immsb', 'ibp')),
-#    ('model'  , ('ibp', )),
-#    ('K'      , (5,10,15, 20)),
-#    ('N'      , ('all',)),
-#    ('hyper'  , ('fix', 'auto')),
-#    ('homo'   , (0,)),
-#    #('repeat'   , (0, 1, 2, 4, 5)),
-#))
-
-#spec['model'] = ['ibp_cgs']
-#spec['homo'] = ['2']
-#spec['hyper'] = ['auto']
-#spec['K'] = ['10']
-#spec['N'] = ['1000']
 
 def exception_config(config):
     if config['model'] in ('mmsb_cgs', 'immsb'):
@@ -88,20 +68,25 @@ for config in configs:
 
     ###############################################################
     ### Expe Wrap up debug
+    print frontend.output_path
     print('corpus: %s, model: %s, K = %s, N =  %s' % (frontend.corpus_name, config['model'], config['K'], config['N']) )
 
     if config['do'] == 'homo':
         d = {}
-        d['homo_dot_o'], d['homo_dot_e'] = frontend.homophily(model=model, sim='dot')
-        diff2 = d['homo_dot_o'] - d['homo_dot_e']
-        d['homo_model_o'], d['homo_model_e'] = frontend.homophily(model=model, sim='model')
-        diff1 = d['homo_model_o'] - d['homo_model_e']
-        homo_text =  '''Similarity | Hobs | Hexp | diff\
-                       \nmodel   %.4f  %.4f %.4f\
-                       \ndot     %.4f  %.4f %.4f\
-        ''' % ( d['homo_model_o'], d['homo_model_e'] ,diff1,
-               d['homo_dot_o'], d['homo_dot_e'], diff2)
-        print homo_text
+        #d['homo_dot_o'], d['homo_dot_e'] = frontend.homophily(model=model, sim='dot')
+        #diff2 = d['homo_dot_o'] - d['homo_dot_e']
+        #d['homo_model_o'], d['homo_model_e'] = frontend.homophily(model=model, sim='model')
+        #diff1 = d['homo_model_o'] - d['homo_model_e']
+        #homo_text =  '''Similarity | Hobs | Hexp | diff\
+        #               \nmodel   %.4f  %.4f %.4f\
+        #               \ndot     %.4f  %.4f %.4f\
+        #''' % ( d['homo_model_o'], d['homo_model_e'] ,diff1,
+        #       d['homo_dot_o'], d['homo_dot_e'], diff2)
+        #print homo_text
+        theta, phi = model.reduce_latent()
+        K = theta.shape[1]
+        d['K'] = K
+
         if config.get('write_to_file'):
             try:
                 frontend.update_json(d)

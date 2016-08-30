@@ -264,15 +264,10 @@ class ModelBase(object):
         return sim
 
     def get_params(self):
-        return self.reduce_latent()
         if hasattr(self, 'theta') and hasattr(self, 'phi'):
             return self.theta, self.phi
         else:
             return self.reduce_latent()
-
-    def get_clusters(self):
-        theta, phi = self.get_params()
-        return np.argmax(theta, axis=1)
 
     # Remove variable that are non serializable.
     def purge(self):
@@ -294,6 +289,8 @@ class ModelBase(object):
     def fit(self):
         raise NotImplementedError
     def link_expectation(self):
+        raise NotImplementedError
+    def get_clusters(self):
         raise NotImplementedError
 
 

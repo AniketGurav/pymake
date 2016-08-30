@@ -10,9 +10,11 @@ from local_utils import *
 from util.argparser import argparser
 from expe.spec import _spec_
 
+lgg = logging.getLogger('root')
+
 USAGE = '''\
-# Usage:
-    expe_meas [model] [K]
+# Usage:
+    expe_k [model]
 '''
 
 expe_args = argparser.expe_tabulate(USAGE)
@@ -20,6 +22,7 @@ expe_args = argparser.expe_tabulate(USAGE)
 ###################################################################
 # Data Forest config
 map_parameters = _spec_.EXPE_ICDM_R
+map_parameters['debug'] = 'hyper101'
 ### Seek experiments results
 target_files = make_forest_path(map_parameters, 'json')
 ### Make Tensor Forest of results
@@ -34,8 +37,7 @@ rez = forest_tensor(target_files, map_parameters)
 expe_1 = OrderedDict((
     ('data_type', 'networks'),
     ('corpus', '*'),
-    #('debug' , 'debug101010') ,
-    ('debug' , 'debug111111') ,
+    ('debug' , 'hyper101') ,
     ('model' , 'immsb')   ,
     ('K'     , 5)         ,
     ('hyper' , 'auto')     ,
@@ -71,6 +73,7 @@ print 'Expe 1:'
 print tabulate([expe_1.keys(), expe_1.values()])
 # Headers
 headers = [ 'global', 'precision', 'recall', 'K->']
+#headers = list(map_parameters['K'])
 h_mask = 'mask all' if '11' in expe_1['debug'] else 'mask sub1'
 h = expe_1['model'].upper() + ' / ' + h_mask
 headers.insert(0, h)
@@ -96,5 +99,6 @@ except ValueError, e:
 tablefmt = 'latex' # 'latex'
 print
 print tabulate(table, headers=headers, tablefmt=tablefmt, floatfmt='.3f')
+
 
 

@@ -166,7 +166,7 @@ class frontendNetwork(DataBase):
             # Catch later or elsewhere
             pass
 
-        if corpus_name.startswith('generator'):
+        if corpus_name.startswith(('generator', 'Graph')):
             fn = os.path.join(self.basedir, 't0.graph')
             data = self.networkloader(fn)
         elif corpus_name in ('bench1'):

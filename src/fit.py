@@ -117,13 +117,13 @@ if __name__ == '__main__':
         data, data_t = frontend.cross_set(ratio=0.8)
     elif 'Network' in str(type(frontend)):
         if config['refdir'] in ('debug11', 'debug1111','debug111111'):
-            # Random training set on 20% on Data / debug5 - debug11
+            # Random training set on 20% on Data / debug5 - debug11 -- Unbalanced
             percent_hole = 0.2
             data = frontend.get_masked(percent_hole)
             config['symmetric'] = frontend.is_symmetric()
             data_t = None
         elif config['refdir']  in ('debug10', 'debug1010', 'debug101010'):
-            # Random training set on 20% on Data vertex (0.2 * data == 1) / debug6 - debug 10
+            # Random training set on 20% on Data vertex (0.2 * data == 1) / debug6 - debug 10 -- Balanced
             percent_hole = 0.2
             data = frontend.get_masked_1(percent_hole)
             config['symmetric'] = frontend.is_symmetric()
