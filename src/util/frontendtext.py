@@ -180,7 +180,7 @@ class frontendText(DataBase):
             # ? file type
             # Create
             command = './gensim/gensim/scripts/make_wikicorpus_ml.py '
-            command += '/work/adulac/data/wikipedia/enwiki-latest-pages-articles.xml.bz2 ../PyNPB/data/wikipedia/wiki_en'
+            command += '/work/adulac/data/wikipedia/enwiki-latest-pages-articles.xml.bz2 ../pymake/data/wikipedia/wiki_en'
             os.system(command)
             # Load
             error = 'Load Wikipedia corpus'
