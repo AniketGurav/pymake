@@ -5,9 +5,9 @@ import numpy as np
 import logging
 from tabulate import tabulate
 from collections import OrderedDict
-from util.frontend_io import *
-from local_utils import *
-from util.argparser import argparser
+from frontend.frontend_io import *
+from utils.utils import *
+from utils.argparser import argparser
 from expe.spec import _spec_
 
 lgg = logging.getLogger('root')

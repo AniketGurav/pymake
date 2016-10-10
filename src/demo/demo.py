@@ -1,5 +1,8 @@
-from local_utils import *
-from util.frontend import ModelManager, FrontendManager
+#!/usr/bin/python -u
+# -*- coding: utf-8 -*-
+
+from frontend.frontend import ModelManager, FrontendManager
+from utils.utils import *
 
 import numpy as np
 import scipy as sp
@@ -86,7 +89,7 @@ if __name__ == '__main__':
     last_d = ellapsed_time('Data Preprocessing Time', now)
 
     # Initializa Model
-    model = ModelManager(data, config, data_t=data_t)
+    model = ModelManager(data, config)
     last_d = ellapsed_time('Init Model Time', last_d)
 
     #### Run Inference / Learning Model

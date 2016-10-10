@@ -15,9 +15,9 @@ from scipy.special import gammaln
 from numpy.random import dirichlet, multinomial, gamma, poisson, binomial, beta
 from sympy.functions.combinatorial.numbers import stirling
 
-from util.frontend import DataBase, ModelBase
+from frontend.frontend import DataBase, ModelBase
 
-from util.compute_stirling import load_stirling
+from utils.compute_stirling import load_stirling
 _stirling_mat = load_stirling()
 
 #import sys

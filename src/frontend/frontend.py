@@ -7,8 +7,6 @@ import logging
 lgg = logging.getLogger('root')
 
 from .frontend_io import *
-from local_utils import *
-from vocabulary import Vocabulary, parse_corpus
 
 ### @Debug :
 #   * update config path !
@@ -177,8 +175,8 @@ class DataBase(object):
         data = np.triu(data) + np.triu(data, 1).T
 
 
-from util.frontendtext import frontendText
-from util.frontendnetwork import frontendNetwork
+from .frontendtext import frontendText
+from .frontendnetwork import frontendNetwork
 class FrontendManager(object):
     """ Utility Class who aims at mananing the frontend at the higher level.
     """
@@ -447,6 +445,10 @@ class ModelManager(object):
     def predict(self, frontend):
         if not hasattr(self.model, 'predict'):
             print('No predict method for self._name_ ?')
+            return
+
+        if not (hasattr(self, 'data_t') and hasattr(self.data_t, 'len')) :
+            print('No testing data for prediction ?')
             return
 
         ### Prediction Measures

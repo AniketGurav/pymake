@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from random import choice
-from local_utils import *
+from utils.utils import *
 from vocabulary import Vocabulary, parse_corpus
-from util.frontend import ModelManager, FrontendManager
+from utils.frontend import ModelManager, FrontendManager
 
 import numpy as np
 import scipy as sp

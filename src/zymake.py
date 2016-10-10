@@ -4,9 +4,9 @@
 #from joblib import Parallel, delayed
 import multiprocessing
 
-from util.argparser import argparser
-from local_utils import *
-from util.frontend_io import *
+from utils.argparser import argparser
+from utils.utils import *
+from frontend.frontend_io import *
 
 
 USAGE = '''\

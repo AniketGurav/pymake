@@ -2,9 +2,8 @@ import sys, os
 from itertools import chain
 from string import Template
 
-from util.frontend import DataBase
-from local_utils import *
-from vocabulary import Vocabulary, parse_corpus
+from .frontend import DataBase
+from utils.vocabulary import Vocabulary, parse_corpus
 
 sys.path.insert(1, os.path.join(os.path.dirname(__file__),'../../../gensim'))
 import gensim

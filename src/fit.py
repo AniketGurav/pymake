@@ -1,8 +1,8 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
-from local_utils import *
-from util.frontend import ModelManager, FrontendManager
+from frontend.frontend import ModelManager, FrontendManager
+from utils.utils import *
 
 import numpy as np
 import scipy as sp

@@ -11,7 +11,7 @@ import os
 from multiprocessing import Process
 from itertools import cycle
 
-from local_utils import *
+from utils.utils import *
 
 def display(block=False):
     #p = Process(target=_display)

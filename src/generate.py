@@ -1,14 +1,14 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
-from util.frontend import ModelManager, FrontendManager
-from util.frontendnetwork import frontendNetwork
-from local_utils import *
+from frontend.frontend import ModelManager, FrontendManager
+from frontend.frontendnetwork import frontendNetwork
+from utils.utils import *
 from plot import *
-from util.frontend_io import *
+from frontend.frontend_io import *
 from expe.spec import _spec_
 from expe.format import generate_icdm, generate_icdm_debug
-from util.argparser import argparser
+from utils.argparser import argparser
 
 USAGE = '''\
 # Usage:
