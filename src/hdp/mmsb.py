@@ -11,7 +11,7 @@ import scipy as sp
 import sympy as sym
 #import sppy
 
-from scipy.special import gammaln
+from scipy.special import gammaln, digamma
 from numpy.random import dirichlet, multinomial, gamma, poisson, binomial, beta
 from sympy.functions.combinatorial.numbers import stirling
 
@@ -41,6 +41,13 @@ def lognormalize(x):
 def categorical(params):
     return np.where(multinomial(1, params) == 1)[0]
 
+#A stick breakink process, truncated at K components.
+def gem(gmma, K):
+    sb = np.empty(K)
+    cut = beta(1, gmma, size=K)
+    for k in range(K):
+        sb[k] = cut[k] * cut[0:k].prod()
+    return sb
 
 # Broadcast class based on numpy matrix
 # Assume delta a scalar.
@@ -754,30 +761,45 @@ class GibbsRun(ModelBase):
         if not hasattr(self, '_alpha'):
             try:
                 self._delta = self.s.zsampler.likelihood.delta
-                self._alpha = self.s.zsampler.alpha_0
-                self._gmma = self.s.betasampler.gmma
+                if type(self.s) is NP_CGS:
+                    self._alpha = self.s.zsampler.alpha_0
+                    self._gmma = self.s.betasampler.gmma
+                else:
+                    self._alpha = self.s.zsampler.alpha
+                    self._gmma = None
             except:
-                lgg.debug('Need propagate hyperparameters to BaseModel class')
+                lgg.error('Need to propagate hyperparameters to BaseModel class')
                 self._delta = None
                 self._alpha = None
                 self._gmma =  None
         return self._alpha, self._gmma, self._delta
 
-    def generate(self, N, K=None, hyper=None, _type='predictive'):
+    def generate(self, N, K=None, hyper=None, _type='predictive', directed=True):
         self.update_hyper(hyper)
         alpha, gmma, delta = self.get_hyper()
         N = int(N)
-        if _type == 'evidence':
-            K = int(K)
-            #alpha = np.ones(K) * alpha
-            alpha = np.ones(K) * 1/(K*10)
-            ##alpha = np.asarray([1.0 / (i + np.sqrt(K)) for i in xrange(K)])
-            #alpha /= alpha.sum()
+        if _type == 'evidence' :
+            if type(self.s) is NP_CGS:
+                # @todo: compute the variance for random simulation
+                # Number of table in the CRF
+                if directed is True:
+                    m = alpha * N * (digamma(N+alpha) - digamma(alpha))
+                else:
+                    m = alpha * N * (digamma(2*N+alpha) - digamma(alpha))
+
+                # Number of class in the CRF
+                K = int(gmma * (digamma(m+gmma) - digamma(gmma)))
+                alpha = gem(gmma, K)
+            else:
+                K = int(K)
+                alpha = np.ones(K) * alpha
+                ##alpha = np.asarray([1.0 / (i + np.sqrt(K)) for i in xrange(K)])
+                #alpha /= alpha.sum()
             #delta = self.s.zsampler.likelihood.delta
-            delta = delta
             theta = dirichlet(alpha, size=N)
             phi = beta(delta[0], delta[1], size=(K,K))
             #phi = np.triu(phi) + np.triu(phi, 1).T
+
         elif _type == 'predictive':
             theta, phi = self.reduce_latent()
             K = theta.shape[1]
@@ -787,6 +809,7 @@ class GibbsRun(ModelBase):
         #pij[pij >= 0.5 ] = 1
         #pij[pij < 0.5 ] = 0
         #Y = pij
+        pij = sp.stats.threshold(pij, threshmax=1, newval=1)
         Y = sp.stats.bernoulli.rvs(pij)
 
         #for j in xrange(N):

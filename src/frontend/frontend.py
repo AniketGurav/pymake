@@ -326,7 +326,7 @@ class ModelManager(object):
         alpha = self.hyperparams.get('alpha',1)
         gmma = self.hyperparams.get('gmma',1)
         hyper = self.config['hyper']
-        hyper_prior = self.config.get('hyper_prior')
+        hyper_prior = self.config.get('hyper_prior') # HDP hyper optimization
 
         symmetric = self.config.get('symmetric',False)
         assortativity = self.config.get('homo')
@@ -447,7 +447,7 @@ class ModelManager(object):
             print('No predict method for self._name_ ?')
             return
 
-        if not (hasattr(self, 'data_t') and hasattr(self.data_t, 'len')) :
+        if self.data_t == None and not hasattr(self.data, 'mask') :
             print('No testing data for prediction ?')
             return
 
