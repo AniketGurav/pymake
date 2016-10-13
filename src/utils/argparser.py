@@ -1,7 +1,7 @@
 import inspect
 from functools import wraps
 import args as clargs
-from util.frontend_io import *
+from frontend.frontend_io import *
 from expe.spec import _spec_
 
 #########
@@ -136,6 +136,10 @@ class argparser(object):
         # K setting
         if '-k' in clargs.grouped:
             conf['K'] = clargs.grouped['-k'].get(0)
+        if '-g' in clargs.grouped:
+            conf['generative'] = 'evidence'
+        if '-e' in clargs.grouped:
+            conf['generative'] = 'predictive'
         return conf
 
 

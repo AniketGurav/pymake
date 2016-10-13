@@ -5,8 +5,8 @@ from string import Template
 from numpy import ma
 import networkx as nx
 
-from util.frontend import DataBase
-from local_utils import *
+from .frontend import DataBase
+from utils.utils import *
 
 sys.path.insert(1, '../../gensim')
 import gensim

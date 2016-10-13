@@ -2,9 +2,8 @@ import sys, os
 from itertools import chain
 from string import Template
 
-from util.frontend import DataBase
-from local_utils import *
-from vocabulary import Vocabulary, parse_corpus
+from .frontend import DataBase
+from utils.vocabulary import Vocabulary, parse_corpus
 
 sys.path.insert(1, os.path.join(os.path.dirname(__file__),'../../../gensim'))
 import gensim
@@ -180,7 +179,7 @@ class frontendText(DataBase):
             # ? file type
             # Create
             command = './gensim/gensim/scripts/make_wikicorpus_ml.py '
-            command += '/work/adulac/data/wikipedia/enwiki-latest-pages-articles.xml.bz2 ../PyNPB/data/wikipedia/wiki_en'
+            command += '/work/adulac/data/wikipedia/enwiki-latest-pages-articles.xml.bz2 ../pymake/data/wikipedia/wiki_en'
             os.system(command)
             # Load
             error = 'Load Wikipedia corpus'

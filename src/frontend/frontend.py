@@ -7,8 +7,6 @@ import logging
 lgg = logging.getLogger('root')
 
 from .frontend_io import *
-from local_utils import *
-from vocabulary import Vocabulary, parse_corpus
 
 ### @Debug :
 #   * update config path !
@@ -177,8 +175,8 @@ class DataBase(object):
         data = np.triu(data) + np.triu(data, 1).T
 
 
-from util.frontendtext import frontendText
-from util.frontendnetwork import frontendNetwork
+from .frontendtext import frontendText
+from .frontendnetwork import frontendNetwork
 class FrontendManager(object):
     """ Utility Class who aims at mananing the frontend at the higher level.
     """
@@ -328,7 +326,7 @@ class ModelManager(object):
         alpha = self.hyperparams.get('alpha',1)
         gmma = self.hyperparams.get('gmma',1)
         hyper = self.config['hyper']
-        hyper_prior = self.config.get('hyper_prior')
+        hyper_prior = self.config.get('hyper_prior') # HDP hyper optimization
 
         symmetric = self.config.get('symmetric',False)
         assortativity = self.config.get('homo')
@@ -447,6 +445,10 @@ class ModelManager(object):
     def predict(self, frontend):
         if not hasattr(self.model, 'predict'):
             print('No predict method for self._name_ ?')
+            return
+
+        if self.data_t == None and not hasattr(self.data, 'mask') :
+            print('No testing data for prediction ?')
             return
 
         ### Prediction Measures
