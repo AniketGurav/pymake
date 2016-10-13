@@ -3,8 +3,8 @@
 
 from random import choice
 from utils.utils import *
-from vocabulary import Vocabulary, parse_corpus
-from utils.frontend import ModelManager, FrontendManager
+from utils.vocabulary import Vocabulary, parse_corpus
+from frontend.frontend import ModelManager, FrontendManager
 
 import numpy as np
 import scipy as sp
