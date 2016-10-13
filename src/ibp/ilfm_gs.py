@@ -12,8 +12,7 @@ from scipy.sparse import lil_matrix
 sp_dot = csr_matrix.dot
 
 from .ibp import IBP
-from local_utils import *
-from util.frontend import DataBase, ModelBase
+from frontend.frontend import DataBase, ModelBase
 
 # We will be taking log(0) = -Inf, so turn off this warning
 #np.seterr(divide='ignore')

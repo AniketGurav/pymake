@@ -2,7 +2,7 @@
 
 USER='adulac'
 HOST='racer'
-REMOTE_LOC='/home/ama/adulac/workInProgress/networkofgraphs/process/PyNPB/data/'
+REMOTE_LOC='/home/ama/adulac/workInProgress/networkofgraphs/process/pymake/data/'
 LOCAL_LOC='../data/'
 
 SPEC='EXPE_ICDM'

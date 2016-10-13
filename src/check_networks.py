@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from util.frontend import ModelManager, FrontendManager
-from util.frontendnetwork import frontendNetwork
-from local_utils import *
+from frontend.frontend import ModelManager
+from frontend.frontendnetwork import frontendNetwork
+from utils.utils import *
 from plot import *
 from expe.spec import _spec_
 from expe.format import corpus_icdm
-from util.argparser import argparser
+from utils.argparser import argparser
 
 
 ### Config

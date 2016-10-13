@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from local_utils import *
-from vocabulary import Vocabulary, parse_corpus
-from util.frontend import ModelManager, FrontendManager
-from util.frontendtext import frontendText
+from utils.utils import argParse
+from frontend.frontendtext import frontendText
 
 import numpy as np
 import scipy as sp

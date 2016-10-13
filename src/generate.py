@@ -1,14 +1,14 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
-from util.frontend import ModelManager, FrontendManager
-from util.frontendnetwork import frontendNetwork
-from local_utils import *
+from frontend.frontend import ModelManager, FrontendManager
+from frontend.frontendnetwork import frontendNetwork
+from utils.utils import *
 from plot import *
-from util.frontend_io import *
+from frontend.frontend_io import *
 from expe.spec import _spec_
 from expe.format import generate_icdm, generate_icdm_debug
-from util.argparser import argparser
+from utils.argparser import argparser
 
 USAGE = '''\
 # Usage:
@@ -22,11 +22,18 @@ USAGE = '''\
 ### Config
 config = defaultdict(lambda: False, dict(
     write_to_file = False,
-    generative    = 'predictive',
+    generative    = 'evidence',
+    #generative    = 'predictive',
     gen_size      = 1000,
-    epoch         = 200 #200
+    epoch         = 10 , #200
 ))
 config.update(argparser.generate(USAGE))
+
+alpha = 1
+gmma = 10
+delta = 0.1
+keys_hyper = ('alpha','gmma','delta')
+hyper = (alpha, gmma, delta)
 
 # Corpuses
 Corpuses = _spec_.CORPUS_REAL_ICDM_1
@@ -34,13 +41,17 @@ Corpuses = _spec_.CORPUS_SYN_ICDM_1
 ### Models
 Models = _spec_.MODELS_GENERATE
 
-## Hook
-#if config.get('arg'):
-#    try:
-#        Models =  [get_conf_from_file(config['arg'])]
-#    except:
-#        Models = [None]
-#        pass
+Corpuses = ('generator7',)
+Models = [dict ((
+    ('data_type'    , 'networks'),
+    ('debug'        , 'debug11') , # ign in gen
+    ('model'        , 'mmsb_cgs')   ,
+    ('K'            , 10)        ,
+    ('N'            , 'all')     , # ign in gen
+    ('hyper'        , 'auto')    , # ign in ge
+    ('homo'         , 0)         , # ign in ge
+    #('repeat'      , '*')       ,
+))]
 
 for m in Models:
     m['debug'] = 'debug11'
@@ -50,11 +61,6 @@ if config.get('K'):
     for m in Models:
         m['K'] = config['K']
 
-alpha = .01
-gmma = 0.5
-delta = 10
-keys_hyper = ('alpha','gmma','delta')
-hyper = (alpha, gmma, delta)
 for corpus_name in Corpuses:
     frontend = frontendNetwork(config)
     data = frontend.load_data(corpus_name)
@@ -75,7 +81,7 @@ for corpus_name in Corpuses:
                 keys_hyper = ('alpha','gmma','delta')
                 hyper = (alpha, delta)
             Model['hyperparams'] = dict(zip(keys_hyper, hyper))
-            Model['hyper'] = 'fix'
+            Model['hyper'] = 'fix' # dummy
             model = ModelManager(config=config).load(Model, init=True)
             #model.update_hyper(hyper)
         else:
@@ -101,20 +107,26 @@ for corpus_name in Corpuses:
 
         ###############################################################
         ### Expe Wrap up debug
-        print('corpus: %s, model: %s, K = %s, N =  %s'.replace(',','\n') % (frontend.corpus_name, Model['model'], K, N) )
+        model_name = Model['model']
+        model_hyper = Model['hyperparams']
+        print('corpus: %s, model: %s, K = %s, N =  %s, hyper: %s'.replace(',','\n') % (corpus_name, model_name, K, N, str(model_hyper)) )
 
         #################################################
         ### Plot Degree
         if config.get('write_to_file'):
             #generate_icdm(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'])
-            generate_icdm_debug(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'], K=K)
+            generate_icdm_debug(data=data, Y=Y, corpus_name=corpus_name, model_name=model_name, K=K)
             continue
 
         plt.figure()
         #plot_degree_(y, title='Overall Degree')
-        plot_degree_2_l(Y)
-        plot_degree_2(data, scatter=False)
-        plt.title('%s on %s'% (Model['model'], corpus_name))
+        if config['generative'] == 'predictive':
+            plot_degree_2_l(Y)
+            plot_degree_2(data, scatter=False)
+            plt.title('%s on %s'% (Model['model'], corpus_name))
+        elif config['generative'] == 'evidence':
+            plot_degree_2_l_e(Y)
+            plt.title('%s, N=%s, K=%s alpha=%s, gamma=%s lambda:%s'% (model_name, N, K, alpha, gmma, delta))
 
         display(False)
 

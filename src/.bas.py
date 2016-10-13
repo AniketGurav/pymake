@@ -3,8 +3,8 @@
 import numpy as np
 import scipy as sp
 import  random, datetime
-from util.plot import *
-from util.utils import *
+from utils.plot import *
+from utils.utils import *
 import matplotlib.pyplot as plt
 
 N = 100

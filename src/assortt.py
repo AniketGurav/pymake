@@ -1,9 +1,8 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
-from local_utils import *
-from vocabulary import Vocabulary, parse_corpus
-from util.frontend import ModelManager, FrontendManager
+from utils.utils import argParse
+from frontend.frontend import ModelManager, FrontendManager
 
 from numpy import ma
 import numpy as np

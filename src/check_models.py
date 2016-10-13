@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from util.frontend import ModelManager, FrontendManager
-from util.frontendnetwork import frontendNetwork
-from util.frontend_io import *
+from frontend.frontend import ModelManager, FrontendManager
+from frontend.frontendnetwork import frontendNetwork
+from frontend.frontend_io import *
 from expe.spec import _spec_
-from util.argparser import argparser
+from utils.argparser import argparser
 
 USAGE = '''\
 # Usage:

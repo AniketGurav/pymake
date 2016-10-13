@@ -2,12 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from random import choice
-from local_utils import *
-from vocabulary import Vocabulary, parse_corpus
-from util.frontend import ModelManager, FrontendManager
-from util.frontendnetwork import frontendNetwork
+from utils.utils import *
 from plot import *
-from util.frontend_io import *
 
 import numpy as np
 import scipy as sp

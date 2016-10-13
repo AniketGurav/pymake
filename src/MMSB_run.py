@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import networkx as nx
-from util.utils import *
+from utils.utils import *
 
 #---------------------------- Run Time Params --------------------------------#
 

@@ -85,7 +85,7 @@ class _spec_(object):
 
     MODELS_GENERATE_IBP = [dict ((
         ('data_type'    , 'networks'),
-        ('debug'        , 'debug10') ,
+        ('debug'        , 'debug11') ,
         ('model'        , 'ibp')   ,
         ('K'            , 10)        ,
         ('N'            , 'all')     ,
@@ -95,7 +95,7 @@ class _spec_(object):
     ))]
     MODELS_GENERATE_IMMSB = [dict ((
         ('data_type'    , 'networks'),
-        ('debug'        , 'debug10') ,
+        ('debug'        , 'debug11') ,
         ('model'        , 'immsb')   ,
         ('K'            , 10)        ,
         ('N'            , 'all')     ,

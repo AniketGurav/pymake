@@ -11,7 +11,7 @@ import os
 from multiprocessing import Process
 from itertools import cycle
 
-from local_utils import *
+from utils.utils import *
 
 def display(block=False):
     #p = Process(target=_display)
@@ -90,7 +90,7 @@ def plot_degree_(y, title=None):
     if title:
         plt.title(title)
 
-def plot_degree_3(y):
+def plot_degree_3(y, title=None):
     if len(y) > 6000:
         return
     if (y == y.T).all():
@@ -223,6 +223,65 @@ def plot_degree_2_l(Y, ax=None):
 
     #plt.xlim((1,1e4))
     plt.ylim((.9,1e3))
+    plt.xlabel('Degree')
+    #plt.ylabel('Counts of degree')
+    #plt.show()
+
+def plot_degree_2_l_e(Y, ax=None):
+    _X = []
+    _Y = []
+    N = Y[0].shape[0]
+    size = []
+    for y in Y:
+        # To convert normalized degrees to raw degrees
+        #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
+        if (y == y.T).all():
+            # Undirected Graph
+            typeG = nx.Graph()
+        else:
+            # Directed Graph
+            typeG = nx.DiGraph()
+        G = nx.from_numpy_matrix(y, typeG)
+        #degree = sorted(nx.degree(G).values(), reverse=True)
+
+        #ba_c = nx.degree_centrality(G)
+        ba_c = nx.degree(G)
+        ba_c2 = dict(Counter(ba_c.values()))
+
+        #ba_x,ba_y = log_binning(ba_c2,50)
+        _X.append(ba_c2.keys())
+        _Y.append(ba_c2.values())
+        # Remove degree 0
+        if _X[-1][0] == 0:
+            _X[-1] = _X[-1][1:]
+            _Y[-1] = _Y[-1][1:]
+        size.append(len(_Y[-1]))
+
+    min_d = min(size)
+    for i, v in enumerate(_Y):
+        if len(v) > min_d:
+            _X[i] = _X[i][:min_d]
+            _Y[i] = _Y[i][:min_d]
+
+    X = np.array(_X)
+    Y = np.array(_Y)
+    x = X.mean(0)
+    y = Y.mean(0)
+    yerr = Y.std(0)
+
+    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
+    #plt.xscale('log')
+    #plt.yscale('log')
+
+    #fit = np.polyfit(np.log(x), np.log(y), deg=1)
+    #plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'm:', label='model power %.2f' % fit[1])
+    #leg = plt.legend(loc=1,prop={'size':10})
+
+    plt.errorbar(x, y, yerr=yerr, fmt='o')
+    #plt.scatter(_X, _Y, marker='o')
+
+    #plt.xlim((1,1e4))
+    #plt.ylim((.9,1e3))
     plt.xlabel('Degree')
     #plt.ylabel('Counts of degree')
     #plt.show()
