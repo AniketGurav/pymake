@@ -11,11 +11,12 @@ import sympy as sym
 #import sppy
 
 from scipy.special import gammaln
-from numpy.random import dirichlet, multinomial, gamma, poisson, binomial, beta
+from numpy.random import dirichlet, gamma, poisson, binomial, beta
 from sympy.functions.combinatorial.numbers import stirling
 
 from frontend.frontend import DataBase, ModelBase
 
+from utils.math import *
 from utils.compute_stirling import load_stirling
 _stirling_mat = load_stirling()
 
@@ -34,16 +35,9 @@ Network implementation (2*N restaurant, symmetric, p(k,l|.) = p(k)p(l) etc)
 
 """
 
-def lognormalize(x):
-    a = np.logaddexp.reduce(x)
-    return np.exp(x - a)
-
-def categorical(params):
-    return np.where(multinomial(1, params) == 1)[0]
-
 # Broadcast class based on numpy matrix
 # Assume delta a scalar.
-class DirMultLikelihood(object):
+class Likelihood(object):
 
     def __init__(self, delta, data, **config):
         if type(data) is np.ndarray:

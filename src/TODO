@@ -7,6 +7,10 @@
 #
 # @Debug: clique and an random generator tree path. Working ?
 #
+# @Todo: frontend: use for bas class for random network:
+#   * integration of measure on degree, goodness of fit etc
+#   * deal with the fact taht there no loading scheme here...
+#
 #
 
 ### Propriété:
@@ -36,7 +40,7 @@
     * MMSB ! (infinite - dynamic...)
     * IBP
 
-## Mesure attachement préférentiel:
+## Mesure attachement prefarential:
     * proba que tout les lien à 0 soit liée ?
     -- comparé à aux leader (ceux qui ont un haut degré)
 

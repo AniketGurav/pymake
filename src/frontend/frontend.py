@@ -37,8 +37,10 @@ class DataBase(object):
 
     def __init__(self, config):
         if config.get('seed'):
-            np.random.seed(config.get('seed'))
+            #np.random.seed(config.get('seed'))
+            np.random.set_state(self.load('.seed'))
         self.seed = np.random.get_state()
+        self.save(self.seed, '.seed')
         self.config = config
         config['data_type'] = self.bdir
 
@@ -237,7 +239,6 @@ class ModelBase(object):
             self.write_some(None)
         self._f.close()
 
-
     def similarity_matrix(self, theta=None, phi=None, sim='cos'):
         if theta is None:
             theta = self.theta
@@ -338,10 +339,10 @@ class ModelManager(object):
             kernel = lda
 
         if likelihood is None:
-            likelihood = kernel.DirMultLikelihood(delta,
-                                                  self.data,
-                                                  symmetric=symmetric,
-                                                  assortativity=assortativity)
+            likelihood = kernel.Likelihood(delta,
+                                           self.data,
+                                           symmetric=symmetric,
+                                           assortativity=assortativity)
 
         if target.split('_')[-1] == 'cgs':
             # Parametric case

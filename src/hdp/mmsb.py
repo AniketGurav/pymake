@@ -12,11 +12,12 @@ import sympy as sym
 #import sppy
 
 from scipy.special import gammaln, digamma
-from numpy.random import dirichlet, multinomial, gamma, poisson, binomial, beta
+from numpy.random import dirichlet, gamma, poisson, binomial, beta
 from sympy.functions.combinatorial.numbers import stirling
 
 from frontend.frontend import DataBase, ModelBase
 
+from utils.math import *
 from utils.compute_stirling import load_stirling
 _stirling_mat = load_stirling()
 
@@ -34,24 +35,9 @@ _stirling_mat = load_stirling()
 
 """
 
-def lognormalize(x):
-    a = np.logaddexp.reduce(x)
-    return np.exp(x - a)
-
-def categorical(params):
-    return np.where(multinomial(1, params) == 1)[0]
-
-#A stick breakink process, truncated at K components.
-def gem(gmma, K):
-    sb = np.empty(K)
-    cut = beta(1, gmma, size=K)
-    for k in range(K):
-        sb[k] = cut[k] * cut[0:k].prod()
-    return sb
-
 # Broadcast class based on numpy matrix
 # Assume delta a scalar.
-class DirMultLikelihood(object):
+class Likelihood(object):
 
     def __init__(self, delta, data, nodes_list=None, symmetric=False, assortativity=False):
 
@@ -76,7 +62,7 @@ class DirMultLikelihood(object):
 
         # Cst for CGS of DM and scala delta as prior.
         self.assortativity = assortativity
-        self.delta = delta if isinstance(delta, np.ndarray) else np.asarray([delta] * self.nfeat)
+        self.delta = np.asarray(delta) if isinstance(delta, (np.ndarray, list, tuple)) else np.asarray([delta] * self.nfeat)
         self.w_delta = self.delta.sum()
         if assortativity == 1:
             raise NotImplementedError('assort 2')
@@ -798,17 +784,18 @@ class GibbsRun(ModelBase):
             #delta = self.s.zsampler.likelihood.delta
             theta = dirichlet(alpha, size=N)
             phi = beta(delta[0], delta[1], size=(K,K))
-            #phi = np.triu(phi) + np.triu(phi, 1).T
+            if directed is True:
+                phi = np.triu(phi) + np.triu(phi, 1).T
 
         elif _type == 'predictive':
             theta, phi = self.reduce_latent()
             K = theta.shape[1]
 
         Y = np.empty((N,N))
-        pij = self.link_expectation(theta, phi)
         #pij[pij >= 0.5 ] = 1
         #pij[pij < 0.5 ] = 0
         #Y = pij
+        pij = self.link_expectation(theta, phi)
         pij = sp.stats.threshold(pij, threshmax=1, newval=1)
         Y = sp.stats.bernoulli.rvs(pij)
 
@@ -928,15 +915,37 @@ class GibbsRun(ModelBase):
         community_distribution = list(np.bincount(clusters))
 
         local_attach = {}
-        for n, _comm in enumerate(clusters):
-            comm = str(_comm)
+        for n, c in enumerate(clusters):
+            comm = str(c)
             local = local_attach.get(comm, [])
-            degree_n = data[n, :].sum()
-            if symmetric:
-                degree_n += data[:, n].sum()
+            degree_n = data[n,:][clusters == c].sum()
+            if not symmetric:
+                degree_n += data[:, n][clusters == c].sum()
             local.append(degree_n)
             local_attach[comm] = local
 
         return community_distribution, local_attach, clusters
+
+    def max_clusters_assignement(self, y):
+        theta, phi = self.get_params()
+        deg_l = defaultdict(list)
+        for y in Y:
+            comm_distrib, local_degree, clusters = model.communities_analysis(theta, data=y)
+            deg_l = {key: value + deg_l[key] for key, value in local_degree.iteritems()}
+        print 'active cluster (max assignement): %d' % len(clusters)
+        plt.figure()
+        #plt.loglog( sorted(comm_distrib, reverse=True))
+        for c in local_degree.values():
+            x, y = degree_hist(c)
+            plt.xscale('log')
+            plt.yscale('log')
+            plt.scatter(x,y,c=next(_colors), marker=next(_markers))
+            plt.title('Local Prefrential attachment')
+        plt.figure()
+        #plt.loglog( sorted(comm_distrib, reverse=True))
+        for c in local_degree.values():
+            x, y = degree_hist(c)
+            plt.scatter(x,y,c=next(_colors), marker=next(_markers))
+            plt.title('Local Prefrential attachment')
 
 

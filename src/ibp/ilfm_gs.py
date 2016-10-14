@@ -587,12 +587,12 @@ class IBPGibbsSampling(IBP, ModelBase):
         community_distribution = list(np.bincount(clusters))
 
         local_attach = {}
-        for n, _comm in enumerate(clusters):
-            comm = str(_comm)
+        for n, c in enumerate(clusters):
+            comm = str(c)
             local = local_attach.get(comm, [])
-            degree_n = data[n, :].sum()
-            if symmetric:
-                degree_n += data[:, n].sum()
+            degree_n = data[n,:][clusters == c].sum()
+            if not symmetric:
+                degree_n += data[:, n][clusters == c].sum()
             local.append(degree_n)
             local_attach[comm] = local
 

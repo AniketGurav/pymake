@@ -133,6 +133,9 @@ def setup_logger(name, fmt, verbose, file=None):
     logger.addHandler(handler)
     return logger
 
+
+def now():
+    return  datetime.now()
 def ellapsed_time(text, since):
     current = datetime.now()
     delta = current - since
@@ -353,4 +356,7 @@ def make_path(bdir):
         pass # do i need it
     return bdir
 
+
+def drop_zeros(a_list):
+    return [i for i in a_list if i>0]
 

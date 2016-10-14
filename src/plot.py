@@ -5,13 +5,16 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
+from utils.utils import *
+from utils.math import *
 
 import re
 import os
 from multiprocessing import Process
 from itertools import cycle
 
-from utils.utils import *
+_markers = cycle([ '+', '*', '|','x', 'o', '.', '1', 'p', '<', '>', 's' ])
+_colors = cycle(['r', 'g','b','y','c','m','k'])
 
 def display(block=False):
     #p = Process(target=_display)
@@ -107,9 +110,6 @@ def plot_degree_3(y, title=None):
     if title:
         plt.title(title)
 
-def drop_zeros(a_list):
-    return [i for i in a_list if i>0]
-
 def log_binning(counter_dict,bin_count=35):
     max_x = np.log10(max(counter_dict.keys()))
     max_y = np.log10(max(counter_dict.values()))
@@ -127,7 +127,55 @@ def log_binning(counter_dict,bin_count=35):
     return bin_means_x,bin_means_y
 
 from collections import Counter
-def plot_degree_2(y, ax=None, scatter=True):
+
+def degree_hist_to_list(d, dc):
+    degree = []
+    for i, deg in enumerate(d):
+        degree += [np.round(i)] * np.round(dc[i])
+    return degree
+
+
+# Ref: Clauset, Aaron, Cosma Rohilla Shalizi, and Mark EJ Newman. "Power-law distributions in empirical data."
+def gofit(_d, x, y, model='powerlaw'):
+    # d: the empirical samples
+    # (x,y): the empirical distribution
+    d = np.asarray(_d.values()) if type(_d) is dict else np.asarray(_d)
+
+    y = y.astype(float)
+    #### Power law Goodness of fit
+    # Estimate x_min
+    x_min = x[y.argmax()]
+
+    # Estimate \alpha
+    N = len(d)
+    n_tail = float((d>x_min).sum())
+    alpha = 1 + n_tail * (np.log(d[d>x_min] / (x_min -0.5)).sum())**-1
+
+    # Number of synthetic datasets to generate
+    precision = 0.05
+    S = int(0.25 * (precision)**-2)
+    pvalue = []
+    ks_d = p.stats.kstest(d, lambda x: sp.special.zeta(alpha, x) / sp.special.zeta(alpha, x_min) )
+    for s in range(S):
+        ### p-value with Kolmogorov-Smirnov, for each synthetic dataset
+        # Each synthetic dataset has following size:
+        powerlow_samples_size = np.random.binomial(N, n_tail/N)
+        # plus random sample from before the cut
+        out_empirical_samples_size = N - powerlow_samples_size
+
+        out_samples = np.random.choice((d[d<=x_min]), size=out_empirical_samples_size)
+        powerlaw_samples = random_powerlaw(alpha, x_min, powerlow_samples_size)
+        sync_samples = np.hstack((out_samples, powerlaw_samples))
+        ks_2 = sp.stats.ks_2samp(sync_samples, d)
+        ks_s = sp.stats.kstest(sync_samples, lambda x: sp.special.zeta(alpha, x) / sp.special.zeta(alpha, x_min))
+        pvalue.append(ks_s > ks_d)
+
+    print pvalue
+    pvalue = float(sum(pvalue) / len(pvalue))
+    estim = {'alpha': alpha, 'x_min':x_min, 'cutoff': 1-n_tail/N, 'pvalue':pvalue}
+    return pvalue
+
+def adj_to_degree(y):
     # To convert normalized degrees to raw degrees
     #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
     if (y == y.T).all():
@@ -140,28 +188,38 @@ def plot_degree_2(y, ax=None, scatter=True):
     #degree = sorted(nx.degree(G).values(), reverse=True)
 
     #ba_c = nx.degree_centrality(G)
-    ba_c = nx.degree(G)
-    ba_c2 = dict(Counter(ba_c.values()))
+    return  nx.degree(G)
 
-    #ba_x,ba_y = log_binning(ba_c2,50)
-    x = np.array(ba_c2.keys())
-    y = np.array(ba_c2.values())
+def degree_hist(_degree):
+    degree = _degree.values() if type(_degree) is dict else _degree
+    bac = dict(Counter(degree))
 
-    if x[0] == 0:
-        print '%d unconnected vertex' % y[0]
-        x = x[1:]
-        y = y[1:]
+    #ba_x,ba_y = log_binning(bac,50)
+    d = np.array(bac.keys())  # Degrees
+    dc = np.array(bac.values()) # Degree counts
 
-    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
+    if d[0] == 0:
+        print '%d unconnected vertex' % dc[0]
+        d = d[1:]
+        dc = dc[1:]
+    return d, dc
+
+def plot_degree_2(y, ax=None, scatter=True):
+    # To convert normalized degrees to raw degrees
+    #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
+    ba_c = adj_to_degree(y)
+    d, dc = degree_hist(ba_c)
+
     plt.xscale('log')
     plt.yscale('log')
 
-    fit = np.polyfit(np.log(x), np.log(y), deg=1)
-    plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'g--', label='power %.2f' % fit[1])
+    fit = np.polyfit(np.log(d), np.log(dc), deg=1)
+    plt.plot(d,np.exp(fit[0] *np.log(d) + fit[1]), 'g--', label='power %.2f' % fit[1])
     leg = plt.legend(loc=1,prop={'size':10})
 
     if scatter:
-        plt.scatter(x,y,c='b',marker='o')
+        plt.scatter(d,dc,c='b',marker='o')
+        #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
 
     plt.xlim(left=1)
     plt.ylim((.9,1e3))
@@ -169,33 +227,17 @@ def plot_degree_2(y, ax=None, scatter=True):
     #plt.ylabel('Counts of degree')
     #plt.show()
 
-def plot_degree_2_l(Y, ax=None):
+def random_degree(Y, params=None):
     _X = []
     _Y = []
+    N = Y[0].shape[0]
     size = []
     for y in Y:
-        # To convert normalized degrees to raw degrees
-        #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
-        if (y == y.T).all():
-            # Undirected Graph
-            typeG = nx.Graph()
-        else:
-            # Directed Graph
-            typeG = nx.DiGraph()
-        G = nx.from_numpy_matrix(y, typeG)
-        #degree = sorted(nx.degree(G).values(), reverse=True)
+        ba_c = adj_to_degree(y)
+        d, dc = degree_hist(ba_c)
 
-        #ba_c = nx.degree_centrality(G)
-        ba_c = nx.degree(G)
-        ba_c2 = dict(Counter(ba_c.values()))
-
-        #ba_x,ba_y = log_binning(ba_c2,50)
-        _X.append(ba_c2.keys())
-        _Y.append(ba_c2.values())
-        # Remove degree 0
-        if _X[-1][0] == 0:
-            _X[-1] = _X[-1][1:]
-            _Y[-1] = _Y[-1][1:]
+        _X.append(d)
+        _Y.append(dc)
         size.append(len(_Y[-1]))
 
     min_d = min(size)
@@ -209,8 +251,11 @@ def plot_degree_2_l(Y, ax=None):
     x = X.mean(0)
     y = Y.mean(0)
     yerr = Y.std(0)
+    return x, y, yerr
 
-    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
+def plot_degree_2_l(Y, ax=None):
+    x, y, yerr = random_degree(Y)
+
     plt.xscale('log')
     plt.yscale('log')
 
@@ -219,7 +264,6 @@ def plot_degree_2_l(Y, ax=None):
     leg = plt.legend(loc=1,prop={'size':10})
 
     plt.errorbar(x, y, yerr=yerr, fmt='o')
-    #plt.scatter(_X, _Y, marker='o')
 
     #plt.xlim((1,1e4))
     plt.ylim((.9,1e3))
@@ -227,60 +271,18 @@ def plot_degree_2_l(Y, ax=None):
     #plt.ylabel('Counts of degree')
     #plt.show()
 
-def plot_degree_2_l_e(Y, ax=None):
-    _X = []
-    _Y = []
-    N = Y[0].shape[0]
-    size = []
-    for y in Y:
-        # To convert normalized degrees to raw degrees
-        #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
-        if (y == y.T).all():
-            # Undirected Graph
-            typeG = nx.Graph()
-        else:
-            # Directed Graph
-            typeG = nx.DiGraph()
-        G = nx.from_numpy_matrix(y, typeG)
-        #degree = sorted(nx.degree(G).values(), reverse=True)
+def plot_degree_2_l_e(P, ax=None, logscale=False, colors=False):
+    x, y, yerr = P
 
-        #ba_c = nx.degree_centrality(G)
-        ba_c = nx.degree(G)
-        ba_c2 = dict(Counter(ba_c.values()))
+    if logscale:
+        plt.xscale('log')
+        plt.yscale('log')
 
-        #ba_x,ba_y = log_binning(ba_c2,50)
-        _X.append(ba_c2.keys())
-        _Y.append(ba_c2.values())
-        # Remove degree 0
-        if _X[-1][0] == 0:
-            _X[-1] = _X[-1][1:]
-            _Y[-1] = _Y[-1][1:]
-        size.append(len(_Y[-1]))
+    c = next(_colors) if colors else 'b'
+    plt.errorbar(x, y, yerr=yerr, fmt='o', c=c)
 
-    min_d = min(size)
-    for i, v in enumerate(_Y):
-        if len(v) > min_d:
-            _X[i] = _X[i][:min_d]
-            _Y[i] = _Y[i][:min_d]
-
-    X = np.array(_X)
-    Y = np.array(_Y)
-    x = X.mean(0)
-    y = Y.mean(0)
-    yerr = Y.std(0)
-
-    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
-    #plt.xscale('log')
-    #plt.yscale('log')
-
-    #fit = np.polyfit(np.log(x), np.log(y), deg=1)
-    #plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'm:', label='model power %.2f' % fit[1])
-    #leg = plt.legend(loc=1,prop={'size':10})
-
-    plt.errorbar(x, y, yerr=yerr, fmt='o')
-    #plt.scatter(_X, _Y, marker='o')
-
-    #plt.xlim((1,1e4))
+    min_d, max_d = min(x), max(x)
+    plt.xlim((min_d, max_d+10))
     #plt.ylim((.9,1e3))
     plt.xlabel('Degree')
     #plt.ylabel('Counts of degree')
@@ -383,7 +385,6 @@ def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twi
     fig = None
     _Ks = None
     is_nonparam = False
-    markers = cycle([ '+', '*', '|','x', 'o', '.', '1', 'p', '<', '>', 's' ])
     #if separate is False:
     #    fig = plt.figure()
     #    ax1 = fig.add_subplot(111)
@@ -457,7 +458,7 @@ def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twi
                 is_nonparam = True
                 label += ' K -> %d' % (float(Ks[-1]))
 
-            ax1.plot(ll_y, marker=next(markers), label=label)
+            ax1.plot(ll_y, marker=next(_markers), label=label)
             leg = ax1.legend(loc=1,prop={'size':10})
 
             if not twin:
