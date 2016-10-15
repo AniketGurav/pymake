@@ -3,6 +3,8 @@
 
 import json
 import numpy as np
+from scipy.stats import kstest, ks_2samp
+from scipy.special import zeta
 import matplotlib.pyplot as plt
 import networkx as nx
 from utils.utils import *
@@ -93,23 +95,6 @@ def plot_degree_(y, title=None):
     if title:
         plt.title(title)
 
-def plot_degree_3(y, title=None):
-    if len(y) > 6000:
-        return
-    if (y == y.T).all():
-        # Undirected Graph
-        typeG = nx.Graph()
-    else:
-        # Directed Graph
-        typeG = nx.DiGraph()
-    G = nx.from_numpy_matrix(y, typeG)
-    degree = sorted(nx.degree(G).values(), reverse=True)
-    degree, _ = np.histogram(degree ,bins=len(degree), density=True)
-    x = np.arange(1, y.shape[0] + 1)
-    plt.loglog(x, degree)
-    if title:
-        plt.title(title)
-
 def log_binning(counter_dict,bin_count=35):
     max_x = np.log10(max(counter_dict.keys()))
     max_y = np.log10(max(counter_dict.values()))
@@ -130,12 +115,13 @@ from collections import Counter
 
 def degree_hist_to_list(d, dc):
     degree = []
-    for i, deg in enumerate(d):
-        degree += [np.round(i)] * np.round(dc[i])
+    for i in range(len(d)):
+        degree += [np.round(d[i])] * np.round(dc[i])
     return degree
 
 
 # Ref: Clauset, Aaron, Cosma Rohilla Shalizi, and Mark EJ Newman. "Power-law distributions in empirical data."
+# @todo:cut-off
 def gofit(_d, x, y, model='powerlaw'):
     # d: the empirical samples
     # (x,y): the empirical distribution
@@ -150,12 +136,29 @@ def gofit(_d, x, y, model='powerlaw'):
     N = len(d)
     n_tail = float((d>x_min).sum())
     alpha = 1 + n_tail * (np.log(d[d>x_min] / (x_min -0.5)).sum())**-1
+    print 'x_min', x_min
+
+    ### Build The hypothesis
+    if model == 'powerlaw':
+        ### Discrete CDF (gives worse p-value)
+        cdf = lambda x: 1 - zeta(alpha, x) / zeta(alpha, x_min)
+        ### Continious CDF
+        #cdf = lambda x:1-(x/x_min)**(-alpha+1)
+    else:
+        lgg.error('Godfit: Hypothese Unknow %s' % model)
+        return
 
     # Number of synthetic datasets to generate
-    precision = 0.05
+    precision = 0.03
+    precision = 0.15
     S = int(0.25 * (precision)**-2)
     pvalue = []
-    ks_d = p.stats.kstest(d, lambda x: sp.special.zeta(alpha, x) / sp.special.zeta(alpha, x_min) )
+    ks_d = kstest(d, cdf)
+    print ks_d
+
+    # Ignore head data
+    #N = n_tail
+
     for s in range(S):
         ### p-value with Kolmogorov-Smirnov, for each synthetic dataset
         # Each synthetic dataset has following size:
@@ -163,17 +166,21 @@ def gofit(_d, x, y, model='powerlaw'):
         # plus random sample from before the cut
         out_empirical_samples_size = N - powerlow_samples_size
 
+        # Generate synthetic dataset
         out_samples = np.random.choice((d[d<=x_min]), size=out_empirical_samples_size)
         powerlaw_samples = random_powerlaw(alpha, x_min, powerlow_samples_size)
         sync_samples = np.hstack((out_samples, powerlaw_samples))
-        ks_2 = sp.stats.ks_2samp(sync_samples, d)
-        ks_s = sp.stats.kstest(sync_samples, lambda x: sp.special.zeta(alpha, x) / sp.special.zeta(alpha, x_min))
-        pvalue.append(ks_s > ks_d)
 
+        #ks_2 = ks_2samp(sync_samples, d)
+        ks_s = kstest(sync_samples, cdf)
+        print ks_s
+        pvalue.append(ks_s.statistic > ks_d.statistic)
+
+    pvalue = float(sum(pvalue)) / len(pvalue)
     print pvalue
-    pvalue = float(sum(pvalue) / len(pvalue))
-    estim = {'alpha': alpha, 'x_min':x_min, 'cutoff': 1-n_tail/N, 'pvalue':pvalue}
-    return pvalue
+    estim = {'alpha': alpha, 'x_min':x_min, 'n_tail': n_tail,'n_head': N-n_tail,  'pvalue':pvalue}
+    print estim.update({'sync':sync_samples.astype(int)})
+    return estim
 
 def adj_to_degree(y):
     # To convert normalized degrees to raw degrees
@@ -279,7 +286,12 @@ def plot_degree_2_l_e(P, ax=None, logscale=False, colors=False):
         plt.yscale('log')
 
     c = next(_colors) if colors else 'b'
-    plt.errorbar(x, y, yerr=yerr, fmt='o', c=c)
+    m = next(_markers) if colors else 'o'
+
+    if not yerr:
+        plt.scatter(x,y,c=c, marker=next(_markers))
+    else:
+        plt.errorbar(x, y, yerr=yerr, fmt=m, c=c)
 
     min_d, max_d = min(x), max(x)
     plt.xlim((min_d, max_d+10))

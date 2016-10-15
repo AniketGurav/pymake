@@ -16,10 +16,14 @@ import itertools
 
 USAGE = '''\
 # Usage:
-    generate [-w] [-k K]
+    generate [-w] [-k K] [-n N] [--[hypername]] [-g|-e]]
+
+-g: generative model
+-e: evidence model (model fitted)
 
 # Examples
     parallel ./generate.py -w -k {}  ::: $(echo 5 10 15 20)
+    ./generate.py --alpha 1 --gmma 1 -n 1000 --seed
 '''
 
 ####################################################
@@ -28,8 +32,8 @@ config = defaultdict(lambda: False, dict(
     write_to_file = False,
     generative    = 'evidence',
     #generative    = 'predictive',
-    gen_size      = 10,
-    epoch         = 10 , #200
+    gen_size      = 1000,
+    epoch         = 10 , #20
 ))
 config.update(argparser.generate(USAGE))
 
@@ -139,30 +143,37 @@ for corpus_name in Corpuses:
             raise NotImplementedError
         print('corpus: %s, model: %s, K = %s, N =  %s, hyper: %s'.replace(',','\n') % (corpus_name, model_name, K, N, str(model_hyper)) )
 
-        #################################################
-        ### Plot Degree
+        ### Visualization
         from plot import _markers, _colors
         if config.get('write_to_file'):
             #generate_icdm(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'])
             generate_icdm_debug(data=data, Y=Y, corpus_name=corpus_name, model_name=model_name, K=K)
             continue
 
-        #plot_degree_(y, title='Overall Degree')
+        ### aistat16
         if config['generative'] == 'predictive':
             plt.figure()
             plot_degree_2_l(Y)
             plot_degree_2(data, scatter=False)
             plt.title('%s on %s'% (Model['model'], corpus_name))
         elif config['generative'] == 'evidence':
+            ##############################
+            ### Global degree
+            ##############################
             d, dc, yerr = random_degree(Y)
-            print gofit(degree_hist_to_list(d, dc), d, dc)
+            god = gofit(degree_hist_to_list(d, dc), d, dc)
             plt.figure()
             plot_degree_2_l_e((d,dc,yerr))
             plt.title(title)
+            #plot_degree_2_l_e((d,dc,yerr), logscale=True)
             plt.figure()
-            plot_degree_2_l_e((d,dc,yerr), logscale=True)
+            plt.xscale('log'); plt.yscale('log')
+            plt.scatter(d, dc )
             plt.title(title)
 
+            if False:
+                ### Just the gloabl degree.
+                continue
             print 'Computing Local Preferential attachment'
             ### Z assignement method
             Z = np.empty((2,N,N))
@@ -180,8 +191,11 @@ for corpus_name in Corpuses:
             Z[1] = np.triu(Z[1]) + np.triu(Z[1], 1).T
             comm_distrib, local_degree, clusters = model.communities_analysis(theta, data=y)
 
+            ##############################
+            ### Plot all local degree
+            ##############################
             plt.figure()
-            lgg.info('computing local class degree, can take a while...')
+            bursty_class = []
             for c in np.unique(map(set, itertools.product(range(len(comm_distrib)) , repeat=2))):
                 if len(c) == 2:
                     # Stochastic Equivalence (extra class bind
@@ -191,7 +205,6 @@ for corpus_name in Corpuses:
                     # Comunnities (intra class bind)
                     l = c.pop()
                     k = l
-
                 y_c = y.copy()
                 z_c = Z.copy()
                 z_c[0][z_c[0] != k] = 0
@@ -199,15 +212,43 @@ for corpus_name in Corpuses:
                 y_c[z_c[0] != z_c[1]] = 0
                 degree_c = adj_to_degree(y_c)
                 d, dc = degree_hist(degree_c)
-                print  gofit(degree_c, d, dc)
-                plt.xscale('log')
-                plt.yscale('log')
+                god =  gofit(degree_c, d, dc)
+                if god['pvalue'] > 0.1:
+                    bursty_class.append((d,dc, god))
+                plt.xscale('log'); plt.yscale('log')
                 plt.scatter(d, dc, c=next(_colors), marker=next(_markers))
                 #plot_degree_2_l_e((d,dc,yerr), logscale=True, colors=True)
             plt.title('Local Prefrential attachment')
 
+            ##############################
+            #### Plot Bursty Class
+            ##############################
+            #for d,dc,god in bursty_class:
+            #    plt.figure()
+            #    plt.xscale('log'); plt.yscale('log')
+            #    plt.scatter(d, dc, c=next(_colors), marker=next(_markers))
+            #    d, dc = degree_hist(god['sync'])
+            #    #d, dc = zip(*sorted(zip(d, dc)))
+            #    #plt.scatter(d, dc, c=next(_colors), marker=next(_markers))
+
+            ##############################
             ### Max cluster assignemet
-            #model/max_clusters_assignement(y)
+            ##############################
+            #deg_l = defaultdict(list)
+            #for y in Y:
+            #    comm_distrib, local_degree, clusters = model.communities_analysis(theta, data=y)
+            #    deg_l = {key: value + deg_l[key] for key, value in local_degree.iteritems()}
+            print 'active cluster (max assignement): %d' % len(clusters)
+            plt.figure()
+            #plt.loglog( sorted(comm_distrib, reverse=True))
+            for c in local_degree.values():
+                x, y = degree_hist(c)
+                plt.xscale('log')
+                plt.yscale('log')
+                plt.scatter(x,y,c=next(_colors), marker=next(_markers))
+                plt.title('Local Prefrential attachment')
+
+
 
         display(False)
 

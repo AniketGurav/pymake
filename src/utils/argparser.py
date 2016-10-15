@@ -10,6 +10,7 @@ from expe.spec import _spec_
 
 
 class askseed(object):
+    """ Load previous random seed """
     def __init__(self, func, help=False):
         self.func = func
     def __call__(self, *args, **kwargs):
@@ -20,8 +21,8 @@ class askseed(object):
             response['seed'] = True
         return response
 
-
 class askhelp(object):
+    """ Print help and exit on -h"""
     def __init__(self, func, help=False):
         self.func = func
         self.help = help
@@ -43,6 +44,7 @@ class askhelp(object):
         return response
 
 class askverbose(object):
+    """ Augment verbosity on -c """
     def __init__(self, func):
         self.func = func
         #wraps(func)(self)
@@ -118,7 +120,6 @@ class argparser(object):
                     req[ont.upper()] = v
                     checksum -= 1
                     break
-
 
         if '-status' in clargs.grouped:
             req['STATUS'] = clargs.grouped['-status'].get(0)

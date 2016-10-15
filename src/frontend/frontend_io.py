@@ -7,6 +7,7 @@ from expe.spec import _spec_
 lgg = logging.getLogger('root')
 
 LOCAL_BDIR = '../../data/' # Last slash(/) necessary.
+LOCAL_BDIR = '/media/joker/TOSHIBA EXT/pymake/data/' # Last slash(/) necessary.
 """
     #### I/O
     Corpus are load/saved using Pickle format in:

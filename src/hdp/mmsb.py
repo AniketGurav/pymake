@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import collections
 import warnings
 from datetime import datetime
 import logging
@@ -23,9 +22,6 @@ _stirling_mat = load_stirling()
 
 #import sys
 #sys.setrecursionlimit(10000)
-
-# Implementation of Teh et al. (2005) Gibbs sampler for the Hierarchical Dirichlet Process: Direct assignement.
-
 #warnings.simplefilter('error', RuntimeWarning)
 
 """ @Todo
@@ -33,6 +29,8 @@ _stirling_mat = load_stirling()
 
 * Add constant to count matrix by default will win some precious second
 
+ref:
+HDP: Teh et al. (2005) Gibbs sampler for the Hierarchical Dirichlet Process: Direct assignement.
 """
 
 # Broadcast class based on numpy matrix
@@ -925,27 +923,4 @@ class GibbsRun(ModelBase):
             local_attach[comm] = local
 
         return community_distribution, local_attach, clusters
-
-    def max_clusters_assignement(self, y):
-        theta, phi = self.get_params()
-        deg_l = defaultdict(list)
-        for y in Y:
-            comm_distrib, local_degree, clusters = model.communities_analysis(theta, data=y)
-            deg_l = {key: value + deg_l[key] for key, value in local_degree.iteritems()}
-        print 'active cluster (max assignement): %d' % len(clusters)
-        plt.figure()
-        #plt.loglog( sorted(comm_distrib, reverse=True))
-        for c in local_degree.values():
-            x, y = degree_hist(c)
-            plt.xscale('log')
-            plt.yscale('log')
-            plt.scatter(x,y,c=next(_colors), marker=next(_markers))
-            plt.title('Local Prefrential attachment')
-        plt.figure()
-        #plt.loglog( sorted(comm_distrib, reverse=True))
-        for c in local_degree.values():
-            x, y = degree_hist(c)
-            plt.scatter(x,y,c=next(_colors), marker=next(_markers))
-            plt.title('Local Prefrential attachment')
-
 
