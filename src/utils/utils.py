@@ -134,7 +134,7 @@ def setup_logger(name, fmt, verbose, file=None):
     return logger
 
 
-def now():
+def Now():
     return  datetime.now()
 def ellapsed_time(text, since):
     current = datetime.now()
@@ -360,3 +360,18 @@ def make_path(bdir):
 def drop_zeros(a_list):
     return [i for i in a_list if i>0]
 
+
+import networkx as nx
+def nxG(y):
+    if type(y) is np.ndarray:
+        if (y == y.T).all():
+            # Undirected Graph
+            typeG = nx.Graph()
+        else:
+            # Directed Graph
+            typeG = nx.DiGraph()
+        G = nx.from_numpy_matrix(y, typeG)
+    else:
+        G = y
+
+    return G

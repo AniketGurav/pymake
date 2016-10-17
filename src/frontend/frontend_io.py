@@ -7,7 +7,12 @@ from expe.spec import _spec_
 lgg = logging.getLogger('root')
 
 LOCAL_BDIR = '../../data/' # Last slash(/) necessary.
-LOCAL_BDIR = '/media/joker/TOSHIBA EXT/pymake/data/' # Last slash(/) necessary.
+if not os.path.exists(os.path.dirname(__file__)+'/'+LOCAL_BDIR):
+    LOCAL_BDIR = '/media/joker/TOSHIBA EXT/pymake/data/'
+    if not os.path.exists(LOCAL_BDIR):
+        print 'Error Data path: %s' % LOCAL_BDIR
+        exit()
+
 """
     #### I/O
     Corpus are load/saved using Pickle format in:

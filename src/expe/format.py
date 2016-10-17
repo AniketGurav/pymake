@@ -3,6 +3,7 @@
 
 from random import choice
 from utils.utils import *
+from utils.math import *
 from plot import *
 
 import numpy as np
@@ -47,7 +48,7 @@ def generate_icdm(**kwargs):
     figsize=(3.8, 4.3)
     plt.figure(figsize=figsize)
     plot_degree_2_l(Y)
-    plot_degree_2(data, scatter=False)
+    plot_degree_poly(data, scatter=False)
     plt.title(title)
 
     fn = path+fn+'_d'+'.pdf'
@@ -95,7 +96,7 @@ def corpus_icdm(**kwargs):
     ### Plot Degree
     figsize=(3.8, 4.3)
     plt.figure(figsize=figsize)
-    plot_degree_2(data)
+    plot_degree_poly(data)
 
     fn = path+fn+'_d'+'.pdf'
     plt.savefig(fn, facecolor='white', edgecolor='black')
@@ -119,7 +120,7 @@ def generate_icdm_debug(**kwargs):
     figsize=(3.8, 4.3)
     plt.figure(figsize=figsize)
     plot_degree_2_l(Y)
-    plot_degree_2(data, scatter=False)
+    plot_degree_poly(data, scatter=False)
     plt.title(title)
 
     #fn = path+fn+'_d_'+ globals()['K'] +'.pdf'
@@ -128,3 +129,105 @@ def generate_icdm_debug(**kwargs):
     plt.savefig(fn, facecolor='white', edgecolor='black')
 
     return
+
+def preferential_attachment(**kwargs):
+    globals().update(kwargs)
+    ##############################
+    ### Global degree
+    ##############################
+    d, dc, yerr = random_degree(Y)
+    god = gofit(d, dc)
+    plt.figure()
+    plot_degree_2((d,dc,yerr))
+    plt.title(title)
+    plt.figure()
+    plot_degree_2((d,dc,None), logscale=True)
+    plt.title(title)
+
+    if False:
+        ### Just the gloabl degree.
+        return
+
+    print 'Computing Local Preferential attachment'
+    ##############################
+    ### Z assignement method
+    ##############################
+    now = Now()
+    ZZ = []
+    for _ in [Y[0]]:
+    #for _ in Y: # Do not reflect real loacal degree !
+        Z = np.empty((2,N,N))
+        order = np.arange(N**2).reshape((N,N))
+        triu = np.triu_indices(N)
+        order = order[triu]
+        order = zip(*np.unravel_index(order, (N,N)))
+
+        for i,j in order:
+            Z[0, i,j] = categorical(theta[i])
+            Z[1, i,j] = categorical(theta[j])
+        Z[0] = np.triu(Z[0]) + np.triu(Z[0], 1).T
+        Z[1] = np.triu(Z[1]) + np.triu(Z[1], 1).T
+        ZZ.append( Z )
+    ellapsed_time('Z formation', now)
+
+    comm_distrib, local_degree, clusters = model.communities_analysis(theta, data=Y[0])
+
+    ##############################
+    ### Plot all local degree
+    ##############################
+    plt.figure()
+    bursty_class = []
+    ### Iterate over all classes couple
+    for c in np.unique(map(set, itertools.product(range(len(comm_distrib)) , repeat=2))):
+        if len(c) == 2:
+            # Stochastic Equivalence (extra class bind
+            k, l = c
+            continue
+        else:
+            # Comunnities (intra class bind)
+            l = c.pop()
+            k = l
+
+        degree_c = []
+        for y, z in zip(Y, ZZ): # take the len of ZZ
+            y_c = y.copy()
+            z_c = z.copy()
+            z_c[0][z_c[0] != k] = -1; z_c[1][z_c[1] != l] = -1
+            y_c[z_c[0] == -1] = 0; y_c[z_c[1] == -1] = 0
+            degree_c += adj_to_degree(y_c).values()
+
+        d, dc = degree_hist(degree_c)
+        if  len(dc) == 0: continue
+        god =  gofit(d, dc)
+        if god['pvalue'] > 0.1:
+            bursty_class.append((d,dc, god))
+        plot_degree_2((d,dc,None), logscale=True, colors=True, line=True)
+    plt.title('Local Prefrential attachment (Stochastic Block)')
+    return clusters
+
+    ##############################
+    #### Plot Bursty Class
+    ##############################
+    #for d,dc,god in bursty_class:
+    #    plt.figure()
+    #    plt.xscale('log'); plt.yscale('log')
+    #    plt.scatter(d, dc, c=next(_colors), marker=next(_markers))
+    #    d, dc = degree_hist(god['sync'])
+    #    #d, dc = zip(*sorted(zip(d, dc)))
+    #    #plt.scatter(d, dc, c=next(_colors), marker=next(_markers))
+
+    ##############################
+    ### Max cluster assignemet
+    ##############################
+    #deg_l = defaultdict(list)
+    #for y in Y:
+    #    comm_distrib, local_degree, clusters = model.communities_analysis(theta, data=y)
+    #    deg_l = {key: value + deg_l[key] for key, value in local_degree.iteritems()}
+    print 'active cluster (max assignement): %d' % len(comm_distrib)
+    plt.figure()
+    #plt.loglog( sorted(comm_distrib, reverse=True))
+    for c in local_degree.values():
+        d, dc = degree_hist(c)
+        if  len(dc) == 0: continue
+        plot_degree_2((d,dc,None), logscale=True, colors=True, line=True)
+        plt.title('Local Prefrential attachment (Max Assignement)')

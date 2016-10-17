@@ -15,7 +15,7 @@ config = defaultdict(lambda: False, dict(
     write_to_file = False,
     do           = 'homo',
 ))
-config.update(argparser.generate())
+config.update(argparser.generate(''))
 
 ### Specification
 Corpuses = _spec_.CORPUS_SYN_ICDM_1
@@ -108,7 +108,7 @@ for corpus_name in Corpuses:
         ### Plot Degree
         plt.subplot(1,2,2)
         #plot_degree_(data, title='Overall Degree')
-        plot_degree_2(data)
+        plot_degree_poly(data)
 
         display(False)
 

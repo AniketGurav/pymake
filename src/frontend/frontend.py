@@ -160,12 +160,14 @@ class DataBase(object):
         return bow
 
     # Pickle class
-    def save(self, data, fn):
+    @staticmethod
+    def save(data, fn):
         fn = fn + '.pk'
         with open(fn, 'w') as _f:
             return pickle.dump(data, _f)
 
-    def load(self, fn):
+    @staticmethod
+    def load(fn):
         fn = fn + '.pk'
         with open(fn, 'r') as _f:
             return pickle.load(_f)

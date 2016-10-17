@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from utils.utils import *
 from utils.math import *
+from frontend import frontend
 
 import re
 import os
@@ -61,13 +62,7 @@ def csv_row(s):
 def plot_degree(y, title=None, noplot=False):
     if len(y) > 6000:
         return
-    if (y == y.T).all():
-        # Undirected Graph
-        typeG = nx.Graph()
-    else:
-        # Directed Graph
-        typeG = nx.DiGraph()
-    G = nx.from_numpy_matrix(y, typeG)
+    G = nxG(y)
     degree = sorted(nx.degree(G).values(), reverse=True)
     if noplot:
         return degree
@@ -82,13 +77,7 @@ def plot_degree(y, title=None, noplot=False):
 def plot_degree_(y, title=None):
     if len(y) > 6000:
         return
-    if (y == y.T).all():
-        # Undirected Graph
-        typeG = nx.Graph()
-    else:
-        # Directed Graph
-        typeG = nx.DiGraph()
-    G = nx.from_numpy_matrix(y, typeG)
+    G = nxG(y)
     degree = sorted(nx.degree(G).values(), reverse=True)
     x = np.arange(1, y.shape[0] + 1)
     plt.loglog(x, degree)
@@ -114,23 +103,25 @@ def log_binning(counter_dict,bin_count=35):
 from collections import Counter
 
 def degree_hist_to_list(d, dc):
-    degree = []
-    for i in range(len(d)):
-        degree += [np.round(d[i])] * np.round(dc[i])
+    degree = np.repeat(np.round(d).astype(int), np.round(dc).astype(int))
     return degree
 
 
 # Ref: Clauset, Aaron, Cosma Rohilla Shalizi, and Mark EJ Newman. "Power-law distributions in empirical data."
 # @todo:cut-off
-def gofit(_d, x, y, model='powerlaw'):
-    # d: the empirical samples
-    # (x,y): the empirical distribution
-    d = np.asarray(_d.values()) if type(_d) is dict else np.asarray(_d)
+def gofit(x, y, model='powerlaw'):
+    """ (x,y): the empirical distribution with x the values and y **THE COUNTS** """
+
+    # Reconstruct the data samples
+    d = degree_hist_to_list(x, y)
 
     y = y.astype(float)
     #### Power law Goodness of fit
     # Estimate x_min
     x_min = x[y.argmax()]
+
+    ### cutoff ?
+    x_max = x.max()
 
     # Estimate \alpha
     N = len(d)
@@ -150,14 +141,15 @@ def gofit(_d, x, y, model='powerlaw'):
 
     # Number of synthetic datasets to generate
     precision = 0.03
-    precision = 0.15
     S = int(0.25 * (precision)**-2)
     pvalue = []
-    ks_d = kstest(d, cdf)
-    print ks_d
 
     # Ignore head data
-    #N = n_tail
+    if False:
+        N = n_tail # bad effect
+        ks_d = kstest(d[d>x_min], cdf)
+    else:
+        ks_d = kstest(d, cdf)
 
     for s in range(S):
         ### p-value with Kolmogorov-Smirnov, for each synthetic dataset
@@ -168,34 +160,36 @@ def gofit(_d, x, y, model='powerlaw'):
 
         # Generate synthetic dataset
         out_samples = np.random.choice((d[d<=x_min]), size=out_empirical_samples_size)
-        powerlaw_samples = random_powerlaw(alpha, x_min, powerlow_samples_size)
+        powerlaw_samples = random_powerlaw(alpha, x_min, powerlow_samples_size*2) # *2 because the cut-off will remove potentienlly number of sample
+
+        ### Cutoff ?!
+        powerlaw_samples = powerlaw_samples[powerlaw_samples <= x_max]
+
         sync_samples = np.hstack((out_samples, powerlaw_samples))
 
         #ks_2 = ks_2samp(sync_samples, d)
         ks_s = kstest(sync_samples, cdf)
-        print ks_s
         pvalue.append(ks_s.statistic > ks_d.statistic)
 
+    #frontend.DataBase.save(d, 'd.pk')
+    #frontend.DataBase.save(sync_samples, 'sc.pk')
+
     pvalue = float(sum(pvalue)) / len(pvalue)
-    print pvalue
     estim = {'alpha': alpha, 'x_min':x_min, 'n_tail': n_tail,'n_head': N-n_tail,  'pvalue':pvalue}
-    print estim.update({'sync':sync_samples.astype(int)})
+    print 'KS data: ', ks_d
+    print 'KS synthetic: ', ks_s
+    print estim
+    estim.update({'sync':sync_samples.astype(int)})
     return estim
 
 def adj_to_degree(y):
     # To convert normalized degrees to raw degrees
     #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
-    if (y == y.T).all():
-        # Undirected Graph
-        typeG = nx.Graph()
-    else:
-        # Directed Graph
-        typeG = nx.DiGraph()
-    G = nx.from_numpy_matrix(y, typeG)
+    G = nxG(y)
     #degree = sorted(nx.degree(G).values(), reverse=True)
 
     #ba_c = nx.degree_centrality(G)
-    return  nx.degree(G)
+    return nx.degree(G)
 
 def degree_hist(_degree):
     degree = _degree.values() if type(_degree) is dict else _degree
@@ -209,30 +203,10 @@ def degree_hist(_degree):
         print '%d unconnected vertex' % dc[0]
         d = d[1:]
         dc = dc[1:]
-    return d, dc
 
-def plot_degree_2(y, ax=None, scatter=True):
-    # To convert normalized degrees to raw degrees
-    #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
-    ba_c = adj_to_degree(y)
-    d, dc = degree_hist(ba_c)
-
-    plt.xscale('log')
-    plt.yscale('log')
-
-    fit = np.polyfit(np.log(d), np.log(dc), deg=1)
-    plt.plot(d,np.exp(fit[0] *np.log(d) + fit[1]), 'g--', label='power %.2f' % fit[1])
-    leg = plt.legend(loc=1,prop={'size':10})
-
-    if scatter:
-        plt.scatter(d,dc,c='b',marker='o')
-        #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
-
-    plt.xlim(left=1)
-    plt.ylim((.9,1e3))
-    plt.xlabel('Degree')
-    #plt.ylabel('Counts of degree')
-    #plt.show()
+    if len(d) != 0:
+        d, dc = zip(*sorted(zip(d, dc)))
+    return np.round(d), np.round(dc)
 
 def random_degree(Y, params=None):
     _X = []
@@ -258,13 +232,36 @@ def random_degree(Y, params=None):
     x = X.mean(0)
     y = Y.mean(0)
     yerr = Y.std(0)
-    return x, y, yerr
+    return np.round(x), np.round(y), yerr
 
-def plot_degree_2_l(Y, ax=None):
+def plot_degree_poly(y, scatter=True):
+    """ Degree plot along with a linear regression of the distribution.
+    if scatter is false, draw only the linear approx"""
+    # To convert normalized degrees to raw degrees
+    #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
+    ba_c = adj_to_degree(y)
+    d, dc = degree_hist(ba_c)
+
+    plt.xscale('log'); plt.yscale('log')
+
+    fit = np.polyfit(np.log(d), np.log(dc), deg=1)
+    plt.plot(d,np.exp(fit[0] *np.log(d) + fit[1]), 'g--', label='power %.2f' % fit[1])
+    leg = plt.legend(loc=1,prop={'size':10})
+
+    if scatter:
+        plt.scatter(d,dc,c='b',marker='o')
+        #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
+
+    plt.xlim(left=1)
+    plt.ylim((.9,1e3))
+    plt.xlabel('Degree')
+    plt.ylabel('Counts')
+
+def plot_degree_poly_l(Y):
+    """ Same than plot_degree_poly, but for a list of random graph ie plot errorbar."""
     x, y, yerr = random_degree(Y)
 
-    plt.xscale('log')
-    plt.yscale('log')
+    plt.xscale('log'); plt.yscale('log')
 
     fit = np.polyfit(np.log(x), np.log(y), deg=1)
     plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'm:', label='model power %.2f' % fit[1])
@@ -272,33 +269,77 @@ def plot_degree_2_l(Y, ax=None):
 
     plt.errorbar(x, y, yerr=yerr, fmt='o')
 
-    #plt.xlim((1,1e4))
+    plt.xlim(left=1)
     plt.ylim((.9,1e3))
-    plt.xlabel('Degree')
-    #plt.ylabel('Counts of degree')
-    #plt.show()
+    plt.xlabel('Degree'); plt.ylabel('Counts')
 
-def plot_degree_2_l_e(P, ax=None, logscale=False, colors=False):
+def plot_degree_2(P, logscale=False, colors=False, line=False):
+    """ Plot degree distribution for different configuration"""
     x, y, yerr = P
-
-    if logscale:
-        plt.xscale('log')
-        plt.yscale('log')
 
     c = next(_colors) if colors else 'b'
     m = next(_markers) if colors else 'o'
+    l = '--' if line else None
 
-    if not yerr:
-        plt.scatter(x,y,c=c, marker=next(_markers))
+    if yerr is None:
+        plt.scatter(x, y, c=c, marker=m)
+        if line:
+            plt.plot(x, y, c=c, marker=m, ls=l)
     else:
-        plt.errorbar(x, y, yerr=yerr, fmt=m, c=c)
+        plt.errorbar(x, y, yerr, c=c, fmt=m, ls=l)
 
     min_d, max_d = min(x), max(x)
+
+    if logscale:
+        plt.xscale('log'); plt.yscale('log')
+        # Ensure that the ticks will be visbile (ie larger than in los step)
+        #logspace = 10**np.arange(6)
+        #lim =  np.searchsorted(logspace,min_d )
+        #if lim == np.searchsorted(logspace,max_d ):
+        #    min_d = logspace[lim-1]
+        #    max_d = logspace[lim]
+
     plt.xlim((min_d, max_d+10))
     #plt.ylim((.9,1e3))
-    plt.xlabel('Degree')
-    #plt.ylabel('Counts of degree')
-    #plt.show()
+    plt.xlabel('Degree'); plt.ylabel('Counts')
+
+
+def draw_graph(y, clusters='blue', ns=30):
+    G = nxG(y)
+
+    plt.figure()
+    nx.draw_spring(G, cmap = plt.get_cmap('jet'), node_color = clusters, node_size=30, with_labels=False)
+
+def draw_blocks(y, clusters='blue', ns=30):
+    G = nxG(y)
+
+     nx.draw(H,G.position,
+             node_size=[G.population[v] for v in H],
+             node_color=node_color,
+             with_labels=False)
+
+try:
+    import pygraphviz
+    from networkx.drawing.nx_agraph import graphviz_layout
+except ImportError:
+    try:
+        import pydotplus
+        from networkx.drawing.nx_pydot import graphviz_layout
+    except ImportError:
+        lgg.error("This example needs Graphviz and either "
+                  "PyGraphviz or PyDotPlus")
+def draw_graph_circular(y, clusters='blue', ns=30):
+    G = nxG(y)
+    pos = graphviz_layout(G, prog='twopi', args='')
+    plt.figure()
+    nx.draw(G, pos, node_size=ns, alpha=0.8, node_color=clusters, with_labels=False)
+    plt.axis('equal')
+
+def draw_graph_spectral(y, clusters='blue', ns=30):
+    G = nxG(y)
+    pos = graphviz_layout(G, prog='twopi', args='')
+    plt.figure()
+    nx.draw_spectral(G, cmap = plt.get_cmap('jet'), node_color = clusters, node_size=30, with_labels=False)
 
 def adjmat(Y, title=''):
     plt.figure()
@@ -484,172 +525,8 @@ def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twi
         #plt.savefig('../results/debug1/%s.pdf' % (prop['corpus']))
     plt.draw()
 
-def basic_plot():
-
-    columns = 1
-    targets = ['text/nips12/debug/inference-ilda_10_auto_100',
-               'text/nips12/debug/inference-lda_cgs_1_auto_100',
-               'text/nips12/debug/inference-lda_cgs_2_auto_100',
-               'text/nips12/debug/inference-lda_cgs_5_auto_100',
-               'text/nips12/debug/inference-lda_cgs_10_auto_100000000', ]
-    plot_csv(targets, columns, separate=False)
-
-def complex_plot(spec):
-	sep = 'corpus'
-	separate = 'N'
-	targets = make_path(spec, sep=sep)
-	json_extract(targets)
-	if sep:
-		for t in targets:
-			plot_csv(t, spec['columns'], separate=separate, twin=False, iter_max=spec['iter_max'])
-	else:
-		plot_csv(targets, spec['columns'], separate=True, iter_max=spec['iter_max'])
-
-def make_path(spec, sep=None, ):
-    targets = []
-    if sep:
-        tt = []
-    for base in spec['base']:
-        for hook in spec['hook_dir']:
-            for c in spec['corpus']:
-                p = os.path.join(base, c, hook)
-                for n in spec['Ns']:
-                    for m in spec['models']:
-                        for k in spec['Ks']:
-                            for h in spec['hyper']:
-                                for hm in spec['homo']:
-                                    t = 'inference-%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
-                                    t = os.path.join(p, t)
-                                    filen = os.path.join(os.path.dirname(__file__), "../data/", t)
-                                    if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
-                                        continue
-                                    if sum(1 for line in open(filen)) <= 1:
-                                        # empy file
-                                        continue
-                                    targets.append(t)
-
-                if sep == 'corpus' and targets:
-                    tt.append(targets)
-                    targets = []
-
-    if sep:
-        return tt
-    else:
-        return targets
-
-# Return dictionary of property for an expe file. (format inference-model_K_hyper_N)
-def get_expe_file_prop(target):
-    _id = target.split('_')
-    model = ''
-    st = 0
-    for s in _id:
-        try:
-            int(s)
-            break
-        except:
-            st += 1
-            model += s
-
-    _id = _id[st:]
-    prop = dict(
-        corpus = target.split('/')[-3],
-        model = model.split('-')[-1],
-        K     = _id[0],
-        hyper = _id[1],
-        homo = _id[2],
-        N     = _id[3],)
-    return prop
-
-# Return size of proportie in a list if expe files
-def get_expe_file_set_prop(targets):
-    c = []
-    for t in targets:
-        c.append(get_expe_file_prop(t))
-
-    sets = {}
-    for p in ('N', 'K'):
-        sets[p] = len(set([ _p[p] for _p in c ]))
-
-    return sets
-
-def json_extract(targets):
-    l = []
-    for t in targets:
-        for _f in t:
-            f = os.path.join(os.path.dirname(__file__), "../data/", _f) + '.json'
-            d = os.path.dirname(f)
-            corpus_type = ('/').join(d.split('/')[-2:])
-            f = os.path.basename(f)[len('inference-'):]
-            fn = os.path.join(d, f)
-            try:
-                d = json.load(open(fn,'r'))
-                l.append(d)
-                density = d['density'] # excepte try density_all
-                mask_density = d['mask_density']
-                #print density
-                #print mask_density
-                precision = d['Precision']
-                rappel = d['Recall']
-                K = len(d['Local_Attachment'])
-                h_s = d.get('homo_ind1_source', np.inf)
-                h_l = d.get('homo_ind1_learn', np.inf)
-                nmi = d.get('NMI', np.inf)
-                print '%s %s; \t K=%s,  global precision: %.3f, local precision: %.3f, rappel: %.3f, homsim s/l: %.3f / %.3f, NMI: %.3f' % (corpus_type, f, K, d.get('g_precision'), precision, rappel, h_s, h_l, nmi )
-            except Exception, e:
-                print e
-                pass
-
-    print
-    if len(l) == 1:
-        return l[0]
-    else:
-        return l
-
-
 if __name__ ==  '__main__':
     block = True
-    conf = argParse()
-
-    spec = dict(
-        base = ['networks'],
-        hook_dir = ['debug5/'],
-        #corpus   = ['kos', 'nips12', 'nips', 'reuter50', '20ngroups'],
-        #corpus   = ['generator/Graph1', 'generator/Graph2', 'clique3'],
-        #corpus   = ['generator/Graph3', 'generator/Graph4'],
-        corpus   = ['generator/Graph4', 'generator/Graph10', 'generator/Graph12', 'generator/Graph13'],
-        columns  = ['perplexity'],
-        #models   = ['ibp', 'ibp_cgs'],
-        #models   = ['ibp_cgs', 'immsb'],
-        ##models   = ['immsb', 'mmsb_cgs'],
-        models   = [ 'ibp', 'immsb'],
-        #Ns       = [250, 1000, 'all'],
-        Ns       = ['all',],
-        #Ks       = [5, 10, 15, 20, 25, 30],
-        Ks       = [5, 10],
-        #Ks       = [5, 10, 30],
-        #Ks       = [10],
-        #homo     = [0,1,2],
-        homo     = [0],
-        hyper    = ['fix', 'auto'],
-        #hyper    = ['auto'],
-        iter_max = 500 ,
-    )
-
-    sep = 'corpus'
-    separate = 'N'
-    #separate = 'N' and False
-    targets = make_path(spec, sep=sep)
-    json_extract(targets)
-    exit()
-    if sep:
-        for t in targets:
-            plot_csv(t, spec['columns'], separate=separate, twin=False, iter_max=spec['iter_max'])
-    else:
-        plot_csv(targets, spec['columns'], separate=True, iter_max=spec['iter_max'])
-
-
-    ### Basic Plots
-    #basic_plot()
 
     display(block)
 
