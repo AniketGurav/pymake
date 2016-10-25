@@ -5,6 +5,8 @@ from random import choice
 from utils.utils import *
 from utils.math import *
 from plot import *
+from plot import _markers, _colors
+from sklearn.metrics import roc_curve, auc, precision_recall_curve
 
 import numpy as np
 import scipy as sp
@@ -29,6 +31,15 @@ corpus_ = dict((
 
 model_ = dict(ibp = 'ilfm',
               immsb = 'immsb')
+
+""" **kwargs is passed to the format function.
+	The attributes curently in used in the globals dict are:
+	* model_name (str)
+	* corpus_name (str)
+	* model (the model [ModelBase]
+	* y (the data [Frontend])
+	etc..
+"""
 
 def generate_icdm(**kwargs):
     # @Debug: does not make the variable accessible
@@ -132,6 +143,14 @@ def generate_icdm_debug(**kwargs):
 
 def preferential_attachment(**kwargs):
     globals().update(kwargs)
+    if Model['model'] == 'ibp':
+        title = '%s, N=%s, K=%s alpha=%s, lambda:%s'% (model_name, N, K, alpha, delta)
+    elif Model['model'] == 'immsb':
+        title = '%s, N=%s, K=%s alpha=%s, gamma=%s, lambda:%s'% (model_name, N, K, alpha, gmma, delta)
+    elif Model['model'] == 'mmsb_cgs':
+        title = '%s, N=%s, K=%s alpha=%s, lambda:%s'% (model_name, N, K, alpha, delta)
+    else:
+        raise NotImplementedError
     ##############################
     ### Global degree
     ##############################
@@ -149,17 +168,20 @@ def preferential_attachment(**kwargs):
         return
 
     print 'Computing Local Preferential attachment'
+    if not frontend.is_symmetric():
+        lgg.info('Verify that undirected networks is consistent')
     ##############################
     ### Z assignement method
     ##############################
     now = Now()
     ZZ = []
     for _ in [Y[0]]:
-    #for _ in Y: # Do not reflect real loacal degree !
+    #for _ in Y: # Do not reflect real local degree !
         Z = np.empty((2,N,N))
         order = np.arange(N**2).reshape((N,N))
-        triu = np.triu_indices(N)
-        order = order[triu]
+        if frontend.is_symmetric():
+            triu = np.triu_indices(N)
+            order = order[triu]
         order = zip(*np.unravel_index(order, (N,N)))
 
         for i,j in order:
@@ -170,64 +192,127 @@ def preferential_attachment(**kwargs):
         ZZ.append( Z )
     ellapsed_time('Z formation', now)
 
-    comm_distrib, local_degree, clusters = model.communities_analysis(theta, data=Y[0])
-
     ##############################
     ### Plot all local degree
     ##############################
     plt.figure()
-    bursty_class = []
+    clusters = model.get_clusters()
+    local_degree_c = {}
     ### Iterate over all classes couple
-    for c in np.unique(map(set, itertools.product(range(len(comm_distrib)) , repeat=2))):
+    if frontend.is_symmetric():
+        #k_perm = np.unique( map(list, map(set, itertools.product(np.unique(clusters) , repeat=2))))
+        k_perm =  np.unique(map(list, map(list, map(set, itertools.product(range(theta.shape[1]) , repeat=2)))))
+    else:
+        #k_perm = itertools.product(np.unique(clusters) , repeat=2)
+        k_perm =  itertools.product(range(theta.shape[1]) , repeat=2)
+    for c in k_perm:
         if len(c) == 2:
             # Stochastic Equivalence (extra class bind
             k, l = c
-            continue
+            #continue
         else:
             # Comunnities (intra class bind)
-            l = c.pop()
-            k = l
+            k = l = c.pop()
 
         degree_c = []
-        for y, z in zip(Y, ZZ): # take the len of ZZ
+        for y, z in zip(Y, ZZ): # take the len of ZZ if < Y
             y_c = y.copy()
-            z_c = z.copy()
-            z_c[0][z_c[0] != k] = -1; z_c[1][z_c[1] != l] = -1
-            y_c[z_c[0] == -1] = 0; y_c[z_c[1] == -1] = 0
+            phi_c = np.zeros(y.shape)
+            # UNDIRECTED !
+            phi_c[(z[0] == k) & (z[1] == l)] = 1 #; phi_c[(z[0] == l) & (z[1] == k)] = 1
+            y_c[phi_c != 1] = 0
             degree_c += adj_to_degree(y_c).values()
 
+        if len(degree_c) == 0: continue
         d, dc = degree_hist(degree_c)
-        if  len(dc) == 0: continue
+        if len(dc) == 0: continue
+        local_degree_c[str(k)+str(l)] = filter(lambda x: x != 0, degree_c)
         god =  gofit(d, dc)
-        if god['pvalue'] > 0.1:
-            bursty_class.append((d,dc, god))
         plot_degree_2((d,dc,None), logscale=True, colors=True, line=True)
-    plt.title('Local Prefrential attachment (Stochastic Block)')
-    return clusters
+    plt.title('Local Preferential attachment (Stochastic Block)')
 
     ##############################
-    #### Plot Bursty Class
+    ### Blockmodel Analysis
     ##############################
-    #for d,dc,god in bursty_class:
-    #    plt.figure()
-    #    plt.xscale('log'); plt.yscale('log')
-    #    plt.scatter(d, dc, c=next(_colors), marker=next(_markers))
-    #    d, dc = degree_hist(god['sync'])
-    #    #d, dc = zip(*sorted(zip(d, dc)))
-    #    #plt.scatter(d, dc, c=next(_colors), marker=next(_markers))
+    # **The max_assignement** evalutaion gives the degree concentration for all clusters, when counting for
+    # all the interaction for all other classess.
+    # **The modularity counts only degree for interaction between two classes.
+    # It appears that the modularity case concentration, correspond to the interactions of concentration
+    # of the maxèassignement case.
+    #Clustering = ['modularity', 'max_assignement']
+    Clustering = ['modularity']
 
-    ##############################
-    ### Max cluster assignemet
-    ##############################
-    #deg_l = defaultdict(list)
-    #for y in Y:
-    #    comm_distrib, local_degree, clusters = model.communities_analysis(theta, data=y)
-    #    deg_l = {key: value + deg_l[key] for key, value in local_degree.iteritems()}
-    print 'active cluster (max assignement): %d' % len(comm_distrib)
-    plt.figure()
-    #plt.loglog( sorted(comm_distrib, reverse=True))
-    for c in local_degree.values():
-        d, dc = degree_hist(c)
-        if  len(dc) == 0: continue
-        plot_degree_2((d,dc,None), logscale=True, colors=True, line=True)
-        plt.title('Local Prefrential attachment (Max Assignement)')
+    for clustering in Clustering:
+        comm = model.communities_analysis(data=Y[0], clustering=clustering)
+        local_degree = comm['local_degree']
+        block_hist = comm['block_hist']
+        #local_degree = local_degree_c # strong concentration on degree 1 !
+
+        print 'active cluster - %s %d' % (clustering, len(block_hist > 0))
+        plt.figure()
+        #for c in local_degree.values():
+        #    d, dc = degree_hist(c)
+        #    if  len(dc) == 0: continue
+        #    plot_degree_2((d,dc,None), logscale=True, colors=True, line=True)
+        #    plt.title('Local Prefrential attachment (Max Assignement)')
+
+
+        #m = map(np.mean, local_degree.values())
+        #v = np.array(map(np.std, local_degree.values()))
+        #v[v==0] = 1e-2
+        #support = (min(m)-v[np.argmin(m)], max(m)+v[np.argmin(m)])
+        #x = np.arange(*support)
+        #mixt_g = np.zeros(x.shape)
+
+        ## Per class interactions  degree concentration
+        #for mean, std, l in sorted(zip(m, v, local_degree.keys()), reverse=True):
+        #    n = sp.stats.norm(mean,std).pdf(x)
+        #    mixt_g += n
+        #    plt.plot(x, n)
+        #    plt.text(mean, np.max(n), l, fontsize=9)
+        #    plt.xlim(*support)
+        ##plt.plot(mixt_g, '--')
+        #plt.title('Cluster degree concentration - %s' % clustering)
+
+        # Class Ties
+        label, hist = zip(*model.blockmodel_ties(Y[0]))
+        bins = len(hist)
+        plt.bar(range(bins), hist)
+        plt.xticks(np.arange(bins)+0.5, label)
+        plt.xlabel('Class Interactions')
+        plt.title('Weighted Harmonic mean of class interactions ties')
+
+        # Class burstiness
+        plt.figure()
+        bins = len(block_hist)
+        hist, label = zip(*sorted(zip(block_hist, range(bins)), reverse=True))
+        plt.bar(range(bins), hist)
+        plt.xticks(np.arange(bins)+0.5, label)
+        plt.xlabel('Class labels')
+        plt.title('Blocks Size (max assignement)')
+
+    return model.comm
+
+def roc_test(**kwargs):
+    globals().update(kwargs)
+    y_true, probas = model.mask_probas(data)
+    fpr, tpr, thresholds = roc_curve(y_true, probas)
+    roc_auc = auc(fpr, tpr)
+    plt.plot(fpr, tpr, label='ROC %s (area = %0.2f)' % (model_[model_name], roc_auc))
+
+    #precision, recall, thresholds = precision_recall_curve( y_true, probas)
+    #plt.plot(precision, recall, label='PR curve; %s' % (model_name ))
+
+def perplexity(**kwargs):
+    globals().update(kwargs)
+
+    data = model.load_some()
+    burnin = 5
+    sep = ' '
+    # Test perplexity not done for masked data. Usefull ?!
+    #column = csv_row('likelihood_t')
+    column = csv_row('likelihood')
+    ll_y = [row.split(sep)[column] for row in data][5:]
+    ll_y = np.ma.masked_invalid(np.array(ll_y, dtype='float'))
+    plt.plot(ll_y, label=model_[model_name])
+

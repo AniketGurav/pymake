@@ -9,18 +9,24 @@ from expe.spec import _spec_
 from expe.format import corpus_icdm
 from utils.argparser import argparser
 
+""" Inspect data on disk, for checking
+    or updating results
+"""
 
 ### Config
 config = defaultdict(lambda: False, dict(
     write_to_file = False,
-    do           = 'homo',
+    do           = 'homo', # homo/zipf
+    clusters      = 'model' # source/model
 ))
 config.update(argparser.generate(''))
 
 ### Specification
 Corpuses = _spec_.CORPUS_SYN_ICDM_1
 Corpuses += _spec_.CORPUS_REAL_ICDM_1
-Model = _spec_.MODEL_FOR_CLUSTER_IBP
+
+#Model = _spec_.MODEL_FOR_CLUSTER_IBP
+Model = _spec_.MODEL_FOR_CLUSTER_IMMSB
 
 ### Simulation Output
 if config.get('simul'):
@@ -35,6 +41,9 @@ for corpus_name in Corpuses:
     prop = frontend.get_data_prop()
     msg = frontend.template(prop)
     #print msg
+
+    degree = adj_to_degree(data)
+    gofit(*degree_hist(adj_to_degree(data)))
 
     if config['do'] == 'homo':
         #################################################
@@ -68,29 +77,32 @@ for corpus_name in Corpuses:
         ### Zipf Analisis
 
         ### Get the Class/Cluster and local degree information
+        data_r = data
+        clusters = None
+        K = None
         try:
-            msg =  'Getting Cluster from Dataset...'
-            community_distribution_source, local_attach_source, clusters_source = frontend.communities_analysis()
+            msg =  'Getting Cluster from Dataset.'
+            clusters = frontend.get_clusters()
+            if config.get('clusters') == 'model':
+                if clusters is not None:
+                    class_hist = np.bincount(clusters)
+                    K = (class_hist != 0).sum()
+                raise TypeError
         except TypeError:
-            msg =  'Getting Latent Classes from Latent Models...'
-            #d = frontend.get_json()
-            #local_attach_source = d['Local_Attachment']
-            #community_distribution_source = d['Community_Distribution']
-            ### In the future
-            #cluster_source = d['clusters']
+            msg =  'Getting Latent Classes from Latent Models %s' % Model['model']
             Model.update(corpus=corpus_name)
             model = ModelManager(config=config).load(Model)
-            clusters_source = model.get_clusters()
+            #clusters = model.get_clusters(K, skip=1)
+            clusters = model.get_communities(K)
         except Exception, e:
             msg = 'Skypping reordering adjacency matrix: %s' % e
-            data_r = data
-        print msg
 
         ### Reordering Adjacency Mmatrix based on Clusters/Class/Communities
-        if globals().get('clusters_source') is not None:
-            nodelist = [k[0] for k in sorted(zip(range(len(clusters_source)), clusters_source), key=lambda k: k[1])]
-            data_r = data[nodelist, :][:, nodelist]
-
+        if clusters is not None:
+            print 'corpus: %s, %s, Clusters size: %s' % (corpus_name, msg, K)
+            data_r = reorder_adj(data, clusters)
+        else:
+            print 'no reordering !'
 
         #################################################
         ### Plotting

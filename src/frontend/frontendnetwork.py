@@ -24,6 +24,7 @@ class frontendNetwork(DataBase):
     def __init__(self, config):
         self.bdir = 'networks'
         super(frontendNetwork, self).__init__(config)
+        self.make_output_path()
 
     # /!\ Will set the name of output_path.
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import warnings
 from datetime import datetime
+import itertools
 import logging
 lgg = logging.getLogger('root')
 
@@ -15,13 +15,17 @@ from numpy.random import dirichlet, gamma, poisson, binomial, beta
 from sympy.functions.combinatorial.numbers import stirling
 
 from frontend.frontend import DataBase, ModelBase
+# make use of frontend Networks instance for generated graph !
+from plot import adj_to_degree, degree_hist
 
 from utils.math import *
+from utils.utils import kmeans
 from utils.compute_stirling import load_stirling
 _stirling_mat = load_stirling()
 
 #import sys
 #sys.setrecursionlimit(10000)
+#import warnings
 #warnings.simplefilter('error', RuntimeWarning)
 
 """ @Todo
@@ -178,8 +182,8 @@ class ZSampler(GibbsSampler):
         # z DxN_k topic assignment matrix
         # --- From this reconstruct theta and phi
 
-    def __init__(self, alpha_0, likelihood, K_init=0, data_t=None):
-        self.K_init = K_init
+    def __init__(self, alpha_0, likelihood, K_init=1, data_t=None):
+        self.K_init = K_init or 1
         self.alpha_0 = alpha_0
         self.likelihood = likelihood
         self.symmetric_pt = (self.likelihood.symmetric&1) +1 # the increment for Gibbs iteration
@@ -660,6 +664,10 @@ class GibbsRun(ModelBase):
         self.burnin = iterations - int(burnin*iterations)
         self.thinning = thinning_interval
         self.samples = []
+        # @Docstring !? _theta, _phi, comm.
+
+        # Empty dict to store communities and blockmodel structure
+        self.comm = dict()
 
         self.data_t = data_t
         self.write = write
@@ -758,6 +766,18 @@ class GibbsRun(ModelBase):
                 self._gmma =  None
         return self._alpha, self._gmma, self._delta
 
+    def limit_k(self, N, directed=True):
+        alpha, gmma, delta = self.get_hyper()
+        N = int(N)
+        if directed is True:
+            m = alpha * N * (digamma(N+alpha) - digamma(alpha))
+        else:
+            m = alpha * N * (digamma(2*N+alpha) - digamma(alpha))
+
+        # Number of class in the CRF
+        K = int(gmma * (digamma(m+gmma) - digamma(gmma)))
+        return K
+
     def generate(self, N, K=None, hyper=None, _type='predictive', directed=True):
         self.update_hyper(hyper)
         alpha, gmma, delta = self.get_hyper()
@@ -774,13 +794,30 @@ class GibbsRun(ModelBase):
                 # Number of class in the CRF
                 K = int(gmma * (digamma(m+gmma) - digamma(gmma)))
                 alpha = gem(gmma, K)
+                i = 0
+                while i<3:
+                    try:
+                        dirichlet(alpha, size=N)
+                        i=0
+                        break
+                    except ZeroDivisionError:
+                        # Sometimes umprobable values !
+                        alpha = gem(gmma, K)
+                        i += 1
             else:
                 K = int(K)
                 alpha = np.ones(K) * alpha
                 ##alpha = np.asarray([1.0 / (i + np.sqrt(K)) for i in xrange(K)])
                 #alpha /= alpha.sum()
             #delta = self.s.zsampler.likelihood.delta
-            theta = dirichlet(alpha, size=N)
+            if i > 0:
+                params, order = zip(*np.sorted(zip(alpha, range(len(alpha)), reverse=True)))
+                _K = int(1/3. * len(alpha))
+                alpha[order[:_K]] = 1
+                alpha[order[_K:]] = 0
+                theta = multinomial(1, alpha, size=N)
+            else:
+                theta = dirichlet(alpha, size=N)
             phi = beta(delta[0], delta[1], size=(K,K))
             if directed is True:
                 phi = np.triu(phi) + np.triu(phi, 1).T
@@ -882,26 +919,82 @@ class GibbsRun(ModelBase):
 
         ### Finding Communities
         lgg.info('Finding Communities...')
-        community_distribution, local_attach, c = self.communities_analysis(theta)
+        communities = self.communities_analysis(theta)
 
         res = {'Precision': precision,
                'Recall': rappel,
                'g_precision': g_precision,
                'mask_density': mask_density,
-               'clusters': list(c),
-               'Community_Distribution': community_distribution,
-               'Local_Attachment': local_attach,
+               'communities':communities,
                'K': self.K
               }
-
         return res
 
-    def get_clusters(self):
+    def mask_probas(self, data):
+        mask = self.s.mask
+        y_test = data[mask]
+        theta, phi = self.reduce_latent()
+        p_ji = theta.dot(phi).dot(theta.T)
+        probas = p_ji[mask]
+        return y_test, probas
+
+
+    def get_clusters(self, K=None, skip=0):
+        """ Return a vector of clusters membership of nodes.
+
+        Parameters
+        ----------
+        K : int
+          Number of clusters. if None, used the number learn at inference.
+        below: int
+          skip the x firt bigger class.
+        """
         theta, phi = self.get_params()
-        return np.argmax(theta, axis=1)
+        clusters = np.argmax(theta.dot(phi), axis=1)
+        if not K: return clusters
+        hist = np.bincount(clusters)
+        sorted_clusters = sorted(zip(hist, range(len(hist))), reverse=True)[skip:K+skip]
+        _, strong_c = zip(*sorted_clusters)
+        mask = np.ones(theta.shape)
+        mask[:, strong_c] = 0
+        theta_ma = ma.array(theta, mask=mask)
+        clusters = np.argmax(theta_ma, axis=1)
+        return clusters
+
+    #add sim optionsin clusters
+    def get_communities(self, K=None, skip=0):
+        """ Return a vector of clusters membership of nodes.
+
+        Parameters
+        ----------
+        K : int
+          Number of clusters. if None, used the number learn at inference.
+        """
+        theta, phi = self.get_params()
+        K = K or theta.shape[1]
+
+        # Kmeans on Similarity
+        _phi = phi.copy()
+        _phi[phi < phi.mean()] = 0
+        clusters = kmeans(theta.dot(phi), K=K)
+        #s = sorted(zip(phi.ravel(), np.arange(phi.size)), reverse=True)[:K]
+        #strong_c  = np.unravel_index(zip(*s)[1])
+        #sim = theta.dot(phi).dot(theta.T)
+
+        # Strongest communities
+        #hist = phi.diagonal()
+        #sorted_clusters = sorted(zip(hist, range(len(hist))), reverse=True)[skip:K+skip]
+        #_, strong_c = zip(*sorted_clusters)
+        #mask = np.ones(theta.shape)
+        #mask[:, strong_c] = 0
+        #theta_ma = ma.array(theta, mask=mask)
+        #clusters = np.argmax(theta_ma, axis=1)
+
+        return clusters
 
     #@wrapper !
-    def communities_analysis(self, theta, data=None):
+    ### Degree by class (maxassignment)
+    def communities_analysis(self, data=None, clustering='modularity'):
         if data is None:
             likelihood = self.s.zsampler.likelihood
             data = likelihood.data_ma.data
@@ -909,18 +1002,97 @@ class GibbsRun(ModelBase):
         else:
             symmetric = True
 
-        clusters = self.get_clusters()
-        community_distribution = list(np.bincount(clusters))
+        if hasattr(self, clustering):
+            f = getattr(self, clustering)
+        else:
+            raise NotImplementedError('Clustering algorithm unknow')
 
-        local_attach = {}
+        self.comm.update( f(data=data, symmetric=symmetric) )
+        return self.comm
+
+    def max_assignement(self, **kwargs):
+        data = kwargs['data']
+        symmetric = kwargs['symmetric']
+
+        clusters = self.get_clusters()
+        block_hist = np.bincount(clusters)
+
+        local_degree = {}
         for n, c in enumerate(clusters):
             comm = str(c)
-            local = local_attach.get(comm, [])
-            degree_n = data[n,:][clusters == c].sum()
+            local = local_degree.get(comm, [])
+            degree_n = data[n,:].sum()
+            #degree_n = data[n,:][clusters == c].sum()
             if not symmetric:
-                degree_n += data[:, n][clusters == c].sum()
+                degree_n += data[:, n].sum()
+                #degree_n += data[:, n][clusters == c].sum()
             local.append(degree_n)
-            local_attach[comm] = local
+            local_degree[comm] = local
 
-        return community_distribution, local_attach, clusters
+        return {'local_degree':local_degree,
+                'clusters':clusters,
+                'block_hist': block_hist,
+                'size': len(block_hist)}
+
+    ### Degree by class (sitll max assigment !)
+    def modularity(self, **kwargs):
+        data = kwargs['data']
+        symmetric = kwargs['symmetric']
+
+        clusters = self.get_clusters()
+        block_hist = np.bincount(clusters)
+
+        local_degree = {}
+        if symmetric:
+            k_perm = np.unique( map(list, map(set, itertools.product(np.unique(clusters) , repeat=2))))
+        else:
+            k_perm = itertools.product(np.unique(clusters) , repeat=2)
+
+        for c in k_perm:
+            if len(c) == 2:
+                # Stochastic Equivalence (extra class bind
+                k, l = c
+            else:
+                # Comunnities (intra class bind)
+                k = l = c.pop()
+            comm = str(k) + str(l)
+            local = local_degree.get(comm, [])
+
+            C = np.tile(clusters, (data.shape[0],1))
+            y_c = data * ((C==k) & (C.T==l))
+            if y_c.size > 0:
+                local_degree[comm] = adj_to_degree(y_c).values()
+
+            # Summing Fasle !
+            #for n in np.arange(data.shape[0]))[clusters == k]:
+            #    degree_n = data[n,:][(clusters == k) == (clusters == l)].sum()
+            #    if not symmetric:
+            #        degree_n = data[n,:][(clusters == k) == (clusters == l)].sum()
+            #    local.append(degree_n)
+            #local_degree[comm] = local
+
+        return {'local_degree':local_degree,
+                'clusters':clusters,
+                'block_hist': block_hist,
+                'size': len(block_hist)}
+
+    def blockmodel_ties(self, data=None):
+        """ return ties based on a weighted average
+            of the local degree ditribution """
+
+        if not hasattr(self, 'comm'):
+            self.communities_analysis(data)
+        comm = self.comm
+
+        m = [ wmean(a[0], a[1], mean='arithmetic')  for d in comm['local_degree'].values() for a in [degree_hist(d)] if len(a[0])>0 ]
+        # Mean
+        #m = map(np.mean, comm['local_degree'].values())
+        # Variance Unused How to represant that !?
+        #v = np.array(map(np.std, comm['local_degree'].values()))
+
+        hist, label = zip(*sorted(zip(m, comm['local_degree'].keys() ), reverse=True))
+        bm = zip(label, hist)
+        self.comm['block_ties'] = bm
+        return bm
+
 

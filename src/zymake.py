@@ -23,7 +23,7 @@ if zyvar['OUT_TYPE'] == 'runcmd':
 elif zyvar['OUT_TYPE'] == 'path':
     source_files = make_forest_path(zyvar['SPEC'], zyvar['FTYPE'], status=zyvar['STATUS'])
 else:
-    raise NotImplementedError
+    raise NotImplementedError('zymake options unknow')
 
 
 ### Makes figures on remote / parallelize

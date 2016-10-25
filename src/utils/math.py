@@ -1,6 +1,13 @@
+import math
 import numpy as np
 import scipy as sp
 
+
+
+
+##########################
+### Stochastic Process
+##########################
 
 def lognormalize(x):
     a = np.logaddexp.reduce(x)
@@ -28,4 +35,77 @@ def gem(gmma, K):
         sb[k] = cut[k] * cut[0:k].prod()
     return sb
 
+
+##########################
+### Means and Norms
+##########################
+
+### Weighted  means
+def wmean(a, w, mean='geometric'):
+    if mean == 'geometric':
+        kernel = lambda x : np.log(x)
+        out = lambda x : np.exp(x)
+    elif mean == 'arithmetic':
+        kernel = lambda x : x
+        out = lambda x : x
+    elif mean == 'harmonic':
+        num = np.sum(w)
+        denom = np.sum(np.asarray(w) / np.asarray(a))
+        return num / denom
+    else:
+        raise NotImplementedError('Mean Unknwow: %s' % mean)
+
+    num = np.sum(np.asarray(w) * kernel(np.asarray(a)))
+    denom = np.sum(np.asarray(w))
+    return out(num / denom)
+
+##########################
+### Matrix Operation
+##########################
+
+def draw_square(mat, value, topleft, l, L, w=0):
+    mat[:, pos+w:pos] = value
+    mat[pos+w:pos, :] = value
+    mat[:, border-w:border] = value
+    mat[border-w:border, :] = value
+    return mat
+
+
+##########################
+### Colors Operation
+##########################
+def floatRgb(mag, cmin, cmax):
+	""" Return a tuple of floats between 0 and 1 for the red, green and
+		blue amplitudes.
+	"""
+
+	try:
+		# normalize to [0,1]
+		x = float(mag-cmin)/float(cmax-cmin)
+	except:
+		# cmax = cmin
+		x = 0.5
+	blue = min((max((4*(0.75-x), 0.)), 1.))
+	red  = min((max((4*(x-0.25), 0.)), 1.))
+	green= min((max((4*math.fabs(x-0.5)-1., 0.)), 1.))
+	return (red, green, blue)
+
+def strRgb(mag, cmin, cmax):
+   """ Return a tuple of strings to be used in Tk plots.
+   """
+
+   red, green, blue = floatRgb(mag, cmin, cmax)
+   return "#%02x%02x%02x" % (red*255, green*255, blue*255)
+
+def rgb(mag, cmin, cmax):
+   """ Return a tuple of integers to be used in AWT/Java plots.
+   """
+
+   red, green, blue = floatRgb(mag, cmin, cmax)
+   return (int(red*255), int(green*255), int(blue*255))
+
+def htmlRgb(mag, cmin, cmax):
+   """ Return a tuple of strings to be used in HTML documents.
+   """
+   return "#%02x%02x%02x"%rgb(mag, cmin, cmax)
 

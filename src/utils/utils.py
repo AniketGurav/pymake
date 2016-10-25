@@ -7,8 +7,22 @@ import logging
 import numpy as np
 import scipy as sp
 
-# use https://github.com/kennethreitz/args
+#from itertools import cycle
+class Cycle(object):
+    def __init__(self, seq):
+        self.seq = seq
+        self.it = np.nditer([seq])
+    def next(self):
+        try:
+            return self.it.next().item()
+        except StopIteration:
+            self.it.reset()
+            # Exception on nditer when seq is empty (infinite recursivity)
+            return self.next()
+    def reset(self):
+        return self.it.reset()
 
+# use https://github.com/kennethreitz/args
 def argParse(usage="Usage ?"):
     argdict = defaultdict(lambda: False)
     for i, arg in enumerate(sys.argv):

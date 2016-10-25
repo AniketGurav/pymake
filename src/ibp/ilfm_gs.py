@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import random
 from datetime import datetime
 from os.path import dirname
 import logging
@@ -13,6 +12,7 @@ sp_dot = csr_matrix.dot
 
 from .ibp import IBP
 from frontend.frontend import DataBase, ModelBase
+from utils.utils import kmeans
 
 # We will be taking log(0) = -Inf, so turn off this warning
 #np.seterr(divide='ignore')
@@ -76,6 +76,8 @@ class IBPGibbsSampling(IBP, ModelBase):
     @param sigma_w: standard derivation of the feature
     @param initialize_Z: seeded Z matrix """
     def _initialize(self, data, alpha=1.0, sigma_w=1, initial_Z=None, initial_W=None, KK=None):
+        if type(data) is not np.ma.masked_array:
+            data = np.ma.array(data)
 
         self.nnz = len(data.compressed())
 
@@ -251,7 +253,7 @@ class IBPGibbsSampling(IBP, ModelBase):
                 prob_new = np.exp(prob_new + self._overflow)
                 prob_old = np.exp(prob_old + self._overflow)
                 Znk_is_new = prob_new / (prob_new + prob_old)
-                if Znk_is_new > 0 and random.random() <= Znk_is_new:
+                if Znk_is_new > 0 and np.random.random() <= Znk_is_new:
                     # gibbs_accept ++
                     pass
                 else:
@@ -303,7 +305,7 @@ class IBPGibbsSampling(IBP, ModelBase):
         MH_accept = min(1, r)
 
         # if we accept the proposal, we will replace old W and Z matrices
-        if random.random() <= MH_accept and not np.isnan(r):
+        if np.random.random() <= MH_accept and not np.isnan(r):
             # construct W_new and Z_new
             #print 'MH_accept: %s, singleton feature: %s, k_new: %s' % (MH_accept, len(singleton_features), K_temp)
             self._W = W_new
@@ -353,7 +355,7 @@ class IBPGibbsSampling(IBP, ModelBase):
             r = likelihood_new * pw_new * j_old / ( likelihood_old * pw_old * j_new )
             MH_accept = min(1, r)
 
-            if random.random() <= MH_accept and not np.isnan(r):
+            if np.random.random() <= MH_accept and not np.isnan(r):
                 self.ratio_MH_W += 1
             else:
                 self.bilinear_matrix = bilinear_matrix
@@ -569,9 +571,27 @@ class IBPGibbsSampling(IBP, ModelBase):
 
         return res
 
-    def get_clusters(self):
+    def mask_probas(self, data):
+        mask = self._Y.mask
+        y_test = data[mask]
+        theta, phi = self.reduce_latent()
+        p_ji = theta.dot(phi).dot(theta.T)
+        probas = p_ji[mask]
+        return y_test, probas
+
+    def get_clusters(self, K=None):
+        Z, W = self.get_params()
+        K = K or Z.shape[1]
         Z = self.leftordered(Z)
-        clusters = kmeans(Z, K=Z.shape[1])
+        clusters = kmeans(Z, K=K)
+        return clusters
+
+    # add sim optionsin clusters
+    def get_communities(self, K=None):
+        Z, W = self.get_params()
+        K = K or Z.shape[1]
+        Z = self.leftordered(Z)
+        clusters = kmeans(Z.dot(W), K=K)
         return clusters
 
     #@wrapper !
@@ -590,9 +610,11 @@ class IBPGibbsSampling(IBP, ModelBase):
         for n, c in enumerate(clusters):
             comm = str(c)
             local = local_attach.get(comm, [])
-            degree_n = data[n,:][clusters == c].sum()
+            degree_n = data[n,:].sum()
+            #degree_n = data[n,:][clusters == c].sum()
             if not symmetric:
-                degree_n += data[:, n][clusters == c].sum()
+                degree_n += data[:, n].sum()
+                #degree_n += data[:, n][clusters == c].sum()
             local.append(degree_n)
             local_attach[comm] = local
 

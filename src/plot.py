@@ -5,19 +5,31 @@ import json
 import numpy as np
 from scipy.stats import kstest, ks_2samp
 from scipy.special import zeta
+
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import colors as Colors
+
 import networkx as nx
+from networkx.drawing.nx_agraph import write_dot
+
+
 from utils.utils import *
 from utils.math import *
-from frontend import frontend
+try: # why this error ?
+    from frontend import frontend
+except:
+    pass
 
 import re
 import os
 from multiprocessing import Process
-from itertools import cycle
+lgg = logging.getLogger('root')
 
-_markers = cycle([ '+', '*', '|','x', 'o', '.', '1', 'p', '<', '>', 's' ])
-_colors = cycle(['r', 'g','b','y','c','m','k'])
+from utils.ascii_code import X11_colors, plt_colors
+u_colors = Cycle(list(zip(*plt_colors)[1]))
+_markers = Cycle([ '+', '*', '|','x', 'o', '.', '1', 'p', '<', '>', 's' ])
+_colors = Cycle(['r', 'g','b','y','c','m','k'])
 
 def display(block=False):
     #p = Process(target=_display)
@@ -58,6 +70,13 @@ def csv_row(s):
     else:
         row = s
     return row
+
+def surf(x, y, z):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    X, Y = np.meshgrid(x, y)
+    ax.plot_surface(X, Y, z)
+    return ax
 
 def plot_degree(y, title=None, noplot=False):
     if len(y) > 6000:
@@ -102,6 +121,11 @@ def log_binning(counter_dict,bin_count=35):
 
 from collections import Counter
 
+
+def reorder_adj(y, clusters):
+    nodelist = [k[0] for k in sorted(zip(range(len(clusters)), clusters), key=lambda k: k[1])]
+    return y[nodelist, :][:, nodelist]
+
 def degree_hist_to_list(d, dc):
     degree = np.repeat(np.round(d).astype(int), np.round(dc).astype(int))
     return degree
@@ -126,6 +150,8 @@ def gofit(x, y, model='powerlaw'):
     # Estimate \alpha
     N = len(d)
     n_tail = float((d>x_min).sum())
+    if n_tail < 20:
+        return {'n_tail':n_tail, 'pvalue':None}
     alpha = 1 + n_tail * (np.log(d[d>x_min] / (x_min -0.5)).sum())**-1
     print 'x_min', x_min
 
@@ -154,22 +180,29 @@ def gofit(x, y, model='powerlaw'):
     for s in range(S):
         ### p-value with Kolmogorov-Smirnov, for each synthetic dataset
         # Each synthetic dataset has following size:
-        powerlow_samples_size = np.random.binomial(N, n_tail/N)
+        powerlaw_samples_size = np.random.binomial(N, n_tail/N)
         # plus random sample from before the cut
-        out_empirical_samples_size = N - powerlow_samples_size
+        out_empirical_samples_size = N - powerlaw_samples_size
 
         # Generate synthetic dataset
         out_samples = np.random.choice((d[d<=x_min]), size=out_empirical_samples_size)
-        powerlaw_samples = random_powerlaw(alpha, x_min, powerlow_samples_size*2) # *2 because the cut-off will remove potentienlly number of sample
+        powerlaw_samples = random_powerlaw(alpha, x_min, powerlaw_samples_size)
 
         ### Cutoff ?!
-        powerlaw_samples = powerlaw_samples[powerlaw_samples <= x_max]
-
+        #powerlaw_samples = powerlaw_samples[powerlaw_samples <= x_max]
+        #ratio =  powerlaw_samples_size / len(powerlaw_samples)
+        #if ratio > 1:
+        #    supplement = random_powerlaw(alpha, x_min, powerlaw_samples_size * (ratio -1))
+        #    supplement = supplement[supplement <= x_max]
+        #    sync_samples = np.hstack((out_samples, powerlaw_samples, supplement))
+        #else:
+        #    sync_samples = np.hstack((out_samples, powerlaw_samples))
         sync_samples = np.hstack((out_samples, powerlaw_samples))
+
 
         #ks_2 = ks_2samp(sync_samples, d)
         ks_s = kstest(sync_samples, cdf)
-        pvalue.append(ks_s.statistic > ks_d.statistic)
+        pvalue.append(ks_s.statistic >= ks_d.statistic)
 
     #frontend.DataBase.save(d, 'd.pk')
     #frontend.DataBase.save(sync_samples, 'sc.pk')
@@ -200,9 +233,10 @@ def degree_hist(_degree):
     dc = np.array(bac.values()) # Degree counts
 
     if d[0] == 0:
-        print '%d unconnected vertex' % dc[0]
+        lgg.debug('%d unconnected vertex' % dc[0])
         d = d[1:]
         dc = dc[1:]
+
 
     if len(d) != 0:
         d, dc = zip(*sorted(zip(d, dc)))
@@ -246,7 +280,7 @@ def plot_degree_poly(y, scatter=True):
 
     fit = np.polyfit(np.log(d), np.log(dc), deg=1)
     plt.plot(d,np.exp(fit[0] *np.log(d) + fit[1]), 'g--', label='power %.2f' % fit[1])
-    leg = plt.legend(loc=1,prop={'size':10})
+    leg = plt.legend(loc='upper right',prop={'size':10})
 
     if scatter:
         plt.scatter(d,dc,c='b',marker='o')
@@ -265,7 +299,7 @@ def plot_degree_poly_l(Y):
 
     fit = np.polyfit(np.log(x), np.log(y), deg=1)
     plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'm:', label='model power %.2f' % fit[1])
-    leg = plt.legend(loc=1,prop={'size':10})
+    leg = plt.legend(loc='upper right',prop={'size':10})
 
     plt.errorbar(x, y, yerr=yerr, fmt='o')
 
@@ -310,13 +344,30 @@ def draw_graph(y, clusters='blue', ns=30):
     plt.figure()
     nx.draw_spring(G, cmap = plt.get_cmap('jet'), node_color = clusters, node_size=30, with_labels=False)
 
-def draw_blocks(y, clusters='blue', ns=30):
-    G = nxG(y)
+def draw_blocks(comm):
+    #nx.draw(H,G.position,
+    #        node_size=[G.population[v] for v in H],
+    #        node_color=node_color,
+    #        with_labels=False)
+    blocks = comm.get('block_hist')
+    ties = comm.get('block_ties')
 
-     nx.draw(H,G.position,
-             node_size=[G.population[v] for v in H],
-             node_color=node_color,
-             with_labels=False)
+    blocks = 2*blocks / np.linalg.norm(blocks)
+    max_n = max(blocks)
+
+    G = nx.Graph(nodesep=0.7)
+    u_colors.reset()
+    for l, s in enumerate(blocks):
+        G.add_node(int(l), width=s, height=s, fillcolor=next(u_colors), style='filled')
+
+    max_t = max(ties, key=lambda x:x[1])[1]
+    if max_t > max_n:
+        scale = np.exp(2) * float(max_n) / max_t
+    for l, s in ties:
+        i, j = int(l[0]), int(l[1])
+        G.add_edge(i, j, penwidth = s * scale)
+
+    return write_dot(G, 'graph.dot')
 
 try:
     import pygraphviz
@@ -349,78 +400,87 @@ def adjmat(Y, title=''):
     title = 'Adjacency matrix, N = %d\n%s' % (Y.shape[0], title)
     plt.title(title)
 
-def adjshow(Y, cmap=None, pixelspervalue=20, minvalue=None, maxvalue=None, title='', ax=None):
-        """ Make a colormap image of a matrix
-        :key Y: the matrix to be used for the colormap.
-        """
-        # Artefact
-        np.fill_diagonal(Y, 0)
+def adjshow(Y, clusters=None, title=''):
+	""" Make a colormap image of a matrix
+	:key Y: the matrix to be used for the colormap.
+	"""
+	# Artefact
+	#np.fill_diagonal(Y, 0)
 
-        if minvalue == None:
-            minvalue = np.amin(Y)
-        if maxvalue == None:
-            maxvalue = np.amax(Y)
-        if not cmap:
-            cmap = plt.cm.hot
-            if not ax:
-                #figsize = (np.array(Y.shape) / 100. * pixelspervalue)[::-1]
-                #fig = plt.figure(figsize=figsize)
-                #fig.set_size_inches(figsize)
-                #plt.axes([0, 0, 1, 1]) # Make the plot occupy the whole canvas
-                plt.axis('off')
-                implot = plt.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-                plt.title(title)
-            else:
-                ax.axis('off')
-                implot = ax.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-                plt.title(title)
-        #plt.savefig(filename, fig=fig, facecolor='white', edgecolor='black')
+	plt.figure()
+	if clusters is None:
+		plt.axis('off')
+		cmap = plt.cm.hot
+		norm = None
+	else:
+		plt.axis('on')
+		y = reorder_adj(Y, clusters)
+		hist = np.bincount(clusters)
+		# Colors Setup
+		u_colors.reset()
+		cmap = Colors.ListedColormap(['white','black']+ u_colors.seq[:len(hist)**2])
+		bounds = range(len(hist)**2+2)
+		norm = Colors.BoundaryNorm(bounds, cmap.N)
+		pos = 0
+		for k, count in enumerate(hist):
+			# Draw a colored square (not white and black)
+			border = pos + count
+			w = 0.2 * y.shape[0]
+			draw_square(y, k+2, pos, border, w)
+			pos += count
+
+	minvalue = np.amin(Y)
+	maxvalue = np.amax(Y)
+
+	implt = plt.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+	plt.title(title)
+	#plt.savefig(filename, fig=fig, facecolor='white', edgecolor='black')
 
 def adjshow_l(Y,title=[], pixelspervalue=20):
-        minvalue = np.amin(Y)
-        maxvalue = np.amax(Y)
-        cmap = plt.cm.hot
+	minvalue = np.amin(Y)
+	maxvalue = np.amax(Y)
+	cmap = plt.cm.hot
 
-        fig = plt.figure()
-        plt.subplot(1,2,1)
-        plt.axis('off')
-        implot = plt.imshow(Y[0], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[0])
+	fig = plt.figure()
+	plt.subplot(1,2,1)
+	plt.axis('off')
+	implot = plt.imshow(Y[0], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+	plt.title(title[0])
 
-        plt.subplot(1,2,2)
-        plt.axis('off')
-        implot = plt.imshow(Y[1], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[1])
+	plt.subplot(1,2,2)
+	plt.axis('off')
+	implot = plt.imshow(Y[1], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+	plt.title(title[1])
 
-        plt.draw()
+	plt.draw()
 
 def adjshow_ll(Y,title=[], pixelspervalue=20):
-        minvalue = np.amin(Y)
-        maxvalue = np.amax(Y)
-        cmap = plt.cm.hot
+	minvalue = np.amin(Y)
+	maxvalue = np.amax(Y)
+	cmap = plt.cm.hot
 
-        fig = plt.figure()
-        plt.subplot(2,2,1)
-        plt.axis('off')
-        implot = plt.imshow(Y[0], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[0])
+	fig = plt.figure()
+	plt.subplot(2,2,1)
+	plt.axis('off')
+	implot = plt.imshow(Y[0], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+	plt.title(title[0])
 
-        plt.subplot(2,2,2)
-        plt.axis('off')
-        implot = plt.imshow(Y[1], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[1])
+	plt.subplot(2,2,2)
+	plt.axis('off')
+	implot = plt.imshow(Y[1], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+	plt.title(title[1])
 
-        plt.subplot(2,2,3)
-        plt.axis('off')
-        implot = plt.imshow(Y[2], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[2])
+	plt.subplot(2,2,3)
+	plt.axis('off')
+	implot = plt.imshow(Y[2], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+	plt.title(title[2])
 
-        plt.subplot(2,2,4)
-        plt.axis('off')
-        implot = plt.imshow(Y[3], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[3])
+	plt.subplot(2,2,4)
+	plt.axis('off')
+	implot = plt.imshow(Y[3], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+	plt.title(title[3])
 
-        plt.draw()
+	plt.draw()
 
 def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twin=False, iter_max=None):
     if type(columns) is not list:

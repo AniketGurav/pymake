@@ -143,7 +143,7 @@ class argparser(object):
         gargs = clargs.grouped['_'].all
         if 'homo' in gargs:
             conf['do'] = 'homo'
-        elif 'burst' in gargs:
+        elif 'zipf' in gargs:
             conf['do'] = 'burst'
 
         if '-k' in clargs.grouped:
@@ -158,7 +158,7 @@ class argparser(object):
             conf['delta'] = float(clargs.grouped['--delta'].get(0))
         if '-g' in clargs.grouped:
             conf['generative'] = 'evidence'
-        if '-e' in clargs.grouped:
+        if '-p' in clargs.grouped:
             conf['generative'] = 'predictive'
         return conf
 

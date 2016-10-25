@@ -7,6 +7,10 @@ from frontend.frontend_io import *
 from expe.spec import _spec_
 from utils.argparser import argparser
 
+""" Parse models on disk, for checking
+    or updating results
+"""
+
 USAGE = '''\
 # Usage:
     generate [-w] [-k K]

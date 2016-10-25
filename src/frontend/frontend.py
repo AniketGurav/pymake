@@ -233,6 +233,22 @@ class ModelBase(object):
             f.flush()
             self._samples = []
 
+    def load_some(self, iter_max=None):
+         # try on output_path i/o error manage fname_i
+        filen = self.fname_i
+        with open(filen) as f:
+            data = f.read()
+
+        data = filter(None, data.split('\n'))
+        if iter_max:
+            data = data[:iter_max]
+        # Ignore Comments
+        data = [re.sub("\s\s+" , " ", x.strip()) for l,x in enumerate(data) if not x.startswith(('#', '%'))]
+
+        #ll_y = [row.split(sep)[column] for row in data]
+        #ll_y = np.ma.masked_invalid(np.array(ll_y, dtype='float'))
+        return data
+
     def close(self):
         if not hasattr(self, '_f'):
             return
@@ -321,7 +337,8 @@ class ModelManager(object):
         if not self.model_name:
             return
 
-        self.model = self.get_model(config)
+        if data is not None:
+            self.model = self.get_model(config)
 
     # Base class for Gibbs, VB ... ?
     def loadgibbs_1(self, target, likelihood=None):

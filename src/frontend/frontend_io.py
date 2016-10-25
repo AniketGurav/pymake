@@ -7,7 +7,7 @@ from expe.spec import _spec_
 lgg = logging.getLogger('root')
 
 LOCAL_BDIR = '../../data/' # Last slash(/) necessary.
-if not os.path.exists(os.path.dirname(__file__)+'/'+LOCAL_BDIR):
+if not os.path.exists(os.path.dirname(__file__)+'/'+LOCAL_BDIR+'networks/generator/Graph7/t0.graph'):
     LOCAL_BDIR = '/media/joker/TOSHIBA EXT/pymake/data/'
     if not os.path.exists(LOCAL_BDIR):
         print 'Error Data path: %s' % LOCAL_BDIR
@@ -127,6 +127,8 @@ def make_output_path(spec, _type=None, sep=None, status=False):
     base = spec['data_type']
     hook = spec.get('debug') or spec.get('refdir', '')
     c = spec.get('corpus') or spec['corpus_name']
+    if not c:
+        return None, None
     if c.startswith(('clique', 'Graph', 'generator')):
         c = c.replace('generator', 'Graph')
         c = 'generator/' + c
