@@ -144,7 +144,8 @@ def generate_icdm_debug(**kwargs):
 
     return
 
-def preferential_attachment(**kwargs):
+def zipf(**kwargs):
+    """ Local/Global Preferential attachment effect analysis """
     globals().update(kwargs)
     if Model['model'] == 'ibp':
         title = '%s, N=%s, K=%s alpha=%s, lambda:%s'% (model_name, N, K, alpha, delta)
@@ -274,7 +275,15 @@ def preferential_attachment(**kwargs):
     plt.xlabel('Class labels')
     plt.title('Blocks Size (max assignement)')
 
-    return model.comm
+    #draw_graph_spring(y, clusters)
+    #draw_graph_spectral(y, clusters)
+    #draw_graph_circular(y, clusters)
+    #adjshow(y, title='Adjacency Matrix')
+    adjblocks(y, clusters=comm['clusters'], title='Blockmodels of Adjacency matrix')
+    draw_blocks(comm)
+
+    print 'density: %s' % (float(y.sum()) / (N**2))
+
 
 def roc_test(**kwargs):
     globals().update(kwargs)
@@ -299,3 +308,15 @@ def perplexity(**kwargs):
     ll_y = np.ma.masked_invalid(np.array(ll_y, dtype='float'))
     plt.plot(ll_y, label=model_[model_name])
 
+
+def clustering(algo='Annealing', **kwargs):
+        globals().update(kwargs)
+
+        a = Annealing(data)
+        clusters = a.search()
+
+        data_b = draw_boundary(data, clusters)
+
+        plt.colorbar()
+        adjshow(data_b, algo)
+        plt.colorbar()

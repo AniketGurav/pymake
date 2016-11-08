@@ -3,6 +3,7 @@ graph  {
 		height=0.0140983405439,
 		style=filled,
 		width=0.0140983405439];
+	3 -- 3	 [penwidth=0.671715682963];
 	7	 [fillcolor="#FFD700",
 		height=1.99995030858,
 		style=filled,

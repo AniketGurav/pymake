@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import itertools
+from collections import Counter
 
 import numpy as np
 import scipy as sp
 
 from frontend.frontend import Object, frontendNetwork
+
+from .utils import *
+from .math import *
 
 import logging
 lgg = logging.getLogger('root')
@@ -97,6 +101,11 @@ def sorted_perm(a, label, reverse=False):
     label = np.asarray(label)
     return hist, label
 
+def degree_hist_to_list(d, dc):
+    degree = np.repeat(np.round(d).astype(int), np.round(dc).astype(int))
+    return degree
+
+
 def clusters_hist(clusters, labels=None, remove_empty=True):
     """ return non empty clusters histogramm.
 
@@ -125,6 +134,8 @@ def clusters_hist(clusters, labels=None, remove_empty=True):
 
     return hist, label
 
+from scipy.stats import kstest, ks_2samp
+from scipy.special import zeta
 # Ref: Clauset, Aaron, Cosma Rohilla Shalizi, and Mark EJ Newman. "Power-law distributions in empirical data."
 # @todo:cut-off
 def gofit(x, y, model='powerlaw'):
@@ -339,9 +350,13 @@ class Louvain(Algo):
     def search(self):
         g = nxG(self.data)
         self._partition = pylouvain.best_partition(g, resolution=1)
+        return self._partition.values()
 
     def partition(self):
         return self._partition
+
+    def clusters(self):
+        return self._partition.values()
 
 
 #import warnings
@@ -491,7 +506,7 @@ class Annealing(Algo, frontendNetwork):
 
         e_k_in_c = np.zeros((K, C))
         cursor = np.arange(K)
-        I, L_i, O, L_o = self.energy(get_params=True)
+        #I, L_i, O, L_o = self.energy(get_params=True)
         for k in np.random.choice(range(K), K, replace=False):
             _k = np.argmax(cursor == k)
             old_c = clusters[k]
@@ -551,6 +566,7 @@ class Annealing(Algo, frontendNetwork):
                 B[1:C][old_c:new_c] -= 1
             else:
                 B[1:C][new_c:old_c] += 1
+            # Approx update
             ##I, L_i, O, L_o = self.energy(get_params=True)
             #I[[new_c, old_c]] = params_E_tmp[new_c, 0]
             #L_i[[new_c, old_c]] = params_E_tmp[new_c, 1]
@@ -574,20 +590,20 @@ class Annealing(Algo, frontendNetwork):
             print 'heeeere, some clusters are empty!!!!\n need to manage that and eventually remove clusters ?!! %d %d' % (self.get_C(), C)
 
         #return  1/float(C) * ((I/L_i).sum() - (O/L_o).sum())
-        return self.modularity()
+        return self.energy()
 
 
     def sample_B(self):
         """ Sample Boundary """
         #self.iterations = self.K * self.get_C() / 2
         self.iterations = 100
+        self.iterations = int(np.log(self.K) * self.get_C())
 
         for it in range(self.iterations): # Broadcast ?!
             print it,
 
             state = self.boundary_sample(it=it)
-            E_new = self.modularity(state)
-            #E_new = self.energy(state)
+            E_new = self.energy(state)
             if E_new > self.E or self.anneal_transition(E_new, it):
                 print 'acceptance %f, %f' %( E_new, self.E)
                 self.set_state(state)
@@ -600,6 +616,7 @@ class Annealing(Algo, frontendNetwork):
             or reach max iterations
         """
         E_old = self.E
+        old_state = self.get_state()
         while (self.get_C() < self.K):
             ### altern Reorder Boundaries - Reorder membership
             self.sample_B()
@@ -617,7 +634,7 @@ class Annealing(Algo, frontendNetwork):
                 #self.sample_B()
                 break
 
-        return self.hi_phi()
+        return self.clusters
 
     def anneal_transition(self, E_new, it):
         if it == 0: return True
@@ -639,15 +656,6 @@ class Annealing(Algo, frontendNetwork):
     def labels(self):
         """ Return the reordered labels"""
         return self.labels
-
-    def draw_boundary(self, mat):
-        assert(mat.shape == self.data.shape)
-        c = np.arange(2, self.K+1)
-        w = int(0.005 * self.K)
-        for i, b in enumerate(self.B[1:-1]):
-            mat[b-w:b+w, :] = c[i]
-            mat[:, b-w:b+w] = c[i]
-        return mat
 
 
     def stop_criteria(self):

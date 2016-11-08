@@ -7,12 +7,15 @@ lgg = logging.getLogger('root')
 import numpy as np
 from numpy import ma
 import scipy as sp
-import sympy as sym
-#import sppy
 
 from scipy.special import gammaln, digamma
 from numpy.random import dirichlet, gamma, poisson, binomial, beta
-from sympy.functions.combinatorial.numbers import stirling
+try:
+    import sympy as sym
+    from sympy.functions.combinatorial.numbers import stirling
+except:
+    pass
+#import sppy
 
 from frontend.frontend import DataBase, ModelBase
 

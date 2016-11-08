@@ -141,10 +141,9 @@ class argparser(object):
                 conf['write_to_file'] = True
 
         gargs = clargs.grouped['_'].all
-        if 'homo' in gargs:
-            conf['do'] = 'homo'
-        elif 'zipf' in gargs:
-            conf['do'] = 'burst'
+
+        if clargs.last > 0:
+            conf['do'] = clargs.last
 
         if '-k' in clargs.grouped:
             conf['K'] = int(clargs.grouped['-k'].get(0))

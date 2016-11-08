@@ -1,12 +1,15 @@
 #!/usr/bin/env python
-from sympy.functions.combinatorial.numbers import stirling
-import sympy as sym
+import os
+import sys
+
 import numpy as np
 import pickle
 from scipy.misc import logsumexp
-
-import os
-import sys
+try:
+    from sympy.functions.combinatorial.numbers import stirling
+    import sympy as sym
+except:
+    pass
 
 def load_stirling(style='npy'):
     if style == 'npy':

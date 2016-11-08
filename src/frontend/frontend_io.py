@@ -8,7 +8,7 @@ lgg = logging.getLogger('root')
 
 LOCAL_BDIR = '../../data/' # Last slash(/) necessary.
 if not os.path.exists(os.path.dirname(__file__)+'/'+LOCAL_BDIR+'networks/generator/Graph7/t0.graph'):
-    LOCAL_BDIR = '/media/joker/TOSHIBA EXT/pymake/data/'
+    LOCAL_BDIR = '/media/dtrckd/TOSHIBA EXT/pymake/data/'
     if not os.path.exists(LOCAL_BDIR):
         print 'Error Data path: %s' % LOCAL_BDIR
         exit()

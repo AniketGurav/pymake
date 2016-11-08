@@ -7,16 +7,20 @@ lgg = logging.getLogger('root')
 
 import numpy as np
 import scipy as sp
-import sympy as sym
-#import sppy
 
-from scipy.special import gammaln
+from scipy.special import gammaln, digamma
 from numpy.random import dirichlet, gamma, poisson, binomial, beta
-from sympy.functions.combinatorial.numbers import stirling
+try:
+    import sympy as sym
+    from sympy.functions.combinatorial.numbers import stirling
+except:
+    pass
+#import sppy
 
 from frontend.frontend import DataBase, ModelBase
 
 from utils.math import *
+from utils.algo import *
 from utils.compute_stirling import load_stirling
 _stirling_mat = load_stirling()
 

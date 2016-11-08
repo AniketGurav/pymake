@@ -9,7 +9,7 @@ from utils.algo import Annealing
 from plot import *
 from frontend.frontend_io import *
 from expe.spec import _spec_
-from expe.format import *
+from expe import format
 from utils.argparser import argparser
 
 from collections import Counter, defaultdict
@@ -146,35 +146,15 @@ for corpus_name in Corpuses:
         ### Visualize
         ###################################
         if config.get('write_to_file'):
-            #generate_icdm(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'])
-            generate_icdm_debug(data=data, Y=Y, corpus_name=corpus_name, model_name=model_name, K=K)
+            #format.generate_icdm(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'])
+            format.generate_icdm_debug(data=data, Y=Y, corpus_name=corpus_name, model_name=model_name, K=K)
             continue
-
-        #comm = preferential_attachment(**globals())
 
         if config['generative'] == 'predictive':
             y = data
 
-        #draw_graph(y, clusters)
-        #draw_graph_spectral(y, clusters)
-        #draw_graph_circular(y, clusters)
-        #adjshow(y, title='Adjacency Matrix')
-
-        #adjblocks(y, clusters=comm['clusters'], title='Blockmodels of Adjacency matrix')
-        #draw_blocks(comm)
-
-        phi = data
-        #phi[0,0] = 10
-        adjshow(phi, 'phi')
-        plt.colorbar()
-
-        a = Annealing(phi, C_init=2)
-        p = a.search()
-        a.draw_boundary(p)
-        adjshow(p, 'phi annealed')
-        plt.colorbar()
-
-        print 'density: %s' % (float(y.sum()) / (N**2))
+        analysis = getattr(format, config['do'])
+        analysis(**globals())
 
         display(False)
 

@@ -3,8 +3,6 @@
 
 import json
 import numpy as np
-from scipy.stats import kstest, ks_2samp
-from scipy.special import zeta
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -115,13 +113,6 @@ def log_binning(counter_dict,bin_count=35):
     bin_means_x = np.histogram(counter_dict.keys(),bins,weights=counter_dict.keys())[0]
     return bin_means_x,bin_means_y
 
-from collections import Counter
-
-def degree_hist_to_list(d, dc):
-    degree = np.repeat(np.round(d).astype(int), np.round(dc).astype(int))
-    return degree
-
-
 def plot_degree_poly(y, scatter=True):
     """ Degree plot along with a linear regression of the distribution.
     if scatter is false, draw only the linear approx"""
@@ -191,8 +182,22 @@ def plot_degree_2(P, logscale=False, colors=False, line=False):
     #plt.ylim((.9,1e3))
     plt.xlabel('Degree'); plt.ylabel('Counts')
 
+##########################
+### Graph/Matrix Drawing
+##########################
 
-def draw_graph(y, clusters='blue', ns=30):
+def draw_boundary(self, mat, clusters):
+
+    N = self.mat.shape[0]
+    c = np.arange(2, K+1)
+    w = int(0.005 * K)
+    print 'drawing boundary %s' % B
+    for i, b in enumerate(B[1:-1]):
+        mat[b-w:b+w, :] = c[i]
+        mat[:, b-w:b+w] = c[i]
+    return mat
+
+def draw_graph_spring(y, clusters='blue', ns=30):
     G = nxG(y)
 
     plt.figure()
@@ -247,6 +252,8 @@ def draw_graph_spectral(y, clusters='blue', ns=30):
     pos = graphviz_layout(G, prog='twopi', args='')
     plt.figure()
     nx.draw_spectral(G, cmap = plt.get_cmap('jet'), node_color = clusters, node_size=30, with_labels=False)
+
+
 
 def adjblocks(Y, clusters=None, title=''):
     """ Make a colormap image of a matrix
@@ -323,6 +330,11 @@ def adjshow_4(Y,title=[], pixelspervalue=20):
     plt.title(title[3])
 
     plt.draw()
+
+
+##########################
+### Curve Plot
+##########################
 
 def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twin=False, iter_max=None):
     if type(columns) is not list:
