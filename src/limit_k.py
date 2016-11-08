@@ -14,17 +14,8 @@ from utils.argparser import argparser
 from collections import Counter, defaultdict
 import itertools
 
-USAGE = '''\
-# Usage:
-    generate [-w] [-k K] [-n N] [--[hypername]] [-g|-e]]
-
--g: generative model (evidence)
--p: predicted data (model fitted)
-
-# Examples
-    parallel ./generate.py -w -k {}  ::: $(echo 5 10 15 20)
-    ./generate.py --alpha 1 --gmma 1 -n 1000 --seed
-'''
+""" Density - Small world asymptotic analysis
+"""
 
 ####################################################
 ### Config
@@ -34,7 +25,7 @@ config = defaultdict(lambda: False, dict(
     generative    = 'evidence',
     epoch         = 10 , #20
 ))
-config.update(argparser.generate(USAGE))
+config.update(argparser.generate(''))
 
 # Corpuses
 Corpuses = _spec_.CORPUS_SYN_ICDM_1

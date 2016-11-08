@@ -1,20 +1,23 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
+import logging
+import os.path
+
 from random import choice
+import itertools
+
 from utils.utils import *
 from utils.math import *
+from utils.algo import *
 from plot import *
 from plot import _markers, _colors
-from sklearn.metrics import roc_curve, auc, precision_recall_curve
 
 import numpy as np
 import scipy as sp
 #np.set_printoptions(threshold='nan')
+from sklearn.metrics import roc_curve, auc, precision_recall_curve
 
-import logging
-import os
-import os.path
 
 #path = '../../../papers/personal/relational_models/git/img/'
 path = '../results/networks/generate/'
@@ -33,12 +36,12 @@ model_ = dict(ibp = 'ilfm',
               immsb = 'immsb')
 
 """ **kwargs is passed to the format function.
-	The attributes curently in used in the globals dict are:
-	* model_name (str)
-	* corpus_name (str)
-	* model (the model [ModelBase]
-	* y (the data [Frontend])
-	etc..
+    The attributes curently in used in the globals dict are:
+    * model_name (str)
+    * corpus_name (str)
+    * model (the model [ModelBase]
+    * y (the data [Frontend])
+    etc..
 """
 
 def generate_icdm(**kwargs):
@@ -154,6 +157,8 @@ def preferential_attachment(**kwargs):
     ##############################
     ### Global degree
     ##############################
+    #plot_degree_poly_l(Y)
+    #plot_degree_poly(data, scatter=False)
     d, dc, yerr = random_degree(Y)
     god = gofit(d, dc)
     plt.figure()
@@ -196,7 +201,18 @@ def preferential_attachment(**kwargs):
     ### Plot all local degree
     ##############################
     plt.figure()
-    clusters = model.get_clusters()
+    # **max_assignement** evalutaion gives the degree concentration
+    # for all clusters, when counting for
+    # all the interaction for all other classess.
+    # **modularity** counts only degree for interaction between two classes.
+    # It appears that the modularity case concentration, correspond
+    # to the interactions of concentration
+    # of the maxèassignement case.
+    #Clustering = ['modularity', 'max_assignement']
+    clustering = 'modularity'
+    comm = model.communities_analysis(data=Y[0], clustering=clustering)
+    print 'clustering method: %s, active clusters ratio: %f' % (clustering, len(comm['block_hist']>0)/float(theta.shape[1]))
+
     local_degree_c = {}
     ### Iterate over all classes couple
     if frontend.is_symmetric():
@@ -223,6 +239,7 @@ def preferential_attachment(**kwargs):
             y_c[phi_c != 1] = 0
             degree_c += adj_to_degree(y_c).values()
 
+        # remove ,old issue
         if len(degree_c) == 0: continue
         d, dc = degree_hist(degree_c)
         if len(dc) == 0: continue
@@ -234,62 +251,28 @@ def preferential_attachment(**kwargs):
     ##############################
     ### Blockmodel Analysis
     ##############################
-    # **The max_assignement** evalutaion gives the degree concentration for all clusters, when counting for
-    # all the interaction for all other classess.
-    # **The modularity counts only degree for interaction between two classes.
-    # It appears that the modularity case concentration, correspond to the interactions of concentration
-    # of the maxèassignement case.
-    #Clustering = ['modularity', 'max_assignement']
-    Clustering = ['modularity']
 
-    for clustering in Clustering:
-        comm = model.communities_analysis(data=Y[0], clustering=clustering)
-        local_degree = comm['local_degree']
-        block_hist = comm['block_hist']
-        #local_degree = local_degree_c # strong concentration on degree 1 !
+    # Class Ties
+    plt.figure()
+    #local_degree = comm['local_degree']
+    #local_degree = local_degree_c # strong concentration on degree 1 !
+    label, hist = zip(*model.blockmodel_ties(Y[0]))
+    bins = len(hist)
+    plt.bar(range(bins), hist)
+    label_tick = lambda t : '-'.join(t)
+    plt.xticks(np.arange(bins)+0.5, map(label_tick, label))
+    plt.tick_params(labelsize=5)
+    plt.xlabel('Class Interactions')
+    plt.title('Weighted Harmonic mean of class interactions ties')
 
-        print 'active cluster - %s %d' % (clustering, len(block_hist > 0))
-        plt.figure()
-        #for c in local_degree.values():
-        #    d, dc = degree_hist(c)
-        #    if  len(dc) == 0: continue
-        #    plot_degree_2((d,dc,None), logscale=True, colors=True, line=True)
-        #    plt.title('Local Prefrential attachment (Max Assignement)')
-
-
-        #m = map(np.mean, local_degree.values())
-        #v = np.array(map(np.std, local_degree.values()))
-        #v[v==0] = 1e-2
-        #support = (min(m)-v[np.argmin(m)], max(m)+v[np.argmin(m)])
-        #x = np.arange(*support)
-        #mixt_g = np.zeros(x.shape)
-
-        ## Per class interactions  degree concentration
-        #for mean, std, l in sorted(zip(m, v, local_degree.keys()), reverse=True):
-        #    n = sp.stats.norm(mean,std).pdf(x)
-        #    mixt_g += n
-        #    plt.plot(x, n)
-        #    plt.text(mean, np.max(n), l, fontsize=9)
-        #    plt.xlim(*support)
-        ##plt.plot(mixt_g, '--')
-        #plt.title('Cluster degree concentration - %s' % clustering)
-
-        # Class Ties
-        label, hist = zip(*model.blockmodel_ties(Y[0]))
-        bins = len(hist)
-        plt.bar(range(bins), hist)
-        plt.xticks(np.arange(bins)+0.5, label)
-        plt.xlabel('Class Interactions')
-        plt.title('Weighted Harmonic mean of class interactions ties')
-
-        # Class burstiness
-        plt.figure()
-        bins = len(block_hist)
-        hist, label = zip(*sorted(zip(block_hist, range(bins)), reverse=True))
-        plt.bar(range(bins), hist)
-        plt.xticks(np.arange(bins)+0.5, label)
-        plt.xlabel('Class labels')
-        plt.title('Blocks Size (max assignement)')
+    # Class burstiness
+    plt.figure()
+    hist, label = clusters_hist(comm['clusters'])
+    bins = len(hist)
+    plt.bar(range(bins), hist)
+    plt.xticks(np.arange(bins)+0.5, label)
+    plt.xlabel('Class labels')
+    plt.title('Blocks Size (max assignement)')
 
     return model.comm
 

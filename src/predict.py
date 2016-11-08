@@ -14,17 +14,8 @@ from utils.argparser import argparser
 from collections import Counter, defaultdict
 import itertools
 
-USAGE = '''\
-# Usage:
-    generate [-w] [-k K] [-n N] [--[hypername]] [-g|-e]]
-
--g: generative model (evidence)
--p: predicted data (model fitted)
-
-# Examples
-    parallel ./generate.py -w -k {}  ::: $(echo 5 10 15 20)
-    ./generate.py --alpha 1 --gmma 1 -n 1000 --seed
-'''
+""" AUC-ROC analysis on test data
+"""
 
 ####################################################
 ### Config
@@ -33,7 +24,7 @@ config = defaultdict(lambda: False, dict(
     gen_size      = 1000,
     epoch         = 10 , #20
 ))
-config.update(argparser.generate(USAGE))
+config.update(argparser.generate(''))
 
 alpha = 0.5
 gmma = 0.5
@@ -77,7 +68,9 @@ for corpus_name in Corpuses:
     plt.figure()
     for Model in Models:
 
+        ###################################
         ### Generate data from a fitted model
+        ###################################
         Model.update(corpus=corpus_name)
         model = ModelManager(config=config).load(Model)
         Model['hyperparams'] = model.get_hyper()
@@ -86,20 +79,25 @@ for corpus_name in Corpuses:
             continue
         theta, phi = model.get_params()
 
-        ###############################################################
-        ### Expe Wrap up debug
+        ###################################
+        ### Expe Show Setup
+        ###################################
         N = theta.shape[0]
         K = theta.shape[1]
         model_name = Model['model']
         model_hyper = Model['hyperparams']
         print('corpus: %s, model: %s, K = %s, N =  %s, hyper: %s'.replace(',','\n') % (corpus_name, model_name, K, N, str(model_hyper)) )
 
+        ###################################
+        ### Visualize
+        ###################################
         roc_test(**globals())
-        display(False)
 
     plt.plot([0, 1], [0, 1], linestyle='--', color='k', label='Luck')
     plt.legend(loc="lower right", prop={'size':10})
     plt.title(corpus_[corpus_name][0])
+
+    display(False)
 
 if not config.get('write_to_file'):
     display(True)

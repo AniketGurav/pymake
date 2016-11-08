@@ -6,6 +6,8 @@ from collections import defaultdict
 import logging
 lgg = logging.getLogger('root')
 
+import numpy as np
+
 from .frontend_io import *
 
 ### @Debug :
@@ -15,6 +17,32 @@ from .frontend_io import *
 # review that:
 #    * separate better load / save and preprocessing (input can be file or array...)
 #    * view of file confif.... and path creation....
+
+class Object(object):
+    """ Implement a mathematical object manipulation philosophy,
+        WIth a high level view of object set as topoi.
+        * return None for errorAtributes
+        * ...
+    """
+    def __init__(**kwargs):
+        self.__dict__.update(kwargs)
+
+    #def __getattr__(self, attr):
+    #    if type(attr) is not str:
+    #        lgg.error('Error attribute type: %s' % (attr))
+    #        return None
+
+    #    if hasattr(self,attr):
+    #        return getattr(self, attr)
+    #    else:
+    #        if hasattr(self, 'get_'+attr):
+    #            lgg.warning('get %s from class method get_' % (str(attr)))
+    #            f = self.getattr(self, 'get_'+attr)
+    #            return f()
+    #        else:
+    #            # find the name of the chil class on this catch
+    #            lgg.warning('attributes `%s\' is Non-Existent' % (str(attr)))
+    #            return None
 
 class DataBase(object):
     """
@@ -35,7 +63,7 @@ class DataBase(object):
 
 """
 
-    def __init__(self, config):
+    def __init__(self, config, data=None):
         if config.get('seed'):
             #np.random.seed(config.get('seed'))
             np.random.set_state(self.load('.seed'))
@@ -64,25 +92,12 @@ class DataBase(object):
 
         # self._init()
         # self.data = self.load_data(spec)
+        if data is not None:
+            self.update_data(data)
 
+    def update_data(self):
+        raise NotImplemented
 
-    #def make_output_path(self, corpus_name=None):
-    #    # Write Path (for models results)
-    #    config = self.config
-    #    if not hasattr(self, 'basedir') or corpus_name:
-    #        self.basedir = os.path.join(self.bdir, corpus_name)
-    #    corpus_name = corpus_name or self.corpus_name
-    #    fname_out = '%s_%s_%s_%s_%s' % (self.model_name,
-    #                                        self.K,
-    #                                        self.hyper_optimiztn,
-    #                                        self.homo,
-    #                                        self.N)
-
-    #    config['output_path'] = os.path.join(self.basedir,
-    #                                         config.get('refdir', ''),
-    #                                         str(config.get('repeat', '')),
-    #                                         fname_out)
-    #    self.output_path = config['output_path']
     def make_output_path(self):
         # Write Path (for models results)
         self.basedir, self.output_path = make_output_path(self.config)

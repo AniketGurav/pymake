@@ -202,7 +202,7 @@ if __name__ == '__main__':
     #adjshow_l([data, y], title=['Data', 'Bayesian'])
     #adjshow_l([data_r, y_r], title=['Data reorderded', 'Bayesian reordered'])
     print data.shape, y.shape
-    adjshow_ll([data, y, data_r, y_r], title=['Data', 'Bayesian', 'Data reorderded', 'Bayesian reordered'])
+    adjshow_4([data, y, data_r, y_r], title=['Data', 'Bayesian', 'Data reorderded', 'Bayesian reordered'])
 
     if R is not None:
         R_r = R[nodelist, :][:, nodelist]

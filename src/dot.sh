@@ -6,3 +6,5 @@ for e in $Engine; do
     echo "doting $e"
     dot -K$e -Tpng  graph.dot > ../results/graph_$e.png
 done
+
+ristretto ../results/graph_dot.png

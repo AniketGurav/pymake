@@ -123,6 +123,7 @@ def make_output_path(spec, _type=None, sep=None, status=False):
         @status: f finished
         @type: pk, json or inference.
     """
+    spec = defaultdict(lambda: False, spec)
     filen = None
     base = spec['data_type']
     hook = spec.get('debug') or spec.get('refdir', '')

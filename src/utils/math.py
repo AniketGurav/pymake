@@ -2,9 +2,6 @@ import math
 import numpy as np
 import scipy as sp
 
-
-
-
 ##########################
 ### Stochastic Process
 ##########################
@@ -64,16 +61,20 @@ def wmean(a, w, mean='geometric'):
 ##########################
 
 def draw_square(mat, value, topleft, l, L, w=0):
-    mat[:, pos+w:pos] = value
-    mat[pos+w:pos, :] = value
-    mat[:, border-w:border] = value
-    mat[border-w:border, :] = value
-    return mat
+    tl = topleft
 
+    # Vertical draw
+    mat[tl[0]:tl[0]+l, tl[1]:tl[1]+w] = value
+    mat[tl[0]:tl[0]+l, tl[1]+L-w:tl[1]+L] = value
+    # Horizontal draw
+    mat[tl[0]:tl[0]+w, tl[1]:tl[1]+L] = value
+    mat[tl[0]+l-w:tl[0]+l, tl[1]:tl[1]+L] = value
+    return mat
 
 ##########################
 ### Colors Operation
 ##########################
+
 def floatRgb(mag, cmin, cmax):
 	""" Return a tuple of floats between 0 and 1 for the red, green and
 		blue amplitudes.

@@ -5,6 +5,7 @@ from frontend.frontend import ModelManager, FrontendManager
 from frontend.frontendnetwork import frontendNetwork
 from utils.utils import *
 from utils.math import *
+from utils.algo import Annealing
 from plot import *
 from frontend.frontend_io import *
 from expe.spec import _spec_
@@ -12,7 +13,6 @@ from expe.format import *
 from utils.argparser import argparser
 
 from collections import Counter, defaultdict
-import itertools
 
 USAGE = '''\
 # Usage:
@@ -37,18 +37,17 @@ config = defaultdict(lambda: False, dict(
 ))
 config.update(argparser.generate(USAGE))
 
-alpha = 0.5
-gmma = 0.5
-delta = 0.1
-delta = (0.1, 0.1)
+alpha = 1
+gmma = 1
+delta = (0.8, 0.1)
 
 # Corpuses
 Corpuses = _spec_.CORPUS_REAL_ICDM_1
 Corpuses = _spec_.CORPUS_SYN_ICDM_1
+Corpuses = ('generator10',)
+
 ### Models
 #Models = _spec_.MODELS_GENERATE
-
-Corpuses = ('generator7',)
 Models = [dict ((
     ('data_type'    , 'networks'),
     ('debug'        , 'debug11') , # ign in gen
@@ -78,7 +77,9 @@ for corpus_name in Corpuses:
     data = frontend.sample()
     for Model in Models:
 
+        ###################################
         ### Setup Models
+        ###################################
         if config['generative'] == 'predictive':
             ### Generate data from a fitted model
             Model.update(corpus=corpus_name)
@@ -105,13 +106,16 @@ for corpus_name in Corpuses:
         if model is None:
             continue
 
+        ###################################
+        ### Generate data
+        ###################################
         ### Defaut random graph (Evidence), is directed
         y, theta, phi = model.generate(N, Model['K'], _type=config['generative'])
         Y = [y]
         for i in range(config.get('epoch',1)-1):
             ### Mean and var on the networks generated
             pij = model.link_expectation(theta, phi)
-            pij = sp.stats.threshold(model.link_expectation(theta, phi), threshmax=1, newval=1)
+            pij = np.clip(model.link_expectation(theta, phi), 0, 1)
             Y += [sp.stats.bernoulli.rvs(pij)]
             ### Mean and variance  on the model generated
             #y, theta, phi = model.generate(N, Model['K'], _type=config['generative'])
@@ -119,7 +123,7 @@ for corpus_name in Corpuses:
         #y = data
         #Y = [y]
 
-        ### Baselines
+        ### @TODO: Baselines / put in args input.
         #R = rescal(data, config['K'])
         R = None
 
@@ -130,34 +134,47 @@ for corpus_name in Corpuses:
                 frontend.symmetrize(y)
                 frontend.symmetrize(R)
 
-        ###############################################################
-        ### Expe Wrap up debug
+        ###################################
+        ### Expe Show Setup
+        ###################################
         model_name = Model['model']
         model_hyper = Model['hyperparams']
+        print 'Mode: %s' % config['generative']
         print('corpus: %s, model: %s, K = %s, N =  %s, hyper: %s'.replace(',','\n') % (corpus_name, model_name, K, N, str(model_hyper)) )
 
-        ### Visualization
+        ###################################
+        ### Visualize
+        ###################################
         if config.get('write_to_file'):
             #generate_icdm(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'])
             generate_icdm_debug(data=data, Y=Y, corpus_name=corpus_name, model_name=model_name, K=K)
             continue
 
-        ### aistat16
-        if config['generative'] == 'predictive' and False:
-            plt.figure()
-            plot_degree_poly_l(Y)
-            plot_degree_poly(data, scatter=False)
-            plt.title('%s on %s'% (Model['model'], corpus_name))
-        elif config['generative'] == 'evidence' or True:
-            comm = preferential_attachment(**globals())
-            #draw_graph(y, clusters)
-            #draw_graph_spectral(y, clusters)
-            #draw_graph_circular(y, clusters)
-            #adjshow(y, title='Adjacency Matrix')
-            adjshow(y, clusters=comm['clusters'], title='Blockmodels of Adjacency matrix')
+        #comm = preferential_attachment(**globals())
 
-            draw_blocks(comm)
-            print 'density: %s' % (float(y.sum()) / (N**2))
+        if config['generative'] == 'predictive':
+            y = data
+
+        #draw_graph(y, clusters)
+        #draw_graph_spectral(y, clusters)
+        #draw_graph_circular(y, clusters)
+        #adjshow(y, title='Adjacency Matrix')
+
+        #adjblocks(y, clusters=comm['clusters'], title='Blockmodels of Adjacency matrix')
+        #draw_blocks(comm)
+
+        phi = data
+        #phi[0,0] = 10
+        adjshow(phi, 'phi')
+        plt.colorbar()
+
+        a = Annealing(phi, C_init=2)
+        p = a.search()
+        a.draw_boundary(p)
+        adjshow(p, 'phi annealed')
+        plt.colorbar()
+
+        print 'density: %s' % (float(y.sum()) / (N**2))
 
         display(False)
 

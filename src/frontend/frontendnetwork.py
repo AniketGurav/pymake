@@ -2,7 +2,9 @@ import sys, os
 from itertools import chain
 from operator import itemgetter
 from string import Template
+
 from numpy import ma
+import numpy as np
 import networkx as nx
 
 from .frontend import DataBase
@@ -21,12 +23,11 @@ Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
 
 class frontendNetwork(DataBase):
 
-    def __init__(self, config):
+    def __init__(self, config=dict(), data=None):
         self.bdir = 'networks'
-        super(frontendNetwork, self).__init__(config)
+        super(frontendNetwork, self).__init__(config, data)
         self.make_output_path()
-
-    # /!\ Will set the name of output_path.
+        # /!\ Will set the name of output_path.
 
     #Todo; remove conflit wih loader...
     #def load(self, **kwargs):
@@ -191,11 +192,14 @@ class frontendNetwork(DataBase):
             if not hasattr(self, a):
                 setattr(self, a, None)
 
+        self.update_data(data)
+        return True
+
+    def update_data(self, data):
         self.data = data
         N, M = self.data.shape
         self.N = N
         self.nodes_list = [np.arange(N), np.arange(M)]
-        return True
 
     def networkloader(self, fn):
         """ Load pickle or parse data """
@@ -284,7 +288,7 @@ class frontendNetwork(DataBase):
                     data.append( line.strip() )
         f.close()
 
-        edges = [tuple(row.split(';')) for row in data]
+        edges = np.array([tuple(row.split(';')) for row in data]).astype(int)
         g = np.zeros((N,N))
         g[[e[0] for e in edges], [e[1] for e in edges]] = 1
         g[[e[1] for e in edges], [e[0] for e in edges]] = 1

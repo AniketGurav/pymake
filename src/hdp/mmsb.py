@@ -15,11 +15,9 @@ from numpy.random import dirichlet, gamma, poisson, binomial, beta
 from sympy.functions.combinatorial.numbers import stirling
 
 from frontend.frontend import DataBase, ModelBase
-# make use of frontend Networks instance for generated graph !
-from plot import adj_to_degree, degree_hist
 
 from utils.math import *
-from utils.utils import kmeans
+from utils.algo import *
 from utils.compute_stirling import load_stirling
 _stirling_mat = load_stirling()
 
@@ -831,7 +829,7 @@ class GibbsRun(ModelBase):
         #pij[pij < 0.5 ] = 0
         #Y = pij
         pij = self.link_expectation(theta, phi)
-        pij = sp.stats.threshold(pij, threshmax=1, newval=1)
+        pij = np.clip(pij, 0, 1)
         Y = sp.stats.bernoulli.rvs(pij)
 
         #for j in xrange(N):
@@ -1007,6 +1005,9 @@ class GibbsRun(ModelBase):
         else:
             raise NotImplementedError('Clustering algorithm unknow')
 
+        if not hasattr(self, 'comm'):
+            self.comm = dict()
+
         self.comm.update( f(data=data, symmetric=symmetric) )
         return self.comm
 
@@ -1049,13 +1050,16 @@ class GibbsRun(ModelBase):
             k_perm = itertools.product(np.unique(clusters) , repeat=2)
 
         for c in k_perm:
-            if len(c) == 2:
+            if type(c) in (np.float64, np.int64):
+                # one clusters (as it appears for real with max assignment
+                l = k = c
+            elif  len(c) == 2:
                 # Stochastic Equivalence (extra class bind
                 k, l = c
             else:
                 # Comunnities (intra class bind)
                 k = l = c.pop()
-            comm = str(k) + str(l)
+            comm = (str(k), str(l))
             local = local_degree.get(comm, [])
 
             C = np.tile(clusters, (data.shape[0],1))
@@ -1076,7 +1080,7 @@ class GibbsRun(ModelBase):
                 'block_hist': block_hist,
                 'size': len(block_hist)}
 
-    def blockmodel_ties(self, data=None):
+    def blockmodel_ties(self, data=None, remove_empty=True):
         """ return ties based on a weighted average
             of the local degree ditribution """
 
@@ -1090,7 +1094,14 @@ class GibbsRun(ModelBase):
         # Variance Unused How to represant that !?
         #v = np.array(map(np.std, comm['local_degree'].values()))
 
-        hist, label = zip(*sorted(zip(m, comm['local_degree'].keys() ), reverse=True))
+        # factorize by using clusters hist instead
+        hist, label = sorted_perm(m, comm['local_degree'].keys(), reverse=True)
+
+        if remove_empty is True:
+            null_classes = (hist == 0).sum()
+            if null_classes > 0:
+                hist = hist[:-null_classes]; label = label[:-null_classes]
+
         bm = zip(label, hist)
         self.comm['block_ties'] = bm
         return bm

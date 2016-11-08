@@ -12,7 +12,7 @@ sp_dot = csr_matrix.dot
 
 from .ibp import IBP
 from frontend.frontend import DataBase, ModelBase
-from utils.utils import kmeans
+from utils.algo import *
 
 # We will be taking log(0) = -Inf, so turn off this warning
 #np.seterr(divide='ignore')

@@ -8,16 +8,22 @@ from plot import *
 from expe.spec import _spec_
 from expe.format import corpus_icdm
 from utils.argparser import argparser
+from utils.algo import reorder_mat
 
 """ Inspect data on disk, for checking
     or updating results
+
+    params
+    ------
+    zipf : degree based analysis
+    homo : homophily based analysis
 """
 
 ### Config
 config = defaultdict(lambda: False, dict(
     write_to_file = False,
     do           = 'homo', # homo/zipf
-    clusters      = 'model' # source/model
+    clusters      = 'source' # source/model
 ))
 config.update(argparser.generate(''))
 
@@ -42,12 +48,10 @@ for corpus_name in Corpuses:
     msg = frontend.template(prop)
     #print msg
 
-    degree = adj_to_degree(data)
-    gofit(*degree_hist(adj_to_degree(data)))
-
     if config['do'] == 'homo':
-        #################################################
+        ###################################
         ### Homophily Analysis
+        ###################################
 
         print corpus_name
         homo_euclide_o_old, homo_euclide_e_old = frontend.homophily(sim='euclide_old')
@@ -73,8 +77,11 @@ for corpus_name in Corpuses:
         #print frontend.template(prop)
 
     else:
-        #################################################
+        ###################################
         ### Zipf Analisis
+        ###################################
+        degree = adj_to_degree(data)
+        gofit(*degree_hist(adj_to_degree(data)))
 
         ### Get the Class/Cluster and local degree information
         data_r = data
@@ -97,27 +104,35 @@ for corpus_name in Corpuses:
         except Exception, e:
             msg = 'Skypping reordering adjacency matrix: %s' % e
 
+        ##############################
         ### Reordering Adjacency Mmatrix based on Clusters/Class/Communities
+        ##############################
         if clusters is not None:
+            print 'Reordering Adj matrix:'
             print 'corpus: %s, %s, Clusters size: %s' % (corpus_name, msg, K)
-            data_r = reorder_adj(data, clusters)
+            data_r = reorder_mat(data, clusters)
         else:
-            print 'no reordering !'
+            print 'No Reordering !'
 
-        #################################################
+        ###################################
         ### Plotting
+        ###################################
         if config.get('write_to_file'):
             corpus_icdm(data=data_r, corpus_name=corpus_name)
             continue
 
+        ###################################
         ### Plot Adjacency matrix
+        ###################################
         plt.figure()
         plt.suptitle(corpus_name)
         plt.subplot(1,2,1)
-        adjshow(data_r, title='Adjacency Matrix')
+        adjshow(data_r, title='Adjacency Matrix', fig=False)
         #plt.figtext(.15, .1, homo_text, fontsize=12)
 
+        ###################################
         ### Plot Degree
+        ###################################
         plt.subplot(1,2,2)
         #plot_degree_(data, title='Overall Degree')
         plot_degree_poly(data)
