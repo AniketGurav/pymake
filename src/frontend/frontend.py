@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import sys, os
 import pickle, json
 from itertools import chain
@@ -10,21 +12,17 @@ import numpy as np
 
 from .frontend_io import *
 
-### @Debug :
-#   * update config path !
-#   * Separate attribute of the frontend: dataset / Learning / IHM ...
-
-# review that:
-#    * separate better load / save and preprocessing (input can be file or array...)
-#    * view of file confif.... and path creation....
 
 class Object(object):
     """ Implement a mathematical object manipulation philosophy,
         WIth a high level view of object set as topoi.
         * return None for errorAtributes
-        * ...
+        * memorize all input as attribute by default
     """
-    def __init__(**kwargs):
+    # @todo: catch attributeError on config, and print possibilities if possible
+    # (ie the method assciated to the key in the object in getattr ? --> tab completion)
+
+    def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
     #def __getattr__(self, attr):
@@ -45,23 +43,28 @@ class Object(object):
     #            return None
 
 class DataBase(object):
+    """ Root Class for Frontend Manipulation over Corpuses and Models.
+
+        Given Data Y, and Model M = {\theta, \Phi}
+        E[Y] = \theta \phi^T
+
+        Fonctionality are of the frontend decline as:
+        1. Frontend for model/algorithm I/O,
+        2. Frontend for Corpus Information, and Result Gathering for
+            Machine Learning Models.
+        3. Data Analisis and Prediction..
+
+        load_corpus -> load_text_corpus -> text_loader
+        (frontent)  ->   (choice)       -> (adapt preprocessing)
+
     """
-###################################################################
-### Root Class for Frontend Manipulation over Corpuses and Models.
+    ### @Debug :
+    #   * update config path !
+    #   * Separate attribute of the frontend: dataset / Learning / IHM ...
 
-    Given Data Y, and Model M = {\theta, \Phi}
-    E[Y] = \theta \phi^T
-
-    Fonctionality are of the frontend decline as:
-    1. Frontend for model/algorithm I/O,
-    2. Frontend for Corpus Information, and Result Gathering for
-        Machine Learning Models.
-    3. Data Analisis and Prediction..
-
-    load_corpus -> load_text_corpus -> text_loader
-    (frontent)  ->   (choice)       -> (adapt preprocessing)
-
-"""
+    # review that:
+    #    * separate better load / save and preprocessing (input can be file or array...)
+    #    * view of file confif.... and path creation....
 
     def __init__(self, config, data=None):
         if config.get('seed'):
@@ -69,19 +72,17 @@ class DataBase(object):
             np.random.set_state(self.load('.seed'))
         self.seed = np.random.get_state()
         self.save(self.seed, '.seed')
-        self.config = config
+        self.cfg = config
         config['data_type'] = self.bdir
 
         self.corpus_name = config.get('corpus_name') or config.get('corpus')
         self.model_name = config.get('model_name')
 
-        self.K = config.get('K', 10)
-        self.C = config.get('C', 10)
-        self.N = config.get('N')
         self.homo = int(config.get('homo', 0))
         self.hyper_optimiztn = config.get('hyper')
+
         self.true_classes = None
-        self.data = None
+        self.data = data
         self.data_t = None
 
         self._load_data = config.get('load_data')
@@ -100,14 +101,14 @@ class DataBase(object):
 
     def make_output_path(self):
         # Write Path (for models results)
-        self.basedir, self.output_path = make_output_path(self.config)
-        self.config['output_path'] = self.output_path
+        self.basedir, self.output_path = make_output_path(self.cfg)
+        self.cfg['output_path'] = self.output_path
 
     def update_spec(self, **spec):
         if len(spec) == 1:
             k, v = spec.items()[0]
             setattr(self, k, v)
-        self.config.update(spec)
+        self.cfg.update(spec)
 
     @staticmethod
     def corpus_walker(path):
@@ -327,8 +328,8 @@ class ModelBase(object):
 
 
 # Model Import
-from hdp import mmsb, lda
-from ibp.ilfm_gs import IBPGibbsSampling
+from models.hdp import mmsb, lda
+from models.ibp.ilfm_gs import IBPGibbsSampling
 
 sys.path.insert(1, '../../gensim')
 import gensim as gsm

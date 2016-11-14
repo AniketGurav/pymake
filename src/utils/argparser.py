@@ -140,25 +140,28 @@ class argparser(object):
             if write_key in clargs.all:
                 conf['write_to_file'] = True
 
-        gargs = clargs.grouped['_'].all
+        gargs = clargs.grouped.pop('_')
 
-        if clargs.last > 0:
+        ### map config dict to argument
+        for key in clargs.grouped:
+            if '-k' == key:
+                conf['K'] = int(clargs.grouped['-k'].get(0))
+            elif '-n' in key:
+                conf['gen_size'] = int(clargs.grouped['-n'].get(0))
+            elif '--alpha' in key:
+                conf['alpha'] = float(clargs.grouped['--alpha'].get(0))
+            elif '--gmma' in key:
+                conf['gmma'] = float(clargs.grouped['--gmma'].get(0))
+            elif '--delta' in key:
+                conf['delta'] = float(clargs.grouped['--delta'].get(0))
+            elif '-g' in key:
+                conf['generative'] = 'evidence'
+            elif '-p' in key:
+                conf['generative'] = 'predictive'
+
+        if clargs.last and clargs.last not in clargs.flags.all + conf.values():
             conf['do'] = clargs.last
 
-        if '-k' in clargs.grouped:
-            conf['K'] = int(clargs.grouped['-k'].get(0))
-        if '-n' in clargs.grouped:
-            conf['gen_size'] = int(clargs.grouped['-n'].get(0))
-        if '--alpha' in clargs.grouped:
-            conf['alpha'] = float(clargs.grouped['--alpha'].get(0))
-        if '--gmma' in clargs.grouped:
-            conf['gmma'] = float(clargs.grouped['--gmma'].get(0))
-        if '--delta' in clargs.grouped:
-            conf['delta'] = float(clargs.grouped['--delta'].get(0))
-        if '-g' in clargs.grouped:
-            conf['generative'] = 'evidence'
-        if '-p' in clargs.grouped:
-            conf['generative'] = 'predictive'
         return conf
 
     @staticmethod

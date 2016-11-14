@@ -186,13 +186,24 @@ def plot_degree_2(P, logscale=False, colors=False, line=False):
 ### Graph/Matrix Drawing
 ##########################
 
-def draw_boundary(self, mat, clusters):
+def draw_boundary(mat, clusters):
+    """ Clusters: list of membership or list of boudary """
+    # sorted operation in reorder and clusters could optimized (redondancy)
+    N = mat.shape[0]
+    if len(clusters) < N:
+        B = clusters
+        K = len(B) - 1
+        B = B[1:-1]
+    else:
+        mat = reorder_mat(mat, clusters)
+        B, _ = clusters_hist(clusters)
+        B = np.cumsum(B)[:-1]
 
-    N = self.mat.shape[0]
-    c = np.arange(2, K+1)
-    w = int(0.005 * K)
+    K = len(B)
+    c = np.arange(mat.max()+1, mat.max()+1+K+1)
+    w = int(0.005 * N)
     print 'drawing boundary %s' % B
-    for i, b in enumerate(B[1:-1]):
+    for i, b in enumerate(B):
         mat[b-w:b+w, :] = c[i]
         mat[:, b-w:b+w] = c[i]
     return mat
@@ -278,6 +289,7 @@ def adjblocks(Y, clusters=None, title=''):
         cmap = Colors.ListedColormap(['#000000', '#FFFFFF']+ u_colors.seq[:len(hist)**2])
         bounds = np.arange(len(hist)**2+2)
         norm = Colors.BoundaryNorm(bounds, cmap.N)
+        # Iterate over blockmodel
         for k, count_k in enumerate(hist):
             for l, count_l in enumerate(hist):
                 # Draw a colored square (not white and black)
@@ -288,8 +300,8 @@ def adjblocks(Y, clusters=None, title=''):
 
     implt = plt.imshow(y, cmap=cmap, norm=norm,
                        clim=(np.amin(y), np.amax(y)),
-                       interpolation='nearest',
-                       origin='upper')
+                       interpolation='nearest',)
+                       #origin='upper') # change shape !
     #plt.colorbar()
     plt.title(title)
     #plt.savefig(filename, fig=fig, facecolor='white', edgecolor='black')

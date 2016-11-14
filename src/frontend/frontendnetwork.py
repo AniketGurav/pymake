@@ -1,6 +1,5 @@
 import sys, os
 from itertools import chain
-from operator import itemgetter
 from string import Template
 
 from numpy import ma
@@ -8,20 +7,29 @@ import numpy as np
 import networkx as nx
 
 from .frontend import DataBase
-from utils.utils import *
+from utils.utils import parse_file_conf
 
 sys.path.insert(1, '../../gensim')
 import gensim
 from gensim.models import ldamodel, ldafullbaye
 Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
 
-############################################################
-############################################################
-#### Frontend for network data.
-#
-#   Symmetric network support.
+
+def getClique(N=100, K=4):
+    from scipy.linalg import block_diag
+    b = []
+    for k in range(K):
+        n = N / K
+        b.append(np.ones((n,n)))
+
+    C = block_diag(*b)
+    return C
+
 
 class frontendNetwork(DataBase):
+    """ Frontend for network data.
+        Symmetric network support.
+    """
 
     def __init__(self, config=dict(), data=None):
         self.bdir = 'networks'
@@ -36,7 +44,7 @@ class frontendNetwork(DataBase):
         """ Load data according to different scheme:
             * Corpus from file dataset
             * Corpus from random generator
-            """
+        """
         if corpus_name is not None:
             self.update_spec(**{'corpus_name': corpus_name})
         else:
@@ -64,7 +72,7 @@ class frontendNetwork(DataBase):
     def sample(self, N=None, symmetric=False, randomize=False):
         N = N or self.N
         n = self.data.shape[0]
-        N_config = self.config['N']
+        N_config = self.cfg['N']
         if not N_config or N_config == 'all':
             self.N = N
         else:
@@ -140,7 +148,7 @@ class frontendNetwork(DataBase):
         return self.symmetric
 
     def random(self, rnd):
-        config = self.config
+        config = self.cfg
         # Generate Data
         if type(config.get('random')) is int:
             rvalue = _rvalue.get(config['random'])
@@ -162,10 +170,12 @@ class frontendNetwork(DataBase):
     ### Redirect to correct path depending on the corpus_name
     def get_corpus(self, corpus_name):
         self.make_output_path()
+        N = self.cfg['N']
         try:
-            N = int(self.N)
+            N = int(N)
         except:
             # Catch later or elsewhere
+            N = 'all'
             pass
 
         if corpus_name.startswith(('generator', 'Graph')):
@@ -372,11 +382,11 @@ class frontendNetwork(DataBase):
         return self.clusters
 
     def clusters_len(self):
-        cluster = self.get_clusters()
-        if not cluster:
+        clusters = self.get_clusters()
+        if not clusters:
             return None
         else:
-            return max(self.clusters)+1
+            return max(clusters)+1
 
     def get_data_prop(self):
         prop =  super(frontendNetwork, self).get_data_prop()

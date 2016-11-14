@@ -55,7 +55,7 @@ _MASTERKEYS_ = OrderedDict((
     ('debug'       , None),
     ('repeat'      , None),
     ('model'       , None),
-    ('K'           , 5),
+    ('K'           , None),
     ('hyper'       , None),
     ('homo'        , None),
     ('N'           , 'all'),

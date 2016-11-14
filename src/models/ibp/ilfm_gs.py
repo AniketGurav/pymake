@@ -595,7 +595,7 @@ class IBPGibbsSampling(IBP, ModelBase):
         return clusters
 
     #@wrapper !
-    def communities_analysis(self, Z, data=None):
+    def communities_analysis(self, data=None):
         if data is None:
             data = self._Y.data
             symmetric = self.symmetric

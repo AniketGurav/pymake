@@ -920,7 +920,7 @@ class GibbsRun(ModelBase):
 
         ### Finding Communities
         lgg.info('Finding Communities...')
-        communities = self.communities_analysis(theta)
+        communities = self.communities_analysis()
 
         res = {'Precision': precision,
                'Recall': rappel,

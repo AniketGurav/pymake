@@ -217,16 +217,6 @@ def getGraph(target='', **conf):
     return g
 
 
-def getClique(N=100, K=4):
-    from scipy.linalg import block_diag
-    b = []
-    for k in range(K):
-        n = N / K
-        b.append(np.ones((n,n)))
-
-    C = block_diag(*b)
-    return C
-
 
 # Assign new values to an array according to a map list
 def set_v_to(a, map):

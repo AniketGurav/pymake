@@ -16,10 +16,12 @@ from collections import Counter, defaultdict
 
 USAGE = '''\
 # Usage:
-    generate [-w] [-k K] [-n N] [--[hypername]] [-g|-p]]
+    generate [-w] [-k K] [-n N] [--[hypername]] [-g|-p]] [analysis]
 
 -g: generative model (evidence)
 -p: predicted data (model fitted)
+
+analysis in [clustering, zipf, (to complete)]
 
 # Examples
     parallel ./generate.py -w -k {}  ::: $(echo 5 10 15 20)
@@ -30,6 +32,7 @@ USAGE = '''\
 ### Config
 config = defaultdict(lambda: False, dict(
     write_to_file = False,
+    do            = 'zipf',
     generative    = 'evidence',
     #generative    = 'predictive',
     gen_size      = 1000,
@@ -150,8 +153,11 @@ for corpus_name in Corpuses:
             format.generate_icdm_debug(data=data, Y=Y, corpus_name=corpus_name, model_name=model_name, K=K)
             continue
 
+        g = None
         if config['generative'] == 'predictive':
             y = data
+        else:
+            y = Y[0]
 
         analysis = getattr(format, config['do'])
         analysis(**globals())

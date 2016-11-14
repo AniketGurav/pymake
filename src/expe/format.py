@@ -7,9 +7,11 @@ import os.path
 from random import choice
 import itertools
 
+import utils.algo as A
+from utils.algo import gofit
 from utils.utils import *
 from utils.math import *
-from utils.algo import *
+
 from plot import *
 from plot import _markers, _colors
 
@@ -284,6 +286,21 @@ def zipf(**kwargs):
 
     print 'density: %s' % (float(y.sum()) / (N**2))
 
+def debug(**kwargs):
+    y = kwargs['y']
+    model = kwargs['model']
+
+    clustering = 'modularity'
+    comm = model.communities_analysis(data=y, clustering=clustering)
+
+    clusters = comm['clusters']
+
+    #y, l = reorder_mat(y, clusters, labels=True)
+    #clusters = clusters[l]
+
+    adjblocks(y, clusters=clusters, title='Blockmodels of Adjacency matrix')
+    #adjshow(reorder_mat(y, comm['clusters']), 'test reordering')
+
 
 def roc_test(**kwargs):
     globals().update(kwargs)
@@ -308,15 +325,19 @@ def perplexity(**kwargs):
     ll_y = np.ma.masked_invalid(np.array(ll_y, dtype='float'))
     plt.plot(ll_y, label=model_[model_name])
 
-
-def clustering(algo='Annealing', **kwargs):
+_algo = 'Louvain'
+_algo = 'Annealing'
+def clustering(algo=_algo, **kwargs):
         globals().update(kwargs)
 
-        a = Annealing(data)
-        clusters = a.search()
+        mat = data
+        #mat = phi
 
-        data_b = draw_boundary(data, clusters)
+        alg = getattr(A, algo)(mat)
+        clusters = alg.search()
 
-        plt.colorbar()
-        adjshow(data_b, algo)
+        mat = draw_boundary(alg.hi_phi(), alg.B)
+        #mat = draw_boundary(mat, clusters)
+
+        adjshow(mat, algo)
         plt.colorbar()

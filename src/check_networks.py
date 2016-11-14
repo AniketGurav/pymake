@@ -23,7 +23,7 @@ from utils.algo import reorder_mat
 config = defaultdict(lambda: False, dict(
     write_to_file = False,
     do           = 'homo', # homo/zipf
-    clusters      = 'source' # source/model
+    clusters_org = 'model' # source/model
 ))
 config.update(argparser.generate(''))
 
@@ -90,7 +90,7 @@ for corpus_name in Corpuses:
         try:
             msg =  'Getting Cluster from Dataset.'
             clusters = frontend.get_clusters()
-            if config.get('clusters') == 'model':
+            if config.get('clusters_org') == 'model':
                 if clusters is not None:
                     class_hist = np.bincount(clusters)
                     K = (class_hist != 0).sum()
@@ -99,8 +99,8 @@ for corpus_name in Corpuses:
             msg =  'Getting Latent Classes from Latent Models %s' % Model['model']
             Model.update(corpus=corpus_name)
             model = ModelManager(config=config).load(Model)
-            #clusters = model.get_clusters(K, skip=1)
-            clusters = model.get_communities(K)
+            clusters = model.get_clusters(K, skip=1)
+            #clusters = model.get_communities(K)
         except Exception, e:
             msg = 'Skypping reordering adjacency matrix: %s' % e
 
@@ -108,7 +108,7 @@ for corpus_name in Corpuses:
         ### Reordering Adjacency Mmatrix based on Clusters/Class/Communities
         ##############################
         if clusters is not None:
-            print 'Reordering Adj matrix:'
+            print 'Reordering Adj matrix from `%s\':' % config.get('clusters_org')
             print 'corpus: %s, %s, Clusters size: %s' % (corpus_name, msg, K)
             data_r = reorder_mat(data, clusters)
         else:

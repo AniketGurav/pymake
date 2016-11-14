@@ -2,6 +2,8 @@ import sys, os
 from itertools import chain
 from string import Template
 
+from utils.utils import make_path
+
 from .frontend import DataBase
 from utils.vocabulary import Vocabulary, parse_corpus
 
@@ -10,15 +12,14 @@ import gensim
 from gensim.models import ldamodel, ldafullbaye
 Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': None}
 
-############################################################
-############################################################
-#### Frontend for text data ie Corpus.
 
 class frontendText(DataBase):
+    """ Frontend for text data ie Corpus.  """
 
-    def __init__(self, config):
+    def __init__(self, config=dict(), data=None):
         self.bdir = 'text'
-        super(frontendText, self).__init__(config)
+        super(frontendText, self).__init__(config, data)
+        self.make_output_path()
 
     def load_data(self, corpus_name=None, randomize=False):
         """ Load data according to different scheme:
