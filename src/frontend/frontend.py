@@ -197,6 +197,7 @@ class DataBase(object):
 
 from .frontendtext import frontendText
 from .frontendnetwork import frontendNetwork
+
 class FrontendManager(object):
     """ Utility Class who aims at mananing the frontend at the higher level.
     """
@@ -330,6 +331,12 @@ class ModelBase(object):
 # Model Import
 from models.hdp import mmsb, lda
 from models.ibp.ilfm_gs import IBPGibbsSampling
+
+#### @Debug/temp modules name changed in pickle model
+from models import hdp, ibp
+sys.modules['hdp'] = hdp
+sys.modules['ibp'] = ibp
+###
 
 sys.path.insert(1, '../../gensim')
 import gensim as gsm

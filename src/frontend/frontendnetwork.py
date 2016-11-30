@@ -5,6 +5,7 @@ from string import Template
 from numpy import ma
 import numpy as np
 import networkx as nx
+import community as pylouvain
 
 from .frontend import DataBase
 from utils.utils import parse_file_conf
@@ -25,6 +26,7 @@ def getClique(N=100, K=4):
     C = block_diag(*b)
     return C
 
+### @Issue42: fronteNetwork should be imported fron frontend
 
 class frontendNetwork(DataBase):
     """ Frontend for network data.
@@ -335,6 +337,14 @@ class frontendNetwork(DataBase):
         G = self.GG()
         return nx.density(G)
 
+    def modularity(self):
+        part =  self.get_partition()
+        if not part:
+            return None
+        g = self.GG()
+        modul = pylouvain.modularity(part, g)
+        return modul
+
     def diameter(self):
         G = self.GG()
         try:
@@ -381,6 +391,13 @@ class frontendNetwork(DataBase):
     def get_clusters(self):
         return self.clusters
 
+    def get_partition(self, clusters=None):
+        clusters = self.clusters or clusters
+        if not clusters:
+            return {}
+        K = len(clusters)
+        return dict(zip(*[np.arange(K), clusters]))
+
     def clusters_len(self):
         clusters = self.get_clusters()
         if not clusters:
@@ -399,6 +416,7 @@ class frontendNetwork(DataBase):
                'density': self.density(),
                'diameter': self.diameter(),
                'clustering_coef': self.clustering_coefficient(),
+               'modularity': self.modularity(),
                'communities': self.clusters_len(),
                'features': self.get_nfeat(),
                'directed': not self.is_symmetric()
@@ -415,6 +433,7 @@ class frontendNetwork(DataBase):
         Degree mean: $nnz_mean
         Degree var: $nnz_var
         Diameter: $diameter
+        Modularity: $modularity
         Clustering Coefficient: $clustering_coef
         Density: $density
         Communities: $communities
@@ -606,5 +625,4 @@ class frontendNetwork(DataBase):
 
         d = {'NMI' : NMI, 'homo_ind1_source' : homo_ind1_source, 'homo_ind1_learn' : homo_ind1_learn}
         return d
-
 

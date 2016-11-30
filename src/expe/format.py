@@ -183,8 +183,8 @@ def zipf(**kwargs):
     ##############################
     now = Now()
     ZZ = []
-    for _ in [Y[0]]:
-    #for _ in Y: # Do not reflect real local degree !
+    #for _ in [Y[0]]:
+    for _ in Y: # Do not reflect real local degree !
         Z = np.empty((2,N,N))
         order = np.arange(N**2).reshape((N,N))
         if frontend.is_symmetric():
@@ -223,7 +223,7 @@ def zipf(**kwargs):
         k_perm =  np.unique(map(list, map(list, map(set, itertools.product(range(theta.shape[1]) , repeat=2)))))
     else:
         #k_perm = itertools.product(np.unique(clusters) , repeat=2)
-        k_perm =  itertools.product(range(theta.shape[1]) , repeat=2)
+        k_perm = itertools.product(range(theta.shape[1]) , repeat=2)
     for c in k_perm:
         if len(c) == 2:
             # Stochastic Equivalence (extra class bind
@@ -328,16 +328,16 @@ def perplexity(**kwargs):
 _algo = 'Louvain'
 _algo = 'Annealing'
 def clustering(algo=_algo, **kwargs):
-        globals().update(kwargs)
+    globals().update(kwargs)
 
-        mat = data
-        #mat = phi
+    mat = data
+    #mat = phi
 
-        alg = getattr(A, algo)(mat)
-        clusters = alg.search()
+    alg = getattr(A, algo)(mat)
+    clusters = alg.search()
 
-        mat = draw_boundary(alg.hi_phi(), alg.B)
-        #mat = draw_boundary(mat, clusters)
+    mat = draw_boundary(alg.hi_phi(), alg.B)
+    #mat = draw_boundary(mat, clusters)
 
-        adjshow(mat, algo)
-        plt.colorbar()
+    adjshow(mat, algo)
+    plt.colorbar()

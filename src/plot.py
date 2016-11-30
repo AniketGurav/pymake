@@ -227,16 +227,26 @@ def draw_blocks(comm):
 
     G = nx.Graph(nodesep=0.7)
     u_colors.reset()
-    for l, s in enumerate(blocks):
+    ind_color = np.arange(0, len(blocks)**2, 2) % len(u_colors.seq)
+    #ind_color = np.diag(np.arange(len(blocks)**2).reshape([len(blocks)]*2)) % len(u_colors.seq)
+    colors = np.array(u_colors.seq)[ind_color]
+
+    # if sorted
+    sorted_blocks, sorted_ind = zip(*sorted( zip(blocks, range(len(blocks))) , reverse=True))
+    for l, s in enumerate(sorted_blocks):
         if s == 0:
             continue
-        G.add_node(int(l), width=s, height=s, fillcolor=next(u_colors), style='filled')
+        G.add_node(int(l), width=s, height=s, fillcolor=colors[l], style='filled')
 
     max_t = max(ties, key=lambda x:x[1])[1]
     if max_t > max_n:
         scale = np.exp(2) * float(max_n) / max_t
+
     for l, s in ties:
         i, j = l
+        # if sorted
+        i = sorted_ind.index(int(i))
+        j = sorted_ind.index(int(j))
         G.add_edge(i, j, penwidth = s * scale)
 
     return write_dot(G, 'graph.dot')
@@ -263,8 +273,6 @@ def draw_graph_spectral(y, clusters='blue', ns=30):
     pos = graphviz_layout(G, prog='twopi', args='')
     plt.figure()
     nx.draw_spectral(G, cmap = plt.get_cmap('jet'), node_color = clusters, node_size=30, with_labels=False)
-
-
 
 def adjblocks(Y, clusters=None, title=''):
     """ Make a colormap image of a matrix

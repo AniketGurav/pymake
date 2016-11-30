@@ -159,7 +159,7 @@ class argparser(object):
             elif '-p' in key:
                 conf['generative'] = 'predictive'
 
-        if clargs.last and clargs.last not in clargs.flags.all + conf.values():
+        if clargs.last and clargs.last not in map(str, clargs.flags.all + conf.values()):
             conf['do'] = clargs.last
 
         return conf

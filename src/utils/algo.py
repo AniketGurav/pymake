@@ -3,7 +3,8 @@
 import numpy as np
 import scipy as sp
 
-from frontend.frontend import Object, frontendNetwork
+from frontend.frontend import Object
+from frontend.frontendnetwork import frontendNetwork
 
 from .utils import *
 from .math import *

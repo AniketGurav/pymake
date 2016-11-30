@@ -10,6 +10,7 @@
 # @todo: frontend: use for bas class for random network:
 #   * integration of measure on degree, goodness of fit etc
 #   * deal with the fact taht there no loading scheme here...
+#   * OBJECT ! change frontendNetwork to Graph(Object), it is cleat ! (implement morphism in Object for example. (issue42)
 #
 #
 # @purge: model/lda

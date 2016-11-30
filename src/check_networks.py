@@ -6,7 +6,7 @@ from frontend.frontendnetwork import frontendNetwork
 from utils.utils import *
 from plot import *
 from expe.spec import _spec_
-from expe.format import corpus_icdm
+from expe.format import corpus_icdm, corpus_
 from utils.argparser import argparser
 from utils.algo import reorder_mat
 
@@ -109,10 +109,11 @@ for corpus_name in Corpuses:
         ##############################
         if clusters is not None:
             print 'Reordering Adj matrix from `%s\':' % config.get('clusters_org')
-            print 'corpus: %s, %s, Clusters size: %s' % (corpus_name, msg, K)
+            print 'corpus: %s/%s, %s, Clusters size: %s' % (corpus_name, corpus_[corpus_name], msg, K)
             data_r = reorder_mat(data, clusters)
         else:
-            print 'No Reordering !'
+            print 'corpus: %s/%s, noo Reordering !' % (corpus_name, corpus_[corpus_name])
+        print
 
         ###################################
         ### Plotting

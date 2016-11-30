@@ -482,6 +482,10 @@ class IBPGibbsSampling(IBP, ModelBase):
         N = int(N)
         if _type == 'evidence':
             raise NotImplementedError('IBP Generation')
+            K = alpha * np.log(N)
+            #fdazefze to do
+            return
+
         elif _type == 'predictive':
             Z, W = self.reduce_latent()
 
