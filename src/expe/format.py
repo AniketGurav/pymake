@@ -149,6 +149,7 @@ def generate_icdm_debug(**kwargs):
 def zipf(**kwargs):
     """ Local/Global Preferential attachment effect analysis """
     globals().update(kwargs)
+    y = kwargs['y']
     if Model['model'] == 'ibp':
         title = '%s, N=%s, K=%s alpha=%s, lambda:%s'% (model_name, N, K, alpha, delta)
     elif Model['model'] == 'immsb':
@@ -182,23 +183,24 @@ def zipf(**kwargs):
     ### Z assignement method
     ##############################
     now = Now()
-    ZZ = []
-    #for _ in [Y[0]]:
-    for _ in Y: # Do not reflect real local degree !
-        Z = np.empty((2,N,N))
-        order = np.arange(N**2).reshape((N,N))
-        if frontend.is_symmetric():
-            triu = np.triu_indices(N)
-            order = order[triu]
-        order = zip(*np.unravel_index(order, (N,N)))
+    if model_name == 'immsb':
+        ZZ = []
+        #for _ in [Y[0]]:
+        for _ in Y: # Do not reflect real local degree !
+            Z = np.empty((2,N,N))
+            order = np.arange(N**2).reshape((N,N))
+            if frontend.is_symmetric():
+                triu = np.triu_indices(N)
+                order = order[triu]
+            order = zip(*np.unravel_index(order, (N,N)))
 
-        for i,j in order:
-            Z[0, i,j] = categorical(theta[i])
-            Z[1, i,j] = categorical(theta[j])
-        Z[0] = np.triu(Z[0]) + np.triu(Z[0], 1).T
-        Z[1] = np.triu(Z[1]) + np.triu(Z[1], 1).T
-        ZZ.append( Z )
-    ellapsed_time('Z formation', now)
+            for i,j in order:
+                Z[0, i,j] = categorical(theta[i])
+                Z[1, i,j] = categorical(theta[j])
+            Z[0] = np.triu(Z[0]) + np.triu(Z[0], 1).T
+            Z[1] = np.triu(Z[1]) + np.triu(Z[1], 1).T
+            ZZ.append( Z )
+        ellapsed_time('Z formation', now)
 
     ##############################
     ### Plot all local degree
@@ -224,7 +226,9 @@ def zipf(**kwargs):
     else:
         #k_perm = itertools.product(np.unique(clusters) , repeat=2)
         k_perm = itertools.product(range(theta.shape[1]) , repeat=2)
-    for c in k_perm:
+    for i, c in enumerate(k_perm):
+        if i > 10:
+            break
         if len(c) == 2:
             # Stochastic Equivalence (extra class bind
             k, l = c
@@ -234,27 +238,36 @@ def zipf(**kwargs):
             k = l = c.pop()
 
         degree_c = []
-        for y, z in zip(Y, ZZ): # take the len of ZZ if < Y
-            y_c = y.copy()
-            phi_c = np.zeros(y.shape)
-            # UNDIRECTED !
-            phi_c[(z[0] == k) & (z[1] == l)] = 1 #; phi_c[(z[0] == l) & (z[1] == k)] = 1
-            y_c[phi_c != 1] = 0
-            degree_c += adj_to_degree(y_c).values()
+        YY = []
+        if model_name == 'immsb':
+            for y, z in zip(Y, ZZ): # take the len of ZZ if < Y
+                y_c = y.copy()
+                phi_c = np.zeros(y.shape)
+                # UNDIRECTED !
+                phi_c[(z[0] == k) & (z[1] == l)] = 1 #; phi_c[(z[0] == l) & (z[1] == k)] = 1
+                y_c[phi_c != 1] = 0
+                #degree_c += adj_to_degree(y_c).values()
+                #yerr= None
+                YY.append(y_c)
+        elif model_name == 'ibp':
+            for y in Y:
+                YY.append((y == np.outer(theta[:,k], theta[:,l])).astype(int))
 
-        # remove ,old issue
-        if len(degree_c) == 0: continue
-        d, dc = degree_hist(degree_c)
+        ## remove ,old issue
+        #if len(degree_c) == 0: continue
+        #d, dc = degree_hist(degree_c)
+
+        d, dc, yerr = random_degree(YY)
         if len(dc) == 0: continue
-        local_degree_c[str(k)+str(l)] = filter(lambda x: x != 0, degree_c)
+        #local_degree_c[str(k)+str(l)] = filter(lambda x: x != 0, degree_c)
         god =  gofit(d, dc)
-        plot_degree_2((d,dc,None), logscale=True, colors=True, line=True)
+        plot_degree_2((d,dc,yerr), logscale=True, colors=True, line=True)
     plt.title('Local Preferential attachment (Stochastic Block)')
+
 
     ##############################
     ### Blockmodel Analysis
     ##############################
-
     # Class Ties
     plt.figure()
     #local_degree = comm['local_degree']
@@ -268,14 +281,27 @@ def zipf(**kwargs):
     plt.xlabel('Class Interactions')
     plt.title('Weighted Harmonic mean of class interactions ties')
 
-    # Class burstiness
-    plt.figure()
-    hist, label = clusters_hist(comm['clusters'])
-    bins = len(hist)
-    plt.bar(range(bins), hist)
-    plt.xticks(np.arange(bins)+0.5, label)
-    plt.xlabel('Class labels')
-    plt.title('Blocks Size (max assignement)')
+
+    if model_name == "immsb":
+
+        # Class burstiness
+        plt.figure()
+        hist, label = clusters_hist(comm['clusters'])
+        bins = len(hist)
+        plt.bar(range(bins), hist)
+        plt.xticks(np.arange(bins)+0.5, label)
+        plt.xlabel('Class labels')
+        plt.title('Blocks Size (max assignement)')
+    elif model_name == "ibp":
+        # Class burstiness
+        plt.figure()
+        hist, label = sorted_perm(comm['block_hist'], reverse=True)
+        bins = len(hist)
+        plt.bar(range(bins), hist)
+        plt.xticks(np.arange(bins)+0.5, label)
+        plt.xlabel('Class labels')
+        plt.title('Blocks Size (max assignement)')
+
 
     #draw_graph_spring(y, clusters)
     #draw_graph_spectral(y, clusters)
@@ -298,8 +324,10 @@ def debug(**kwargs):
     #y, l = reorder_mat(y, clusters, labels=True)
     #clusters = clusters[l]
 
-    adjblocks(y, clusters=clusters, title='Blockmodels of Adjacency matrix')
+    #adjblocks(y, clusters=clusters, title='Blockmodels of Adjacency matrix')
     #adjshow(reorder_mat(y, comm['clusters']), 'test reordering')
+
+    draw_graph_circular(y, clusters)
 
 
 def roc_test(**kwargs):

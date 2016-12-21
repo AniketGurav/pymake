@@ -158,6 +158,8 @@ class argparser(object):
                 conf['generative'] = 'evidence'
             elif '-p' in key:
                 conf['generative'] = 'predictive'
+            elif '-m' in key:
+                conf['model'] = clargs.grouped['-m'].get(0)
 
         if clargs.last and clargs.last not in map(str, clargs.flags.all + conf.values()):
             conf['do'] = clargs.last

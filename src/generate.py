@@ -37,12 +37,13 @@ config = defaultdict(lambda: False, dict(
     #generative    = 'predictive',
     gen_size      = 1000,
     epoch         = 10 , #20
+    debug         = 'debug11'
 ))
 config.update(argparser.generate(USAGE))
 
 alpha = 1
 gmma = 1
-delta = (0.8, 0.1)
+delta = (1, 5)
 
 # Corpuses
 Corpuses = _spec_.CORPUS_REAL_ICDM_1
@@ -63,12 +64,12 @@ Models = [dict ((
     #('repeat'      , '*')       ,
 ))]
 
-for m in Models:
-    m['debug'] = 'debug11'
 
-if config.get('K'):
-    for m in Models:
-        m['K'] = config['K']
+# @debug: n value cause file crash
+for k in Models[0].keys():
+    if k in config:
+        for m in Models:
+            m[k] = config[k]
 
 for opt in ('alpha','gmma', 'delta'):
     if config.get(opt):
@@ -161,6 +162,8 @@ for corpus_name in Corpuses:
 
         analysis = getattr(format, config['do'])
         analysis(**globals())
+
+        #format.debug(**globals())
 
         display(False)
 

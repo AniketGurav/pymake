@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
+import itertools
 from os.path import dirname
 import logging
 lgg = logging.getLogger('root')
@@ -43,6 +44,7 @@ class IBPGibbsSampling(IBP, ModelBase):
                  snapshot_interval=100, iterations=100, burnin=0.05, output_path=None, write=False):
         self.iterations = iterations
         self.burnin = iterations - int(burnin*iterations)
+        self._mean_w = 0
         self._sigma_w_hyper_parameter = sigma_w_hyper_parameter
         self.bilinear_matrix = None
         self.log_likelihood = None
@@ -113,7 +115,7 @@ class IBPGibbsSampling(IBP, ModelBase):
                 self.z_mean = z - np.ones(z.shape)*1
                 self._W = np.random.normal(self.z_mean, self._sigma_w, (self._K, self._K))
             else:
-                self._W = np.random.normal(0, self._sigma_w, (self._K, self._K))
+                self._W = np.random.normal(self._mean_w, self._sigma_w, (self._K, self._K))
 
             if self.symmetric:
                 self._W = np.tril(self._W) + np.tril(self._W, -1).T
@@ -278,8 +280,8 @@ class IBPGibbsSampling(IBP, ModelBase):
 
         # generate new weight from a normal distribution with mean 0 and variance sigma_w, a K_new-by-K matrix
         non_singleton_features = [k for k in xrange(self._K) if k not in singleton_features]
-        W_temp_v = np.random.normal(0, self._sigma_w, (K_temp, self._K - len(singleton_features)))
-        W_temp_h = np.random.normal(0, self._sigma_w, (K_new, K_temp))
+        W_temp_v = np.random.normal(self._mean_w, self._sigma_w, (K_temp, self._K - len(singleton_features)))
+        W_temp_h = np.random.normal(self._mean_w, self._sigma_w, (K_new, K_temp))
         W_new = np.delete(self._W, singleton_features,0)
         W_new = np.vstack((np.delete(W_new, singleton_features,1), W_temp_v))
         W_new = np.hstack((W_new, W_temp_h))
@@ -474,34 +476,43 @@ class IBPGibbsSampling(IBP, ModelBase):
 
     def get_hyper(self):
         alpha = self._alpha
-        return (alpha,)
+        delta = (self._mean_w, self._sigma_w)
+        return (alpha, delta)
 
-    def generate(self, N, K=None, nodelist=None, hyper=None, _type='predictive'):
+    def generate(self, N, K=None, nodelist=None, hyper=None, _type='predictive', directed=True):
         self.update_hyper(hyper)
-        alpha = self.get_hyper()
+        alpha, delta = self.get_hyper()
         N = int(N)
         if _type == 'evidence':
-            raise NotImplementedError('IBP Generation')
-            K = alpha * np.log(N)
-            #fdazefze to do
-            return
+
+            # Use for the stick breaking generation
+            #K = alpha * np.log(N)
+
+            # Generate F
+            theta = self.initialize_Z(N, alpha)
+            K = theta.shape[1]
+
+            # Generate Phi
+            phi = np.random.normal(delta[0], delta[1], size=(K,K))
+            if directed is True:
+                phi = np.triu(phi) + np.triu(phi, 1).T
 
         elif _type == 'predictive':
-            Z, W = self.reduce_latent()
+            theta, phi = self.reduce_latent()
 
         if nodelist:
             Y = Y[nodelist, :][:, nodelist]
-            Z = Z[nodelist, :]
+            phi = phi[nodelist, :]
 
-        likelihood = self.link_expectation(Z, W)
+        likelihood = self.link_expectation(theta, phi)
         #likelihood[likelihood >= 0.5 ] = 1
         #likelihood[likelihood < 0.5 ] = 0
         #Y = likelihood
         Y = sp.stats.bernoulli.rvs(likelihood)
-        self.theta = Z
-        self.phi = W
+        self.theta = theta
+        self.phi = phi
         self.K = K
-        return Y, Z, W
+        return Y, theta, phi
 
     def link_expectation(self, theta, phi):
         bilinear_form = theta.dot(phi).dot(theta.T)
@@ -561,18 +572,15 @@ class IBPGibbsSampling(IBP, ModelBase):
 
         ### Finding Communities
         lgg.info('Finding Communities...')
-        community_distribution, local_attach, c = self.communities_analysis(Z)
+        communities = self.communities_analysis(Z)
 
         res = {'Precision': precision,
                'Recall': rappel,
                'g_precision': g_precision,
                'mask_density': mask_density,
-               'clusters': list(c),
-               'Community_Distribution': community_distribution,
-               'Local_Attachment': local_attach,
+               'clustering':communities,
                'K': self.K
               }
-
         return res
 
     def mask_probas(self, data):
@@ -590,6 +598,12 @@ class IBPGibbsSampling(IBP, ModelBase):
         clusters = kmeans(Z, K=K)
         return clusters
 
+    def _get_clusters(self, K=None):
+        Z, W = self.get_params()
+        K = K or Z.shape[1]
+        clusters = np.argmax(Z * np.tile(W.sum(0), (Z.shape[0],1)), 1)
+        return clusters
+
     # add sim optionsin clusters
     def get_communities(self, K=None):
         Z, W = self.get_params()
@@ -599,28 +613,74 @@ class IBPGibbsSampling(IBP, ModelBase):
         return clusters
 
     #@wrapper !
-    def communities_analysis(self, data=None):
+    def communities_analysis(self, data=None, clustering='modularity'):
         if data is None:
             data = self._Y.data
             symmetric = self.symmetric
         else:
             symmetric = True
 
-        clusters = get_clusters()
+        # @debug !!!
+        clusters = self.get_clusters()
         #nodes_list = [k[0] for k in sorted(zip(range(len(clusters)), clusters), key=lambda k: k[1])]
-        community_distribution = list(np.bincount(clusters))
+        Z, W = self.get_params()
+        block_hist = Z.sum(0)
 
-        local_attach = {}
-        for n, c in enumerate(clusters):
-            comm = str(c)
-            local = local_attach.get(comm, [])
-            degree_n = data[n,:].sum()
-            #degree_n = data[n,:][clusters == c].sum()
-            if not symmetric:
-                degree_n += data[:, n].sum()
-                #degree_n += data[:, n][clusters == c].sum()
-            local.append(degree_n)
-            local_attach[comm] = local
+        local_degree = {}
+        if symmetric:
+            k_perm = np.unique( map(list, map(set, itertools.product(np.unique(clusters) , repeat=2))))
+        else:
+            k_perm = itertools.product(np.unique(clusters) , repeat=2)
 
-        return community_distribution, local_attach, clusters
+        for c in k_perm:
+            if type(c) in (np.float64, np.int64):
+                # one clusters (as it appears for real with max assignment
+                l = k = c
+            elif  len(c) == 2:
+                # Stochastic Equivalence (extra class bind
+                k, l = c
+            else:
+                # Comunnities (intra class bind)
+                k = l = c.pop()
+            comm = (str(k), str(l))
+            local = local_degree.get(comm, [])
+
+            C = np.tile(clusters, (data.shape[0],1))
+            y_c = data * ((C==k) & (C.T==l))
+            if y_c.size > 0:
+                local_degree[comm] = adj_to_degree(y_c).values()
+
+        self.comm = {'local_degree':local_degree,
+                     'clusters':clusters,
+                     'block_hist': block_hist,
+                     'size': len(block_hist)}
+
+        return self.comm
+
+    def blockmodel_ties(self, data=None, remove_empty=True):
+        """ return ties based on a weighted average
+            of the local degree ditribution """
+
+        if not hasattr(self, 'comm'):
+            self.communities_analysis(data)
+        comm = self.comm
+
+        m = [ wmean(a[0], a[1], mean='arithmetic')  for d in comm['local_degree'].values() for a in [degree_hist(d)] if len(a[0])>0 ]
+        # Mean
+        #m = map(np.mean, comm['local_degree'].values())
+        # Variance Unused How to represant that !?
+        #v = np.array(map(np.std, comm['local_degree'].values()))
+
+        # factorize by using clusters hist instead
+        hist, label = sorted_perm(m, comm['local_degree'].keys(), reverse=True)
+
+        if remove_empty is True:
+            null_classes = (hist == 0).sum()
+            if null_classes > 0:
+                hist = hist[:-null_classes]; label = label[:-null_classes]
+
+        bm = zip(label, hist)
+        self.comm['block_ties'] = bm
+        return bm
+
 

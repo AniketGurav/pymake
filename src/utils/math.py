@@ -87,11 +87,13 @@ def dilate(y):
 ##########################
 from collections import Counter
 
-def sorted_perm(a, label, reverse=False):
+def sorted_perm(a, label=None, reverse=False):
     """ return sorted $a and the induced permutation.
         Inplace operation """
     # np.asarray applied this tuple lead to error, if label is string
     # because a should be used as elementwise comparison
+    if label is None:
+        label = np.arange(a.shape[0])
     hist, label = zip(*sorted(zip(a, label), reverse=reverse))
     hist = np.asarray(hist)
     label = np.asarray(label)
@@ -103,7 +105,7 @@ def degree_hist_to_list(d, dc):
 
 
 def clusters_hist(clusters, labels=None, remove_empty=True):
-    """ return non empty clusters histogramm.
+    """ return non empty clusters histogramm sorted.
 
         parameters
         ---------

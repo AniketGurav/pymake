@@ -811,6 +811,8 @@ class GibbsRun(ModelBase):
                 ##alpha = np.asarray([1.0 / (i + np.sqrt(K)) for i in xrange(K)])
                 #alpha /= alpha.sum()
             #delta = self.s.zsampler.likelihood.delta
+
+            # Generate Theta
             if i > 0:
                 params, order = zip(*np.sorted(zip(alpha, range(len(alpha)), reverse=True)))
                 _K = int(1/3. * len(alpha))
@@ -819,6 +821,7 @@ class GibbsRun(ModelBase):
                 theta = multinomial(1, alpha, size=N)
             else:
                 theta = dirichlet(alpha, size=N)
+            # Generate Phi
             phi = beta(delta[0], delta[1], size=(K,K))
             if directed is True:
                 phi = np.triu(phi) + np.triu(phi, 1).T
@@ -926,7 +929,7 @@ class GibbsRun(ModelBase):
                'Recall': rappel,
                'g_precision': g_precision,
                'mask_density': mask_density,
-               'communities':communities,
+               'clustering':communities,
                'K': self.K
               }
         return res

@@ -7,4 +7,5 @@ for e in $Engine; do
     dot -K$e -Tpng  graph.dot > ../results/graph_$e.png
 done
 
+cp ../results/graph_dot.png .
 ristretto ../results/graph_dot.png
