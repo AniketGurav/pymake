@@ -6,21 +6,33 @@ from frontend.frontendnetwork import frontendNetwork
 from utils.utils import *
 from plot import *
 from expe.spec import _spec_
-from expe.format import corpus_icdm
+from expe.format import corpus_icdm, corpus_
 from utils.argparser import argparser
+from utils.algo import reorder_mat
 
+""" Inspect data on disk, for checking
+    or updating results
+
+    params
+    ------
+    zipf : degree based analysis
+    homo : homophily based analysis
+"""
 
 ### Config
 config = defaultdict(lambda: False, dict(
     write_to_file = False,
-    do           = 'homo',
+    do           = 'homo', # homo/zipf
+    clusters_org = 'model' # source/model
 ))
-config.update(argparser.generate())
+config.update(argparser.generate(''))
 
 ### Specification
 Corpuses = _spec_.CORPUS_SYN_ICDM_1
 Corpuses += _spec_.CORPUS_REAL_ICDM_1
-Model = _spec_.MODEL_FOR_CLUSTER_IBP
+
+#Model = _spec_.MODEL_FOR_CLUSTER_IBP
+Model = _spec_.MODEL_FOR_CLUSTER_IMMSB
 
 ### Simulation Output
 if config.get('simul'):
@@ -37,8 +49,9 @@ for corpus_name in Corpuses:
     #print msg
 
     if config['do'] == 'homo':
-        #################################################
+        ###################################
         ### Homophily Analysis
+        ###################################
 
         print corpus_name
         homo_euclide_o_old, homo_euclide_e_old = frontend.homophily(sim='euclide_old')
@@ -64,51 +77,66 @@ for corpus_name in Corpuses:
         #print frontend.template(prop)
 
     else:
-        #################################################
+        ###################################
         ### Zipf Analisis
+        ###################################
+        degree = adj_to_degree(data)
+        gofit(*degree_hist(adj_to_degree(data)))
 
         ### Get the Class/Cluster and local degree information
+        data_r = data
+        clusters = None
+        K = None
         try:
-            msg =  'Getting Cluster from Dataset...'
-            community_distribution_source, local_attach_source, clusters_source = frontend.communities_analysis()
+            msg =  'Getting Cluster from Dataset.'
+            clusters = frontend.get_clusters()
+            if config.get('clusters_org') == 'model':
+                if clusters is not None:
+                    class_hist = np.bincount(clusters)
+                    K = (class_hist != 0).sum()
+                raise TypeError
         except TypeError:
-            msg =  'Getting Latent Classes from Latent Models...'
-            #d = frontend.get_json()
-            #local_attach_source = d['Local_Attachment']
-            #community_distribution_source = d['Community_Distribution']
-            ### In the future
-            #cluster_source = d['clusters']
+            msg =  'Getting Latent Classes from Latent Models %s' % Model['model']
             Model.update(corpus=corpus_name)
             model = ModelManager(config=config).load(Model)
-            clusters_source = model.get_clusters()
+            clusters = model.get_clusters(K, skip=1)
+            #clusters = model.get_communities(K)
         except Exception, e:
             msg = 'Skypping reordering adjacency matrix: %s' % e
-            data_r = data
-        print msg
 
+        ##############################
         ### Reordering Adjacency Mmatrix based on Clusters/Class/Communities
-        if globals().get('clusters_source') is not None:
-            nodelist = [k[0] for k in sorted(zip(range(len(clusters_source)), clusters_source), key=lambda k: k[1])]
-            data_r = data[nodelist, :][:, nodelist]
+        ##############################
+        if clusters is not None:
+            print 'Reordering Adj matrix from `%s\':' % config.get('clusters_org')
+            print 'corpus: %s/%s, %s, Clusters size: %s' % (corpus_name, corpus_[corpus_name], msg, K)
+            data_r = reorder_mat(data, clusters)
+        else:
+            print 'corpus: %s/%s, noo Reordering !' % (corpus_name, corpus_[corpus_name])
+        print
 
-
-        #################################################
+        ###################################
         ### Plotting
+        ###################################
         if config.get('write_to_file'):
             corpus_icdm(data=data_r, corpus_name=corpus_name)
             continue
 
+        ###################################
         ### Plot Adjacency matrix
+        ###################################
         plt.figure()
         plt.suptitle(corpus_name)
         plt.subplot(1,2,1)
-        adjshow(data_r, title='Adjacency Matrix')
+        adjshow(data_r, title='Adjacency Matrix', fig=False)
         #plt.figtext(.15, .1, homo_text, fontsize=12)
 
+        ###################################
         ### Plot Degree
+        ###################################
         plt.subplot(1,2,2)
         #plot_degree_(data, title='Overall Degree')
-        plot_degree_2(data)
+        plot_degree_poly(data)
 
         display(False)
 

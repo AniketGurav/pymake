@@ -3,15 +3,27 @@
 
 import json
 import numpy as np
+
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import colors as Colors
+
 import networkx as nx
+from networkx.drawing.nx_agraph import write_dot
+
+from utils.utils import *
+from utils.math import *
+from utils.algo import *
 
 import re
 import os
 from multiprocessing import Process
-from itertools import cycle
+lgg = logging.getLogger('root')
 
-from utils.utils import *
+from utils.ascii_code import X11_colors, plt_colors
+u_colors = Cycle(list(zip(*plt_colors)[1]))
+_markers = Cycle([ '+', '*', '|','x', 'o', '.', '1', 'p', '<', '>', 's' ])
+_colors = Cycle(['r', 'g','b','y','c','m','k'])
 
 def display(block=False):
     #p = Process(target=_display)
@@ -53,16 +65,17 @@ def csv_row(s):
         row = s
     return row
 
+def surf(x, y, z):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    X, Y = np.meshgrid(x, y)
+    ax.plot_surface(X, Y, z)
+    return ax
+
 def plot_degree(y, title=None, noplot=False):
     if len(y) > 6000:
         return
-    if (y == y.T).all():
-        # Undirected Graph
-        typeG = nx.Graph()
-    else:
-        # Directed Graph
-        typeG = nx.DiGraph()
-    G = nx.from_numpy_matrix(y, typeG)
+    G = nxG(y)
     degree = sorted(nx.degree(G).values(), reverse=True)
     if noplot:
         return degree
@@ -77,38 +90,12 @@ def plot_degree(y, title=None, noplot=False):
 def plot_degree_(y, title=None):
     if len(y) > 6000:
         return
-    if (y == y.T).all():
-        # Undirected Graph
-        typeG = nx.Graph()
-    else:
-        # Directed Graph
-        typeG = nx.DiGraph()
-    G = nx.from_numpy_matrix(y, typeG)
+    G = nxG(y)
     degree = sorted(nx.degree(G).values(), reverse=True)
     x = np.arange(1, y.shape[0] + 1)
     plt.loglog(x, degree)
     if title:
         plt.title(title)
-
-def plot_degree_3(y, title=None):
-    if len(y) > 6000:
-        return
-    if (y == y.T).all():
-        # Undirected Graph
-        typeG = nx.Graph()
-    else:
-        # Directed Graph
-        typeG = nx.DiGraph()
-    G = nx.from_numpy_matrix(y, typeG)
-    degree = sorted(nx.degree(G).values(), reverse=True)
-    degree, _ = np.histogram(degree ,bins=len(degree), density=True)
-    x = np.arange(1, y.shape[0] + 1)
-    plt.loglog(x, degree)
-    if title:
-        plt.title(title)
-
-def drop_zeros(a_list):
-    return [i for i in a_list if i>0]
 
 def log_binning(counter_dict,bin_count=35):
     max_x = np.log10(max(counter_dict.keys()))
@@ -126,246 +113,248 @@ def log_binning(counter_dict,bin_count=35):
     bin_means_x = np.histogram(counter_dict.keys(),bins,weights=counter_dict.keys())[0]
     return bin_means_x,bin_means_y
 
-from collections import Counter
-def plot_degree_2(y, ax=None, scatter=True):
+def plot_degree_poly(y, scatter=True):
+    """ Degree plot along with a linear regression of the distribution.
+    if scatter is false, draw only the linear approx"""
     # To convert normalized degrees to raw degrees
     #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
-    if (y == y.T).all():
-        # Undirected Graph
-        typeG = nx.Graph()
-    else:
-        # Directed Graph
-        typeG = nx.DiGraph()
-    G = nx.from_numpy_matrix(y, typeG)
-    #degree = sorted(nx.degree(G).values(), reverse=True)
+    ba_c = adj_to_degree(y)
+    d, dc = degree_hist(ba_c)
 
-    #ba_c = nx.degree_centrality(G)
-    ba_c = nx.degree(G)
-    ba_c2 = dict(Counter(ba_c.values()))
+    plt.xscale('log'); plt.yscale('log')
 
-    #ba_x,ba_y = log_binning(ba_c2,50)
-    x = np.array(ba_c2.keys())
-    y = np.array(ba_c2.values())
-
-    if x[0] == 0:
-        print '%d unconnected vertex' % y[0]
-        x = x[1:]
-        y = y[1:]
-
-    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
-    plt.xscale('log')
-    plt.yscale('log')
-
-    fit = np.polyfit(np.log(x), np.log(y), deg=1)
-    plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'g--', label='power %.2f' % fit[1])
-    leg = plt.legend(loc=1,prop={'size':10})
+    fit = np.polyfit(np.log(d), np.log(dc), deg=1)
+    plt.plot(d,np.exp(fit[0] *np.log(d) + fit[1]), 'g--', label='power %.2f' % fit[1])
+    leg = plt.legend(loc='upper right',prop={'size':10})
 
     if scatter:
-        plt.scatter(x,y,c='b',marker='o')
+        plt.scatter(d,dc,c='b',marker='o')
+        #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
 
     plt.xlim(left=1)
     plt.ylim((.9,1e3))
     plt.xlabel('Degree')
-    #plt.ylabel('Counts of degree')
-    #plt.show()
+    plt.ylabel('Counts')
 
-def plot_degree_2_l(Y, ax=None):
-    _X = []
-    _Y = []
-    size = []
-    for y in Y:
-        # To convert normalized degrees to raw degrees
-        #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
-        if (y == y.T).all():
-            # Undirected Graph
-            typeG = nx.Graph()
-        else:
-            # Directed Graph
-            typeG = nx.DiGraph()
-        G = nx.from_numpy_matrix(y, typeG)
-        #degree = sorted(nx.degree(G).values(), reverse=True)
+def plot_degree_poly_l(Y):
+    """ Same than plot_degree_poly, but for a list of random graph ie plot errorbar."""
+    x, y, yerr = random_degree(Y)
 
-        #ba_c = nx.degree_centrality(G)
-        ba_c = nx.degree(G)
-        ba_c2 = dict(Counter(ba_c.values()))
-
-        #ba_x,ba_y = log_binning(ba_c2,50)
-        _X.append(ba_c2.keys())
-        _Y.append(ba_c2.values())
-        # Remove degree 0
-        if _X[-1][0] == 0:
-            _X[-1] = _X[-1][1:]
-            _Y[-1] = _Y[-1][1:]
-        size.append(len(_Y[-1]))
-
-    min_d = min(size)
-    for i, v in enumerate(_Y):
-        if len(v) > min_d:
-            _X[i] = _X[i][:min_d]
-            _Y[i] = _Y[i][:min_d]
-
-    X = np.array(_X)
-    Y = np.array(_Y)
-    x = X.mean(0)
-    y = Y.mean(0)
-    yerr = Y.std(0)
-
-    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
-    plt.xscale('log')
-    plt.yscale('log')
+    plt.xscale('log'); plt.yscale('log')
 
     fit = np.polyfit(np.log(x), np.log(y), deg=1)
     plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'm:', label='model power %.2f' % fit[1])
-    leg = plt.legend(loc=1,prop={'size':10})
+    leg = plt.legend(loc='upper right',prop={'size':10})
 
     plt.errorbar(x, y, yerr=yerr, fmt='o')
-    #plt.scatter(_X, _Y, marker='o')
 
-    #plt.xlim((1,1e4))
+    plt.xlim(left=1)
     plt.ylim((.9,1e3))
-    plt.xlabel('Degree')
-    #plt.ylabel('Counts of degree')
-    #plt.show()
+    plt.xlabel('Degree'); plt.ylabel('Counts')
 
-def plot_degree_2_l_e(Y, ax=None):
-    _X = []
-    _Y = []
-    N = Y[0].shape[0]
-    size = []
-    for y in Y:
-        # To convert normalized degrees to raw degrees
-        #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
-        if (y == y.T).all():
-            # Undirected Graph
-            typeG = nx.Graph()
-        else:
-            # Directed Graph
-            typeG = nx.DiGraph()
-        G = nx.from_numpy_matrix(y, typeG)
-        #degree = sorted(nx.degree(G).values(), reverse=True)
+def plot_degree_2(P, logscale=False, colors=False, line=False):
+    """ Plot degree distribution for different configuration"""
+    x, y, yerr = P
 
-        #ba_c = nx.degree_centrality(G)
-        ba_c = nx.degree(G)
-        ba_c2 = dict(Counter(ba_c.values()))
+    c = next(_colors) if colors else 'b'
+    m = next(_markers) if colors else 'o'
+    l = '--' if line else None
 
-        #ba_x,ba_y = log_binning(ba_c2,50)
-        _X.append(ba_c2.keys())
-        _Y.append(ba_c2.values())
-        # Remove degree 0
-        if _X[-1][0] == 0:
-            _X[-1] = _X[-1][1:]
-            _Y[-1] = _Y[-1][1:]
-        size.append(len(_Y[-1]))
+    if yerr is None:
+        plt.scatter(x, y, c=c, marker=m)
+        if line:
+            plt.plot(x, y, c=c, marker=m, ls=l)
+    else:
+        plt.errorbar(x, y, yerr, c=c, fmt=m, ls=l)
 
-    min_d = min(size)
-    for i, v in enumerate(_Y):
-        if len(v) > min_d:
-            _X[i] = _X[i][:min_d]
-            _Y[i] = _Y[i][:min_d]
+    min_d, max_d = min(x), max(x)
 
-    X = np.array(_X)
-    Y = np.array(_Y)
-    x = X.mean(0)
-    y = Y.mean(0)
-    yerr = Y.std(0)
+    if logscale:
+        plt.xscale('log'); plt.yscale('log')
+        # Ensure that the ticks will be visbile (ie larger than in los step)
+        #logspace = 10**np.arange(6)
+        #lim =  np.searchsorted(logspace,min_d )
+        #if lim == np.searchsorted(logspace,max_d ):
+        #    min_d = logspace[lim-1]
+        #    max_d = logspace[lim]
 
-    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
-    #plt.xscale('log')
-    #plt.yscale('log')
-
-    #fit = np.polyfit(np.log(x), np.log(y), deg=1)
-    #plt.plot(x,np.exp(fit[0] *np.log(x) + fit[1]), 'm:', label='model power %.2f' % fit[1])
-    #leg = plt.legend(loc=1,prop={'size':10})
-
-    plt.errorbar(x, y, yerr=yerr, fmt='o')
-    #plt.scatter(_X, _Y, marker='o')
-
-    #plt.xlim((1,1e4))
+    plt.xlim((min_d, max_d+10))
     #plt.ylim((.9,1e3))
-    plt.xlabel('Degree')
-    #plt.ylabel('Counts of degree')
-    #plt.show()
+    plt.xlabel('Degree'); plt.ylabel('Counts')
 
-def adjmat(Y, title=''):
+##########################
+### Graph/Matrix Drawing
+##########################
+
+def draw_boundary(mat, clusters):
+    """ Clusters: list of membership or list of boudary """
+    # sorted operation in reorder and clusters could optimized (redondancy)
+    N = mat.shape[0]
+    if len(clusters) < N:
+        B = clusters
+        K = len(B) - 1
+        B = B[1:-1]
+    else:
+        mat = reorder_mat(mat, clusters)
+        B, _ = clusters_hist(clusters)
+        B = np.cumsum(B)[:-1]
+
+    K = len(B)
+    c = np.arange(mat.max()+1, mat.max()+1+K+1)
+    w = int(0.005 * N)
+    print 'drawing boundary %s' % B
+    for i, b in enumerate(B):
+        mat[b-w:b+w, :] = c[i]
+        mat[:, b-w:b+w] = c[i]
+    return mat
+
+def draw_graph_spring(y, clusters='blue', ns=30):
+    G = nxG(y)
+
     plt.figure()
+    nx.draw_spring(G, cmap = plt.get_cmap('jet'), node_color = clusters, node_size=30, with_labels=False)
+
+def draw_blocks(comm):
+    #nx.draw(H,G.position,
+    #        node_size=[G.population[v] for v in H],
+    #        node_color=node_color,
+    #        with_labels=False)
+    blocks = comm.get('block_hist')
+    ties = comm.get('block_ties')
+
+    blocks = 2*blocks / np.linalg.norm(blocks)
+    max_n = max(blocks)
+
+    G = nx.Graph(nodesep=0.7)
+    u_colors.reset()
+    ind_color = np.arange(0, len(blocks)**2, 2) % len(u_colors.seq)
+    #ind_color = np.diag(np.arange(len(blocks)**2).reshape([len(blocks)]*2)) % len(u_colors.seq)
+    colors = np.array(u_colors.seq)[ind_color]
+
+    # if sorted
+    sorted_blocks, sorted_ind = zip(*sorted( zip(blocks, range(len(blocks))) , reverse=True))
+    for l, s in enumerate(sorted_blocks):
+        if s == 0:
+            continue
+        G.add_node(int(l), width=s, height=s, fillcolor=colors[l], style='filled')
+
+    max_t = max(ties, key=lambda x:x[1])[1]
+    if max_t > max_n:
+        scale = np.exp(2) * float(max_n) / max_t
+
+    for l, s in ties:
+        i, j = l
+        # if sorted
+        i = sorted_ind.index(int(i))
+        j = sorted_ind.index(int(j))
+        G.add_edge(i, j, penwidth = s * scale)
+
+    return write_dot(G, 'graph.dot')
+
+try:
+    import pygraphviz
+    from networkx.drawing.nx_agraph import graphviz_layout
+except ImportError:
+    try:
+        import pydotplus
+        from networkx.drawing.nx_pydot import graphviz_layout
+    except ImportError:
+        lgg.error("This example needs Graphviz and either "
+                  "PyGraphviz or PyDotPlus")
+def draw_graph_circular(y, clusters='blue', ns=30):
+    G = nxG(y)
+    pos = graphviz_layout(G, prog='twopi', args='')
+    plt.figure()
+    nx.draw(G, pos, node_size=ns, alpha=0.8, node_color=clusters, with_labels=False)
+    plt.axis('equal')
+
+def draw_graph_spectral(y, clusters='blue', ns=30):
+    G = nxG(y)
+    pos = graphviz_layout(G, prog='twopi', args='')
+    plt.figure()
+    nx.draw_spectral(G, cmap = plt.get_cmap('jet'), node_color = clusters, node_size=30, with_labels=False)
+
+def adjblocks(Y, clusters=None, title=''):
+    """ Make a colormap image of a matrix
+        :key Y: the matrix to be used for the colormap.
+    """
+    # Artefact
+    #np.fill_diagonal(Y, 0)
+
+    plt.figure()
+    if clusters is None:
+        plt.axis('off')
+        cmap = 'Greys'
+        norm = None
+        y = Y
+    else:
+        plt.axis('on')
+        y = reorder_mat(Y, clusters, reverse=True)
+        hist, label = clusters_hist(clusters)
+        # Colors Setup
+        u_colors.reset()
+        #cmap = Colors.ListedColormap(['white','black']+ u_colors.seq[:len(hist)**2])
+        cmap = Colors.ListedColormap(['#000000', '#FFFFFF']+ u_colors.seq[:len(hist)**2])
+        bounds = np.arange(len(hist)**2+2)
+        norm = Colors.BoundaryNorm(bounds, cmap.N)
+        # Iterate over blockmodel
+        for k, count_k in enumerate(hist):
+            for l, count_l in enumerate(hist):
+                # Draw a colored square (not white and black)
+                topleft =  (hist[:k].sum(), hist[:l].sum())
+                w = int(0.01 * y.shape[0])
+                # write on place
+                draw_square(y, k+l+2, topleft, count_k, count_l, w)
+
+    implt = plt.imshow(y, cmap=cmap, norm=norm,
+                       clim=(np.amin(y), np.amax(y)),
+                       interpolation='nearest',)
+                       #origin='upper') # change shape !
+    #plt.colorbar()
+    plt.title(title)
+    #plt.savefig(filename, fig=fig, facecolor='white', edgecolor='black')
+
+def adjshow(Y, title='', fig=True):
+    if fig is True:
+        plt.figure()
     plt.axis('off')
-    plt.title('Adjacency matrix')
-    plt.imshow(Y, cmap="Greys", interpolation="none", origin='upper')
-    title = 'Adjacency matrix, N = %d\n%s' % (Y.shape[0], title)
+    #cmap = 'Greys'
+    cmap = plt.cm.hot
+    plt.imshow(Y, cmap=cmap, interpolation='None')
     plt.title(title)
 
-def adjshow(Y, cmap=None, pixelspervalue=20, minvalue=None, maxvalue=None, title='', ax=None):
-        """ Make a colormap image of a matrix
-        :key Y: the matrix to be used for the colormap.
-        """
-        # Artefact
-        np.fill_diagonal(Y, 0)
+def adjshow_4(Y,title=[], pixelspervalue=20):
+    minvalue = np.amin(Y)
+    maxvalue = np.amax(Y)
+    cmap = plt.cm.hot
 
-        if minvalue == None:
-            minvalue = np.amin(Y)
-        if maxvalue == None:
-            maxvalue = np.amax(Y)
-        if not cmap:
-            cmap = plt.cm.hot
-            if not ax:
-                #figsize = (np.array(Y.shape) / 100. * pixelspervalue)[::-1]
-                #fig = plt.figure(figsize=figsize)
-                #fig.set_size_inches(figsize)
-                #plt.axes([0, 0, 1, 1]) # Make the plot occupy the whole canvas
-                plt.axis('off')
-                implot = plt.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-                plt.title(title)
-            else:
-                ax.axis('off')
-                implot = ax.imshow(Y, cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-                plt.title(title)
-        #plt.savefig(filename, fig=fig, facecolor='white', edgecolor='black')
+    fig = plt.figure()
+    plt.subplot(2,2,1)
+    plt.axis('off')
+    implot = plt.imshow(Y[0], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+    plt.title(title[0])
 
-def adjshow_l(Y,title=[], pixelspervalue=20):
-        minvalue = np.amin(Y)
-        maxvalue = np.amax(Y)
-        cmap = plt.cm.hot
+    plt.subplot(2,2,2)
+    plt.axis('off')
+    implot = plt.imshow(Y[1], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+    plt.title(title[1])
 
-        fig = plt.figure()
-        plt.subplot(1,2,1)
-        plt.axis('off')
-        implot = plt.imshow(Y[0], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[0])
+    plt.subplot(2,2,3)
+    plt.axis('off')
+    implot = plt.imshow(Y[2], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+    plt.title(title[2])
 
-        plt.subplot(1,2,2)
-        plt.axis('off')
-        implot = plt.imshow(Y[1], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[1])
+    plt.subplot(2,2,4)
+    plt.axis('off')
+    implot = plt.imshow(Y[3], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
+    plt.title(title[3])
 
-        plt.draw()
+    plt.draw()
 
-def adjshow_ll(Y,title=[], pixelspervalue=20):
-        minvalue = np.amin(Y)
-        maxvalue = np.amax(Y)
-        cmap = plt.cm.hot
 
-        fig = plt.figure()
-        plt.subplot(2,2,1)
-        plt.axis('off')
-        implot = plt.imshow(Y[0], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[0])
-
-        plt.subplot(2,2,2)
-        plt.axis('off')
-        implot = plt.imshow(Y[1], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[1])
-
-        plt.subplot(2,2,3)
-        plt.axis('off')
-        implot = plt.imshow(Y[2], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[2])
-
-        plt.subplot(2,2,4)
-        plt.axis('off')
-        implot = plt.imshow(Y[3], cmap=cmap, clim=(minvalue, maxvalue), interpolation='nearest')
-        plt.title(title[3])
-
-        plt.draw()
+##########################
+### Curve Plot
+##########################
 
 def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twin=False, iter_max=None):
     if type(columns) is not list:
@@ -383,7 +372,6 @@ def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twi
     fig = None
     _Ks = None
     is_nonparam = False
-    markers = cycle([ '+', '*', '|','x', 'o', '.', '1', 'p', '<', '>', 's' ])
     #if separate is False:
     #    fig = plt.figure()
     #    ax1 = fig.add_subplot(111)
@@ -408,7 +396,7 @@ def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twi
             if type(column) is str:
                 column = csv_row(column)
 
-			### Optionnal row...?%
+            ### Optionnal row...?%
             if separate is False:
                 if fig is None:
                     fig = plt.figure()
@@ -457,7 +445,7 @@ def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twi
                 is_nonparam = True
                 label += ' K -> %d' % (float(Ks[-1]))
 
-            ax1.plot(ll_y, marker=next(markers), label=label)
+            ax1.plot(ll_y, marker=next(_markers), label=label)
             leg = ax1.legend(loc=1,prop={'size':10})
 
             if not twin:
@@ -471,172 +459,8 @@ def plot_csv(target_dirs='', columns=0, sep=' ', separate=False, title=None, twi
         #plt.savefig('../results/debug1/%s.pdf' % (prop['corpus']))
     plt.draw()
 
-def basic_plot():
-
-    columns = 1
-    targets = ['text/nips12/debug/inference-ilda_10_auto_100',
-               'text/nips12/debug/inference-lda_cgs_1_auto_100',
-               'text/nips12/debug/inference-lda_cgs_2_auto_100',
-               'text/nips12/debug/inference-lda_cgs_5_auto_100',
-               'text/nips12/debug/inference-lda_cgs_10_auto_100000000', ]
-    plot_csv(targets, columns, separate=False)
-
-def complex_plot(spec):
-	sep = 'corpus'
-	separate = 'N'
-	targets = make_path(spec, sep=sep)
-	json_extract(targets)
-	if sep:
-		for t in targets:
-			plot_csv(t, spec['columns'], separate=separate, twin=False, iter_max=spec['iter_max'])
-	else:
-		plot_csv(targets, spec['columns'], separate=True, iter_max=spec['iter_max'])
-
-def make_path(spec, sep=None, ):
-    targets = []
-    if sep:
-        tt = []
-    for base in spec['base']:
-        for hook in spec['hook_dir']:
-            for c in spec['corpus']:
-                p = os.path.join(base, c, hook)
-                for n in spec['Ns']:
-                    for m in spec['models']:
-                        for k in spec['Ks']:
-                            for h in spec['hyper']:
-                                for hm in spec['homo']:
-                                    t = 'inference-%s_%s_%s_%s_%s' % (m, k, h, hm,  n)
-                                    t = os.path.join(p, t)
-                                    filen = os.path.join(os.path.dirname(__file__), "../data/", t)
-                                    if not os.path.isfile(filen) or os.stat(filen).st_size == 0:
-                                        continue
-                                    if sum(1 for line in open(filen)) <= 1:
-                                        # empy file
-                                        continue
-                                    targets.append(t)
-
-                if sep == 'corpus' and targets:
-                    tt.append(targets)
-                    targets = []
-
-    if sep:
-        return tt
-    else:
-        return targets
-
-# Return dictionary of property for an expe file. (format inference-model_K_hyper_N)
-def get_expe_file_prop(target):
-    _id = target.split('_')
-    model = ''
-    st = 0
-    for s in _id:
-        try:
-            int(s)
-            break
-        except:
-            st += 1
-            model += s
-
-    _id = _id[st:]
-    prop = dict(
-        corpus = target.split('/')[-3],
-        model = model.split('-')[-1],
-        K     = _id[0],
-        hyper = _id[1],
-        homo = _id[2],
-        N     = _id[3],)
-    return prop
-
-# Return size of proportie in a list if expe files
-def get_expe_file_set_prop(targets):
-    c = []
-    for t in targets:
-        c.append(get_expe_file_prop(t))
-
-    sets = {}
-    for p in ('N', 'K'):
-        sets[p] = len(set([ _p[p] for _p in c ]))
-
-    return sets
-
-def json_extract(targets):
-    l = []
-    for t in targets:
-        for _f in t:
-            f = os.path.join(os.path.dirname(__file__), "../data/", _f) + '.json'
-            d = os.path.dirname(f)
-            corpus_type = ('/').join(d.split('/')[-2:])
-            f = os.path.basename(f)[len('inference-'):]
-            fn = os.path.join(d, f)
-            try:
-                d = json.load(open(fn,'r'))
-                l.append(d)
-                density = d['density'] # excepte try density_all
-                mask_density = d['mask_density']
-                #print density
-                #print mask_density
-                precision = d['Precision']
-                rappel = d['Recall']
-                K = len(d['Local_Attachment'])
-                h_s = d.get('homo_ind1_source', np.inf)
-                h_l = d.get('homo_ind1_learn', np.inf)
-                nmi = d.get('NMI', np.inf)
-                print '%s %s; \t K=%s,  global precision: %.3f, local precision: %.3f, rappel: %.3f, homsim s/l: %.3f / %.3f, NMI: %.3f' % (corpus_type, f, K, d.get('g_precision'), precision, rappel, h_s, h_l, nmi )
-            except Exception, e:
-                print e
-                pass
-
-    print
-    if len(l) == 1:
-        return l[0]
-    else:
-        return l
-
-
 if __name__ ==  '__main__':
     block = True
-    conf = argParse()
-
-    spec = dict(
-        base = ['networks'],
-        hook_dir = ['debug5/'],
-        #corpus   = ['kos', 'nips12', 'nips', 'reuter50', '20ngroups'],
-        #corpus   = ['generator/Graph1', 'generator/Graph2', 'clique3'],
-        #corpus   = ['generator/Graph3', 'generator/Graph4'],
-        corpus   = ['generator/Graph4', 'generator/Graph10', 'generator/Graph12', 'generator/Graph13'],
-        columns  = ['perplexity'],
-        #models   = ['ibp', 'ibp_cgs'],
-        #models   = ['ibp_cgs', 'immsb'],
-        ##models   = ['immsb', 'mmsb_cgs'],
-        models   = [ 'ibp', 'immsb'],
-        #Ns       = [250, 1000, 'all'],
-        Ns       = ['all',],
-        #Ks       = [5, 10, 15, 20, 25, 30],
-        Ks       = [5, 10],
-        #Ks       = [5, 10, 30],
-        #Ks       = [10],
-        #homo     = [0,1,2],
-        homo     = [0],
-        hyper    = ['fix', 'auto'],
-        #hyper    = ['auto'],
-        iter_max = 500 ,
-    )
-
-    sep = 'corpus'
-    separate = 'N'
-    #separate = 'N' and False
-    targets = make_path(spec, sep=sep)
-    json_extract(targets)
-    exit()
-    if sep:
-        for t in targets:
-            plot_csv(t, spec['columns'], separate=separate, twin=False, iter_max=spec['iter_max'])
-    else:
-        plot_csv(targets, spec['columns'], separate=True, iter_max=spec['iter_max'])
-
-
-    ### Basic Plots
-    #basic_plot()
 
     display(block)
 

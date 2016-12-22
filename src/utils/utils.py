@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import sys, os
 from os.path import dirname
 from datetime import datetime
@@ -7,8 +9,22 @@ import logging
 import numpy as np
 import scipy as sp
 
-# use https://github.com/kennethreitz/args
+#from itertools import cycle
+class Cycle(object):
+    def __init__(self, seq):
+        self.seq = seq
+        self.it = np.nditer([seq])
+    def next(self):
+        try:
+            return self.it.next().item()
+        except StopIteration:
+            self.it.reset()
+            # Exception on nditer when seq is empty (infinite recursivity)
+            return self.next()
+    def reset(self):
+        return self.it.reset()
 
+# use https://github.com/kennethreitz/args
 def argParse(usage="Usage ?"):
     argdict = defaultdict(lambda: False)
     for i, arg in enumerate(sys.argv):
@@ -133,6 +149,9 @@ def setup_logger(name, fmt, verbose, file=None):
     logger.addHandler(handler)
     return logger
 
+
+def Now():
+    return  datetime.now()
 def ellapsed_time(text, since):
     current = datetime.now()
     delta = current - since
@@ -197,94 +216,7 @@ def getGraph(target='', **conf):
     g[[e[1] for e in edges],  [e[0] for e in edges]] = 1
     return g
 
-from scipy import ndimage
-def dilate(y):
-    mask = ndimage.generate_binary_structure(2, 2)
-    y_f = ndimage.binary_dilation(y, structure=mask).astype(y.dtype)
-    return y_f
 
-def getClique(N=100, K=4):
-    from scipy.linalg import block_diag
-    b = []
-    for k in range(K):
-        n = N / K
-        b.append(np.ones((n,n)))
-
-    C = block_diag(*b)
-    return C
-
-try:
-    from sklearn.cluster import KMeans
-    from sklearn.datasets.samples_generator import make_blobs
-except:
-    pass
-def kmeans(M, K=4):
-    km = KMeans( init='k-means++',  n_clusters=K)
-    km.fit(M)
-    clusters = km.predict(M.astype(float))
-    return clusters.astype(int)
-
-from matplotlib import pyplot as plt
-def kmeans_plus(X=None, K=4):
-    if X is None:
-        centers = [[1, 1], [-1, -1], [1, -1]]
-        K = len(centers)
-        X, labels_true = make_blobs(n_samples=3000, centers=centers, cluster_std=0.7)
-
-	##############################################################################
-	# Compute clustering with Means
-
-    k_means = KMeans(init='k-means++', n_clusters=K, n_init=10)
-    k_means.fit(X)
-    k_means_labels = k_means.labels_
-    k_means_cluster_centers = k_means.cluster_centers_
-    k_means_labels_unique = np.unique(k_means_labels)
-
-	##############################################################################
-	# Plot result
-
-    colors = ['#4EACC5', '#FF9C34', '#4E9A06', '#4E9A97']
-    plt.figure()
-    plt.hold(True)
-    for k, col in zip(range(K), colors):
-    #for k in range(K):
-        my_members = k_means_labels == k
-        cluster_center = k_means_cluster_centers[k]
-        plt.plot(X[my_members, 0], X[my_members, 1], 'w',
-                 markerfacecolor=col, marker='.')
-        plt.plot(cluster_center[0], cluster_center[1], 'o',
-                 markeredgecolor='k', markersize=6, markerfacecolor=col)
-    plt.title('KMeans')
-    plt.grid(True)
-    plt.show()
-
-
-
-from scipy.io.matlab import loadmat
-from scipy.sparse import lil_matrix
-try:
-    from rescal import rescal_als
-except:
-    pass
-def rescal(X, K):
-
-    ## Set logging to INFO to see RESCAL information
-    #logging.basicConfig(level=logging.INFO)
-
-    ## Load Matlab data and convert it to dense tensor format
-    #T = loadmat('data/alyawarra.mat')['Rs']
-    #X = [lil_matrix(T[:, :, k]) for k in range(T.shape[2])]
-
-    X = [sp.sparse.csr_matrix(X)]
-    A, R, fit, itr, exectimes = rescal_als(X, K, init='nvecs', lambda_A=10, lambda_R=10)
-
-    theta =  A.dot(R).dot(A.T)
-    Y = 1 / (1 + np.exp(-theta))
-    Y =  Y[:,0,:]
-    Y[Y <= 0.5] = 0
-    Y[Y > 0.5] = 1
-    #Y = sp.stats.bernoulli.rvs(Y)
-    return Y
 
 # Assign new values to an array according to a map list
 def set_v_to(a, map):
@@ -354,3 +286,21 @@ def make_path(bdir):
     return bdir
 
 
+def drop_zeros(a_list):
+    #return [i for i in a_list if i>0]
+    return filter(lambda x: x != 0, a_list)
+
+import networkx as nx
+def nxG(y):
+    if type(y) is np.ndarray:
+        if (y == y.T).all():
+            # Undirected Graph
+            typeG = nx.Graph()
+        else:
+            # Directed Graph
+            typeG = nx.DiGraph()
+        G = nx.from_numpy_matrix(y, typeG)
+    else:
+        G = y
+
+    return G

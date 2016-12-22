@@ -7,6 +7,12 @@ from expe.spec import _spec_
 lgg = logging.getLogger('root')
 
 LOCAL_BDIR = '../../data/' # Last slash(/) necessary.
+if not os.path.exists(os.path.dirname(__file__)+'/'+LOCAL_BDIR+'networks/generator/Graph7/t0.graph'):
+    LOCAL_BDIR = '/media/dtrckd/TOSHIBA EXT/pymake/data/'
+    if not os.path.exists(LOCAL_BDIR):
+        print 'Error Data path: %s' % LOCAL_BDIR
+        exit()
+
 """
     #### I/O
     Corpus are load/saved using Pickle format in:
@@ -49,7 +55,7 @@ _MASTERKEYS_ = OrderedDict((
     ('debug'       , None),
     ('repeat'      , None),
     ('model'       , None),
-    ('K'           , 5),
+    ('K'           , None),
     ('hyper'       , None),
     ('homo'        , None),
     ('N'           , 'all'),
@@ -117,10 +123,13 @@ def make_output_path(spec, _type=None, sep=None, status=False):
         @status: f finished
         @type: pk, json or inference.
     """
+    spec = defaultdict(lambda: False, spec)
     filen = None
     base = spec['data_type']
     hook = spec.get('debug') or spec.get('refdir', '')
     c = spec.get('corpus') or spec['corpus_name']
+    if not c:
+        return None, None
     if c.startswith(('clique', 'Graph', 'generator')):
         c = c.replace('generator', 'Graph')
         c = 'generator/' + c

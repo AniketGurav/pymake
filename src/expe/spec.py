@@ -70,6 +70,16 @@ class _spec_(object):
         ('homo'         , 0)         ,
         #('repeat'      , '*')       ,
     ))
+    MODEL_FOR_CLUSTER_IMMSB = dict ((
+        ('data_type'    , 'networks'),
+        ('debug'        , 'debug11') ,
+        ('model'        , 'immsb')   ,
+        ('K'            , 20)        ,
+        ('N'            , 'all')     ,
+        ('hyper'        , 'auto')     ,
+        ('homo'         , 0)         ,
+        #('repeat'      , '*')       ,
+    ))
 
     NETWORKS_DD        = ('generator10', )
     MODELS_DD = [ dict ((

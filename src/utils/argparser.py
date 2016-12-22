@@ -8,8 +8,21 @@ from expe.spec import _spec_
 # @TODO:
 #   * wraps cannot handle the decorator chain :(, why ?
 
-class askhelp(object):
 
+class askseed(object):
+    """ Load previous random seed """
+    def __init__(self, func, help=False):
+        self.func = func
+    def __call__(self, *args, **kwargs):
+
+        response = self.func(*args, **kwargs)
+
+        if clargs.flags.contains('--seed'):
+            response['seed'] = True
+        return response
+
+class askhelp(object):
+    """ Print help and exit on -h"""
     def __init__(self, func, help=False):
         self.func = func
         self.help = help
@@ -31,7 +44,7 @@ class askhelp(object):
         return response
 
 class askverbose(object):
-
+    """ Augment verbosity on -c """
     def __init__(self, func):
         self.func = func
         #wraps(func)(self)
@@ -108,7 +121,6 @@ class argparser(object):
                     checksum -= 1
                     break
 
-
         if '-status' in clargs.grouped:
             req['STATUS'] = clargs.grouped['-status'].get(0)
 
@@ -119,6 +131,7 @@ class argparser(object):
     @staticmethod
     @askverbose
     @askhelp
+    @askseed
     def generate(USAGE=''):
         conf = {}
         write_keys = ('-w', 'write', '--write')
@@ -127,21 +140,31 @@ class argparser(object):
             if write_key in clargs.all:
                 conf['write_to_file'] = True
 
-        gargs = clargs.grouped['_'].all
-        if 'homo' in gargs:
-            conf['do'] = 'homo'
-        elif 'burst' in gargs:
-            conf['do'] = 'burst'
+        gargs = clargs.grouped.pop('_')
 
-        # K setting
-        if '-k' in clargs.grouped:
-            conf['K'] = clargs.grouped['-k'].get(0)
-        if '-g' in clargs.grouped:
-            conf['generative'] = 'evidence'
-        if '-e' in clargs.grouped:
-            conf['generative'] = 'predictive'
+        ### map config dict to argument
+        for key in clargs.grouped:
+            if '-k' == key:
+                conf['K'] = int(clargs.grouped['-k'].get(0))
+            elif '-n' in key:
+                conf['gen_size'] = int(clargs.grouped['-n'].get(0))
+            elif '--alpha' in key:
+                conf['alpha'] = float(clargs.grouped['--alpha'].get(0))
+            elif '--gmma' in key:
+                conf['gmma'] = float(clargs.grouped['--gmma'].get(0))
+            elif '--delta' in key:
+                conf['delta'] = float(clargs.grouped['--delta'].get(0))
+            elif '-g' in key:
+                conf['generative'] = 'evidence'
+            elif '-p' in key:
+                conf['generative'] = 'predictive'
+            elif '-m' in key:
+                conf['model'] = clargs.grouped['-m'].get(0)
+
+        if clargs.last and clargs.last not in map(str, clargs.flags.all + conf.values()):
+            conf['do'] = clargs.last
+
         return conf
-
 
     @staticmethod
     @askverbose

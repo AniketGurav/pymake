@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import sys, os
 import pickle, json
 from itertools import chain
@@ -6,52 +8,81 @@ from collections import defaultdict
 import logging
 lgg = logging.getLogger('root')
 
+import numpy as np
+
 from .frontend_io import *
 
-### @Debug :
-#   * update config path !
-#   * Separate attribute of the frontend: dataset / Learning / IHM ...
 
-# review that:
-#    * separate better load / save and preprocessing (input can be file or array...)
-#    * view of file confif.... and path creation....
+class Object(object):
+    """ Implement a mathematical object manipulation philosophy,
+        WIth a high level view of object set as topoi.
+        * return None for errorAtributes
+        * memorize all input as attribute by default
+    """
+    # @todo: catch attributeError on config, and print possibilities if possible
+    # (ie the method assciated to the key in the object in getattr ? --> tab completion)
+
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+    #def __getattr__(self, attr):
+    #    if type(attr) is not str:
+    #        lgg.error('Error attribute type: %s' % (attr))
+    #        return None
+
+    #    if hasattr(self,attr):
+    #        return getattr(self, attr)
+    #    else:
+    #        if hasattr(self, 'get_'+attr):
+    #            lgg.warning('get %s from class method get_' % (str(attr)))
+    #            f = self.getattr(self, 'get_'+attr)
+    #            return f()
+    #        else:
+    #            # find the name of the chil class on this catch
+    #            lgg.warning('attributes `%s\' is Non-Existent' % (str(attr)))
+    #            return None
 
 class DataBase(object):
+    """ Root Class for Frontend Manipulation over Corpuses and Models.
+
+        Given Data Y, and Model M = {\theta, \Phi}
+        E[Y] = \theta \phi^T
+
+        Fonctionality are of the frontend decline as:
+        1. Frontend for model/algorithm I/O,
+        2. Frontend for Corpus Information, and Result Gathering for
+            Machine Learning Models.
+        3. Data Analisis and Prediction..
+
+        load_corpus -> load_text_corpus -> text_loader
+        (frontent)  ->   (choice)       -> (adapt preprocessing)
+
     """
-###################################################################
-### Root Class for Frontend Manipulation over Corpuses and Models.
+    ### @Debug :
+    #   * update config path !
+    #   * Separate attribute of the frontend: dataset / Learning / IHM ...
 
-    Given Data Y, and Model M = {\theta, \Phi}
-    E[Y] = \theta \phi^T
+    # review that:
+    #    * separate better load / save and preprocessing (input can be file or array...)
+    #    * view of file confif.... and path creation....
 
-    Fonctionality are of the frontend decline as:
-    1. Frontend for model/algorithm I/O,
-    2. Frontend for Corpus Information, and Result Gathering for
-        Machine Learning Models.
-    3. Data Analisis and Prediction..
-
-    load_corpus -> load_text_corpus -> text_loader
-    (frontent)  ->   (choice)       -> (adapt preprocessing)
-
-"""
-
-    def __init__(self, config):
+    def __init__(self, config, data=None):
         if config.get('seed'):
-            np.random.seed(config.get('seed'))
+            #np.random.seed(config.get('seed'))
+            np.random.set_state(self.load('.seed'))
         self.seed = np.random.get_state()
-        self.config = config
+        self.save(self.seed, '.seed')
+        self.cfg = config
         config['data_type'] = self.bdir
 
         self.corpus_name = config.get('corpus_name') or config.get('corpus')
         self.model_name = config.get('model_name')
 
-        self.K = config.get('K', 10)
-        self.C = config.get('C', 10)
-        self.N = config.get('N')
         self.homo = int(config.get('homo', 0))
         self.hyper_optimiztn = config.get('hyper')
+
         self.true_classes = None
-        self.data = None
+        self.data = data
         self.data_t = None
 
         self._load_data = config.get('load_data')
@@ -62,35 +93,22 @@ class DataBase(object):
 
         # self._init()
         # self.data = self.load_data(spec)
+        if data is not None:
+            self.update_data(data)
 
+    def update_data(self):
+        raise NotImplemented
 
-    #def make_output_path(self, corpus_name=None):
-    #    # Write Path (for models results)
-    #    config = self.config
-    #    if not hasattr(self, 'basedir') or corpus_name:
-    #        self.basedir = os.path.join(self.bdir, corpus_name)
-    #    corpus_name = corpus_name or self.corpus_name
-    #    fname_out = '%s_%s_%s_%s_%s' % (self.model_name,
-    #                                        self.K,
-    #                                        self.hyper_optimiztn,
-    #                                        self.homo,
-    #                                        self.N)
-
-    #    config['output_path'] = os.path.join(self.basedir,
-    #                                         config.get('refdir', ''),
-    #                                         str(config.get('repeat', '')),
-    #                                         fname_out)
-    #    self.output_path = config['output_path']
     def make_output_path(self):
         # Write Path (for models results)
-        self.basedir, self.output_path = make_output_path(self.config)
-        self.config['output_path'] = self.output_path
+        self.basedir, self.output_path = make_output_path(self.cfg)
+        self.cfg['output_path'] = self.output_path
 
     def update_spec(self, **spec):
         if len(spec) == 1:
             k, v = spec.items()[0]
             setattr(self, k, v)
-        self.config.update(spec)
+        self.cfg.update(spec)
 
     @staticmethod
     def corpus_walker(path):
@@ -158,12 +176,14 @@ class DataBase(object):
         return bow
 
     # Pickle class
-    def save(self, data, fn):
+    @staticmethod
+    def save(data, fn):
         fn = fn + '.pk'
         with open(fn, 'w') as _f:
             return pickle.dump(data, _f)
 
-    def load(self, fn):
+    @staticmethod
+    def load(fn):
         fn = fn + '.pk'
         with open(fn, 'r') as _f:
             return pickle.load(_f)
@@ -177,6 +197,7 @@ class DataBase(object):
 
 from .frontendtext import frontendText
 from .frontendnetwork import frontendNetwork
+
 class FrontendManager(object):
     """ Utility Class who aims at mananing the frontend at the higher level.
     """
@@ -229,6 +250,22 @@ class ModelBase(object):
             f.flush()
             self._samples = []
 
+    def load_some(self, iter_max=None):
+         # try on output_path i/o error manage fname_i
+        filen = self.fname_i
+        with open(filen) as f:
+            data = f.read()
+
+        data = filter(None, data.split('\n'))
+        if iter_max:
+            data = data[:iter_max]
+        # Ignore Comments
+        data = [re.sub("\s\s+" , " ", x.strip()) for l,x in enumerate(data) if not x.startswith(('#', '%'))]
+
+        #ll_y = [row.split(sep)[column] for row in data]
+        #ll_y = np.ma.masked_invalid(np.array(ll_y, dtype='float'))
+        return data
+
     def close(self):
         if not hasattr(self, '_f'):
             return
@@ -236,7 +273,6 @@ class ModelBase(object):
         if self._samples:
             self.write_some(None)
         self._f.close()
-
 
     def similarity_matrix(self, theta=None, phi=None, sim='cos'):
         if theta is None:
@@ -293,8 +329,14 @@ class ModelBase(object):
 
 
 # Model Import
-from hdp import mmsb, lda
-from ibp.ilfm_gs import IBPGibbsSampling
+from models.hdp import mmsb, lda
+from models.ibp.ilfm_gs import IBPGibbsSampling
+
+#### @Debug/temp modules name changed in pickle model
+from models import hdp, ibp
+sys.modules['hdp'] = hdp
+sys.modules['ibp'] = ibp
+###
 
 sys.path.insert(1, '../../gensim')
 import gensim as gsm
@@ -318,7 +360,8 @@ class ModelManager(object):
         if not self.model_name:
             return
 
-        self.model = self.get_model(config)
+        if data is not None:
+            self.model = self.get_model(config)
 
     # Base class for Gibbs, VB ... ?
     def loadgibbs_1(self, target, likelihood=None):
@@ -338,10 +381,10 @@ class ModelManager(object):
             kernel = lda
 
         if likelihood is None:
-            likelihood = kernel.DirMultLikelihood(delta,
-                                                  self.data,
-                                                  symmetric=symmetric,
-                                                  assortativity=assortativity)
+            likelihood = kernel.Likelihood(delta,
+                                           self.data,
+                                           symmetric=symmetric,
+                                           assortativity=assortativity)
 
         if target.split('_')[-1] == 'cgs':
             # Parametric case

@@ -1,31 +1,43 @@
 import sys, os
 from itertools import chain
-from operator import itemgetter
 from string import Template
+
 from numpy import ma
+import numpy as np
 import networkx as nx
+import community as pylouvain
 
 from .frontend import DataBase
-from utils.utils import *
+from utils.utils import parse_file_conf
 
 sys.path.insert(1, '../../gensim')
 import gensim
 from gensim.models import ldamodel, ldafullbaye
 Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
 
-############################################################
-############################################################
-#### Frontend for network data.
-#
-#   Symmetric network support.
+
+def getClique(N=100, K=4):
+    from scipy.linalg import block_diag
+    b = []
+    for k in range(K):
+        n = N / K
+        b.append(np.ones((n,n)))
+
+    C = block_diag(*b)
+    return C
+
+### @Issue42: fronteNetwork should be imported fron frontend
 
 class frontendNetwork(DataBase):
+    """ Frontend for network data.
+        Symmetric network support.
+    """
 
-    def __init__(self, config):
+    def __init__(self, config=dict(), data=None):
         self.bdir = 'networks'
-        super(frontendNetwork, self).__init__(config)
-
-    # /!\ Will set the name of output_path.
+        super(frontendNetwork, self).__init__(config, data)
+        self.make_output_path()
+        # /!\ Will set the name of output_path.
 
     #Todo; remove conflit wih loader...
     #def load(self, **kwargs):
@@ -34,7 +46,7 @@ class frontendNetwork(DataBase):
         """ Load data according to different scheme:
             * Corpus from file dataset
             * Corpus from random generator
-            """
+        """
         if corpus_name is not None:
             self.update_spec(**{'corpus_name': corpus_name})
         else:
@@ -62,7 +74,7 @@ class frontendNetwork(DataBase):
     def sample(self, N=None, symmetric=False, randomize=False):
         N = N or self.N
         n = self.data.shape[0]
-        N_config = self.config['N']
+        N_config = self.cfg['N']
         if not N_config or N_config == 'all':
             self.N = N
         else:
@@ -138,7 +150,7 @@ class frontendNetwork(DataBase):
         return self.symmetric
 
     def random(self, rnd):
-        config = self.config
+        config = self.cfg
         # Generate Data
         if type(config.get('random')) is int:
             rvalue = _rvalue.get(config['random'])
@@ -160,10 +172,12 @@ class frontendNetwork(DataBase):
     ### Redirect to correct path depending on the corpus_name
     def get_corpus(self, corpus_name):
         self.make_output_path()
+        N = self.cfg['N']
         try:
-            N = int(self.N)
+            N = int(N)
         except:
             # Catch later or elsewhere
+            N = 'all'
             pass
 
         if corpus_name.startswith(('generator', 'Graph')):
@@ -190,11 +204,14 @@ class frontendNetwork(DataBase):
             if not hasattr(self, a):
                 setattr(self, a, None)
 
+        self.update_data(data)
+        return True
+
+    def update_data(self, data):
         self.data = data
         N, M = self.data.shape
         self.N = N
         self.nodes_list = [np.arange(N), np.arange(M)]
-        return True
 
     def networkloader(self, fn):
         """ Load pickle or parse data """
@@ -283,7 +300,7 @@ class frontendNetwork(DataBase):
                     data.append( line.strip() )
         f.close()
 
-        edges = [tuple(row.split(';')) for row in data]
+        edges = np.array([tuple(row.split(';')) for row in data]).astype(int)
         g = np.zeros((N,N))
         g[[e[0] for e in edges], [e[1] for e in edges]] = 1
         g[[e[1] for e in edges], [e[0] for e in edges]] = 1
@@ -305,12 +322,12 @@ class frontendNetwork(DataBase):
         community_distribution = list(np.bincount(clusters))
 
         local_attach = {}
-        for n, _comm in enumerate(clusters):
-            comm = str(_comm)
+        for n, c in enumerate(clusters):
+            comm = str(c)
             local = local_attach.get(comm, [])
-            degree_n = data[n, :].sum()
-            if symmetric:
-                degree_n += data[:, n].sum()
+            degree_n = data[n,:][clusters == c].sum()
+            if not symmetric:
+                degree_n += data[:, n][clusters == c].sum()
             local.append(degree_n)
             local_attach[comm] = local
 
@@ -319,6 +336,14 @@ class frontendNetwork(DataBase):
     def density(self):
         G = self.GG()
         return nx.density(G)
+
+    def modularity(self):
+        part =  self.get_partition()
+        if not part:
+            return None
+        g = self.GG()
+        modul = pylouvain.modularity(part, g)
+        return modul
 
     def diameter(self):
         G = self.GG()
@@ -366,12 +391,19 @@ class frontendNetwork(DataBase):
     def get_clusters(self):
         return self.clusters
 
+    def get_partition(self, clusters=None):
+        clusters = self.clusters or clusters
+        if not clusters:
+            return {}
+        K = len(clusters)
+        return dict(zip(*[np.arange(K), clusters]))
+
     def clusters_len(self):
-        cluster = self.get_clusters()
-        if not cluster:
+        clusters = self.get_clusters()
+        if not clusters:
             return None
         else:
-            return max(self.clusters)+1
+            return max(clusters)+1
 
     def get_data_prop(self):
         prop =  super(frontendNetwork, self).get_data_prop()
@@ -384,6 +416,7 @@ class frontendNetwork(DataBase):
                'density': self.density(),
                'diameter': self.diameter(),
                'clustering_coef': self.clustering_coefficient(),
+               'modularity': self.modularity(),
                'communities': self.clusters_len(),
                'features': self.get_nfeat(),
                'directed': not self.is_symmetric()
@@ -400,6 +433,7 @@ class frontendNetwork(DataBase):
         Degree mean: $nnz_mean
         Degree var: $nnz_var
         Diameter: $diameter
+        Modularity: $modularity
         Clustering Coefficient: $clustering_coef
         Density: $density
         Communities: $communities
@@ -591,5 +625,4 @@ class frontendNetwork(DataBase):
 
         d = {'NMI' : NMI, 'homo_ind1_source' : homo_ind1_source, 'homo_ind1_learn' : homo_ind1_learn}
         return d
-
 

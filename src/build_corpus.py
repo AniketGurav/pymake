@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from utils.utils import argParse
-from frontend.frontendtext import frontendText
+from frontend.frontendimport frontendText
+
+# @Issue43: Parser/config unification.
+from utils.utils import *
+from collections import defaultdict
+import os
+#
 
 import numpy as np
 import scipy as sp
@@ -14,6 +19,7 @@ if __name__ == '__main__':
     config = defaultdict(lambda: False, dict(
         ##### Global settings
         ###### I/O settings
+        bdir = '../data',
         load_data = False,
         save_data = True,
     ))
@@ -33,11 +39,11 @@ if __name__ == '__main__':
 
     fn_corpus_build = os.path.join(config['bdir'], 'text','Corpuses.txt')
     _f = open(fn_corpus_build, 'a')
-    _f.write('/**** %s ****/\n\n' % (datetime.now()))
+    _f.write('/**** %s ****/\n\n' % (Now()))
 
 
     for corpus_name in corpuses:
-        startt = datetime.now()
+        startt = Now()
         frontend = frontendText(config)
         frontend.load_data(corpus_name)
         building_corpus_time = (ellapsed_time('Prepropressing %s'%corpus_name, startt) - startt)
