@@ -103,13 +103,8 @@ def argParse(usage="Usage ?"):
                 _arg = sys.argv.pop(i+1)
                 argdict['load'] = _arg
         elif arg in ('-r', '--random', 'random'):
-            try:
-                int(sys.argv[i+1])
-                _arg = int(sys.argv.pop(i+1))
-            except:
-                _arg = 1
-            finally:
-                argdict['random'] = _arg
+            _arg = sys.argv.pop(i+1)
+            argdict['random'] = _arg
         elif arg in ('-g'):
             argdict.update(random = False)
         elif arg in ('--help','-h'):

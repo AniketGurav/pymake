@@ -43,16 +43,22 @@ class frontendNetwork(DataBase):
     #def load(self, **kwargs):
     #    return self.load_data(**kwargs)
     def load_data(self, corpus_name=None, randomize=False):
-        """ Load data according to different scheme:
-            * Corpus from file dataset
+        """ Load data according to different scheme,
+            by order of priority (if several specification in settings)
             * Corpus from random generator
+            * Corpus from file dataset
         """
-        if corpus_name is not None:
-            self.update_spec(**{'corpus_name': corpus_name})
-        else:
-            corpus_name = self.corpus_name
 
-        self.get_corpus(corpus_name)
+        if self.cfg.get('random'):
+            corpus_name = self.update_spec(**{'corpus_name': self.cfg['random']})
+            self.update_data(self.random(corpus_name))
+        else:
+            if corpus_name is not None:
+                self.update_spec(**{'corpus_name': corpus_name})
+            else:
+                corpus_name = self.corpus_name
+
+            self.get_corpus(corpus_name)
 
         np.fill_diagonal(self.data, 1)
         if randomize:
@@ -150,24 +156,35 @@ class frontendNetwork(DataBase):
         return self.symmetric
 
     def random(self, rnd):
-        config = self.cfg
-        # Generate Data
-        if type(config.get('random')) is int:
-            rvalue = _rvalue.get(config['random'])
-            if rvalue == 'uniform':
-                data = np.random.randint(0, 2, (N, N))
-                np.fill_diagonal(data, 1)
-            elif rvalue == 'clique':
-                data = getClique(N, K=K)
-                G = nx.from_numpy_matrix(data, nx.Graph())
-                data = nx.adjacency_matrix(G, np.random.permutation(range(N))).A
-            elif rvalue == 'barabasi-albert':
-                data = nx.adjacency_matrix(nx.barabasi_albert_graph(N, m=13) ).A
-            else:
-                raise NotImplementedError()
+        N = self.N = self.cfg['N']
 
-        self.data = data
-        return True
+        if rnd == 'uniform':
+            data = np.random.randint(0, 2, (N, N))
+            np.fill_diagonal(data, 1)
+        elif rnd == 'clique':
+            data = getClique(N, K=K)
+            G = nx.from_numpy_matrix(data, nx.Graph())
+            data = nx.adjacency_matrix(G, np.random.permutation(range(N))).A
+        elif rnd == 'barabasi-albert':
+            data = nx.adjacency_matrix(nx.barabasi_albert_graph(N, m=13) ).A
+        elif rnd ==  'alternate':
+            #data = np.empty((N,N),int)
+            data = np.zeros((N,N),int)
+            type_rd = 2
+            if type_rd == 1:
+                # degree alternating with frequency fr
+                fr = 3
+                data[:, ::fr] = 1
+            elif type_rd == 2:
+                # degree equal
+                data[:, ::2] = 1
+                data[::2] = np.roll(data[::2], 1)
+            print data
+            return data
+        else:
+            raise NotImplementedError()
+
+        return data
 
     ### Redirect to correct path depending on the corpus_name
     def get_corpus(self, corpus_name):

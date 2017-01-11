@@ -411,7 +411,7 @@ def gofit(x, y, model='powerlaw'):
     # Ignore head data
     if False:
         N = n_tail # bad effect
-        ks_d = kstest(d[d>x_min], cdf)
+        ks_d = kstest(d[d>=x_min], cdf)
     else:
         ks_d = kstest(d, cdf)
 

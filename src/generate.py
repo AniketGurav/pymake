@@ -33,10 +33,10 @@ analysis in [clustering, zipf, (to complete)]
 config = defaultdict(lambda: False, dict(
     write_to_file = False,
     do            = 'zipf',
-    generative    = 'evidence',
-    #generative    = 'predictive',
+    #generative    = 'evidence',
+    generative    = 'predictive',
     gen_size      = 1000,
-    epoch         = 10 , #20
+    epoch         = 20 , #20
     debug         = 'debug11'
 ))
 config.update(argparser.generate(USAGE))
@@ -50,16 +50,21 @@ Corpuses = _spec_.CORPUS_REAL_ICDM_1
 Corpuses = _spec_.CORPUS_SYN_ICDM_1
 Corpuses = ('generator10',)
 
+Corpuses = _spec_.CORPUS_SYN_ICDM_1
+Corpuses += _spec_.CORPUS_REAL_ICDM_1
+
+Corpuses = Corpuses[1:]
+
 ### Models
 #Models = _spec_.MODELS_GENERATE
 Models = [dict ((
     ('data_type'    , 'networks'),
     ('debug'        , 'debug11') , # ign in gen
     #('model'        , 'mmsb_cgs')   ,
-    ('model'        , 'immsb')   ,
+    ('model'        , 'ibp')   ,
     ('K'            , 10)        ,
     ('N'            , 'all')     , # ign in gen
-    ('hyper'        , 'auto')    , # ign in ge
+    ('hyper'        , 'fix')    , # ign in ge
     ('homo'         , 0)         , # ign in ge
     #('repeat'      , '*')       ,
 ))]
@@ -89,7 +94,12 @@ for corpus_name in Corpuses:
             Model.update(corpus=corpus_name)
             model = ModelManager(config=config).load(Model)
             #model = model.load(Model)
-            Model['hyperparams'] = model.get_hyper()
+            try:
+                # this try due to mthod modification entry in init not in picke object..
+                Model['hyperparams'] = model.get_hyper()
+            except:
+                model._mean_w = 0
+                Model['hyperparams'] = 0
             N = data.shape[0]
         elif config['generative'] == 'evidence':
             N = config['gen_size']
@@ -155,17 +165,13 @@ for corpus_name in Corpuses:
             continue
 
         g = None
-        if config['generative'] == 'predictive':
-            y = data
-        else:
-            y = Y[0]
 
         analysis = getattr(format, config['do'])
         analysis(**globals())
 
         #format.debug(**globals())
 
-        display(False)
+        display(True)
 
 if not config.get('write_to_file'):
     display(True)

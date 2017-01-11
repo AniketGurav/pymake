@@ -60,6 +60,18 @@ class _spec_(object):
         ('repeat'   , range(10)),
     ))
 
+    EXPE_ICDM_R_R = OrderedDict((
+        ('data_type', ('networks',)),
+        ('corpus' , ('fb_uc', 'manufacturing')),
+        ('debug'  , ('debug101010', 'debug111111')),
+        ('model'  , ('immsb', 'ibp')),
+        ('K'      , (5, 10, 15, 20)),
+        ('hyper'  , ('fix', 'auto')),
+        ('homo'   , (0, 1, 2)),
+        ('N'      , ('all',)),
+        ('repeat'   , range(10)),
+    ))
+
     MODEL_FOR_CLUSTER_IBP = dict ((
         ('data_type'    , 'networks'),
         ('debug'        , 'debug11') ,

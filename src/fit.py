@@ -24,6 +24,7 @@ Default load corpus and run a model !!
 -n | --limit N : Limit size of corpus
 -d basedir     : base directory to save results.
 -k K           : Number of topics.
+-r | --random [type] : Generate a random networ for training
 --homo int     : homophily 0:default, 1: ridge, 2: smooth
 ##### Single argument
 -p           : Do prediction on test data

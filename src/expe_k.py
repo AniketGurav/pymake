@@ -17,11 +17,14 @@ USAGE = '''\
     expe_k [model]
 '''
 
+#TENSOR = _spec_.EXPE_ICDM_R
+TENSOR = _spec_.EXPE_ICDM_R_R
+
 expe_args = argparser.expe_tabulate(USAGE)
 
 ###################################################################
 # Data Forest config
-map_parameters = _spec_.EXPE_ICDM_R
+map_parameters = TENSOR
 ### Seek experiments results
 target_files = make_forest_path(map_parameters, 'json')
 ### Make Tensor Forest of results
@@ -44,7 +47,7 @@ expe_1 = OrderedDict((
     ('homo'  , 0) ,
     ('N'     , 'all')     ,
     ('repeat', '*'),
-    ('measure', 1),
+    ('measure', 8),
     ))
 expe_1.update(expe_args)
 

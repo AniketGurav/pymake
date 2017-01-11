@@ -74,19 +74,23 @@ class DataBase(object):
         self.save(self.seed, '.seed')
         self.cfg = config
         config['data_type'] = self.bdir
+        self._load_data = config.get('load_data')
+        self._save_data = config.get('save_data')
 
         self.corpus_name = config.get('corpus_name') or config.get('corpus')
         self.model_name = config.get('model_name')
 
+        # Specific / @issue Object ?
+        # How to handld not-defined variable ?
+        # What categorie for object ??
         self.homo = int(config.get('homo', 0))
         self.hyper_optimiztn = config.get('hyper')
+        self.clusters = None
+        self.features = None
 
         self.true_classes = None
         self.data = data
         self.data_t = None
-
-        self._load_data = config.get('load_data')
-        self._save_data = config.get('save_data')
 
         # Read Directory
         #self.make_output_path()
@@ -105,10 +109,12 @@ class DataBase(object):
         self.cfg['output_path'] = self.output_path
 
     def update_spec(self, **spec):
+        v = None
         if len(spec) == 1:
             k, v = spec.items()[0]
             setattr(self, k, v)
         self.cfg.update(spec)
+        return v
 
     @staticmethod
     def corpus_walker(path):

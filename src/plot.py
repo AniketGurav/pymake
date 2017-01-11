@@ -180,6 +180,8 @@ def plot_degree_2(P, logscale=False, colors=False, line=False):
 
     plt.xlim((min_d, max_d+10))
     #plt.ylim((.9,1e3))
+    #plt.xlim(left=1)
+    #plt.ylim((.9,1e3))
     plt.xlabel('Degree'); plt.ylabel('Counts')
 
 ##########################

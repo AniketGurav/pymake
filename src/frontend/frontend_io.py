@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import re, os, json, logging
 from collections import defaultdict, OrderedDict
 import fnmatch
@@ -63,8 +64,12 @@ _MASTERKEYS_ = OrderedDict((
 
 
 # Debug put K_end inside the json
+#_Key_measures = [ 'g_precision', 'Precision', 'Recall', 'K',
+#                 'homo_dot_o', 'homo_dot_e', 'homo_model_o', 'homo_model_e',
+#                ]
 _Key_measures = [ 'g_precision', 'Precision', 'Recall', 'K',
-                 'homo_dot_o', 'homo_dot_e', 'homo_model_o', 'homo_model_e'
+                 'homo_dot_o', 'homo_dot_e', 'homo_model_o', 'homo_model_e',
+                 'f1'
                 ]
 
 _New_Dims = [{'measure':len(_Key_measures)}]
@@ -364,12 +369,29 @@ def forest_tensor(target_files, map_parameters):
             pt = list(pt.astype(int))
             for i, v in enumerate(_Key_measures):
                 pt[-1] = i
-                # HOOK
+                ### HOOK
+                # v:  is the measure name
+                # json_v: the value of the measure
                 if v == 'homo_model_e':
                     try:
                         json_v =  d.get('homo_model_o') - d.get(v)
                     except: pass
+                elif v == 'f1':
+                    precision = d.get('Precision')
+                    try:
+                        recall = d.get('Recall')
+                        recall*2
+                    except:
+                        # future remove
+                        recall = d.get('Rappel')
+                    json_v = 2*precision*recall / (precision+recall)
                 else:
+                    if v == 'Recall':
+                        try:
+                            v * 2
+                        except:
+                            v = 'Rappel'
+
                     json_v = d.get(v)
                 rez[zip(pt)] = json_v
 
