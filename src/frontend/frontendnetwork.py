@@ -1,14 +1,18 @@
 import sys, os
-from itertools import chain
+import itertools
 from string import Template
 
 from numpy import ma
 import numpy as np
 import networkx as nx
-import community as pylouvain
+try:
+    import community as pylouvain
+except:
+    pass
 
 from .frontend import DataBase
 from utils.utils import parse_file_conf
+from utils.math import *
 
 sys.path.insert(1, '../../gensim')
 import gensim
@@ -52,6 +56,7 @@ class frontendNetwork(DataBase):
         if self.cfg.get('random'):
             corpus_name = self.update_spec(**{'corpus_name': self.cfg['random']})
             self.update_data(self.random(corpus_name))
+            self.make_output_path()
         else:
             if corpus_name is not None:
                 self.update_spec(**{'corpus_name': corpus_name})
@@ -179,7 +184,6 @@ class frontendNetwork(DataBase):
                 # degree equal
                 data[:, ::2] = 1
                 data[::2] = np.roll(data[::2], 1)
-            print data
             return data
         else:
             raise NotImplementedError()
@@ -264,7 +268,7 @@ class frontendNetwork(DataBase):
         lines = filter(None, content.split('\n'))
         edges = [l.strip().split(sep)[-3:-1] for l in lines]
         edges = [ (int(e[0])-1, int(e[1])-1) for e in edges]
-        N = max(list(chain(*edges))) + 1
+        N = max(list(itertools.chain(*edges))) + 1
 
         g = np.zeros((N,N))
         g[zip(*edges)] = 1
@@ -277,7 +281,7 @@ class frontendNetwork(DataBase):
         lines = filter(None, content.split('\n'))[1:]
         edges = [l.strip().split(sep)[0:2] for l in lines]
         edges = [ (int(e[0])-1, int(e[1])-1) for e in edges]
-        N = max(list(chain(*edges))) + 1
+        N = max(list(itertools.chain(*edges))) + 1
 
         g = np.zeros((N,N))
         g[zip(*edges)] = 1
@@ -330,7 +334,7 @@ class frontendNetwork(DataBase):
         self.features = np.array(features)
         return g
 
-    def communities_analysis(self):
+    def _old_communities_analysis(self):
         clusters = self.clusters
         if clusters is None:
             return None
@@ -349,6 +353,54 @@ class frontendNetwork(DataBase):
             local_attach[comm] = local
 
         return community_distribution, local_attach, clusters
+
+    # used by (obsolete) zipf.py
+    def communities_analysis(self):
+        from utils.algo import adj_to_degree # Circular import bug inthetop
+        clusters = self.clusters
+        if clusters is None:
+            return None
+        data = self.data
+        symmetric = self.is_symmetric()
+        community_distribution = list(np.bincount(clusters))
+        block_hist = np.bincount(clusters)
+
+        local_degree = {}
+        if symmetric:
+            k_perm = np.unique( map(list, map(set, itertools.product(np.unique(clusters) , repeat=2))))
+        else:
+            k_perm = itertools.product(np.unique(clusters) , repeat=2)
+
+        for c in k_perm:
+            if type(c) in (np.float64, np.int64):
+                # one clusters (as it appears for real with max assignment
+                l = k = c
+            elif  len(c) == 2:
+                # Stochastic Equivalence (extra class bind
+                k, l = c
+            else:
+                # Comunnities (intra class bind)
+                k = l = c.pop()
+            comm = (str(k), str(l))
+            local = local_degree.get(comm, [])
+
+            C = np.tile(clusters, (data.shape[0],1))
+            y_c = data * ((C==k) & (C.T==l))
+            if y_c.size > 0:
+                local_degree[comm] = adj_to_degree(y_c).values()
+
+            # Summing False !
+            #for n in np.arange(data.shape[0]))[clusters == k]:
+            #    degree_n = data[n,:][(clusters == k) == (clusters == l)].sum()
+            #    if not symmetric:
+            #        degree_n = data[n,:][(clusters == k) == (clusters == l)].sum()
+            #    local.append(degree_n)
+            #local_degree[comm] = local
+
+        return {'local_degree':local_degree,
+                'clusters': np.asarray(clusters),
+                'block_hist': block_hist,
+                'size': len(block_hist)}
 
     def density(self):
         G = self.GG()

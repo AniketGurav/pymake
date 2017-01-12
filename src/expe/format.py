@@ -28,10 +28,10 @@ path = '../results/networks/generate/'
 corpus_ = dict((
     ('manufacturing'  , ('Manufacturing', 'manufacturing')),
     ('fb_uc'          , ('UC Irvine', 'irvine')),
-    ('generator4'     , ('Network 4', 'g4')),
-    ('generator10'    , ('Network 3', 'g3')),
-    ('generator12'    , ('Network 2', 'g2')),
     ('generator7'     , ('Network 1', 'g1')),
+    ('generator12'    , ('Network 2', 'g2')),
+    ('generator10'    , ('Network 3', 'g3')),
+    ('generator4'     , ('Network 4', 'g4')),
 ))
 
 model_ = dict(ibp = 'ilfm',
@@ -150,6 +150,7 @@ def zipf(**kwargs):
     """ Local/Global Preferential attachment effect analysis """
     globals().update(kwargs)
     y = kwargs['y']
+    N = y.shape[0]
     if Model['model'] == 'ibp':
         title = '%s, N=%s, K=%s alpha=%s, lambda:%s'% (model_name, N, K, alpha, delta)
     elif Model['model'] == 'immsb':
@@ -158,6 +159,9 @@ def zipf(**kwargs):
         title = '%s, N=%s, K=%s alpha=%s, lambda:%s'% (model_name, N, K, alpha, delta)
     else:
         raise NotImplementedError
+
+    if config['generative'] == 'predictive':
+        title = '%s, K=%s,  dataset=%s'% (model_name, K, corpus_name)
     ##############################
     ### Global degree
     ##############################
@@ -165,11 +169,12 @@ def zipf(**kwargs):
     #plot_degree_poly(data, scatter=False)
     d, dc, yerr = random_degree(Y)
     god = gofit(d, dc)
+    #plt.figure()
+    #plot_degree_2((d,dc,yerr))
+    #plt.title(title)
     plt.figure()
-    plot_degree_2((d,dc,yerr))
-    plt.title(title)
-    plt.figure()
-    plot_degree_2((d,dc,None), logscale=True)
+    plot_degree_2((d,dc,yerr), logscale=True)
+    #plot_degree_2((d,dc,None), logscale=True)
     plt.title(title)
 
     if False:
@@ -177,8 +182,6 @@ def zipf(**kwargs):
         return
 
     print 'Computing Local Preferential attachment'
-    if not frontend.is_symmetric():
-        lgg.info('Verify that undirected networks is consistent')
     ##############################
     ### Z assignement method
     ##############################
@@ -186,12 +189,14 @@ def zipf(**kwargs):
     if model_name == 'immsb':
         ZZ = []
         #for _ in [Y[0]]:
-        for _ in Y: # Do not reflect real local degree !
+        for _ in Y[:5]: # Do not reflect real local degree !
             Z = np.empty((2,N,N))
             order = np.arange(N**2).reshape((N,N))
             if frontend.is_symmetric():
                 triu = np.triu_indices(N)
                 order = order[triu]
+            else:
+                order = order.flatten()
             order = zip(*np.unravel_index(order, (N,N)))
 
             for i,j in order:
@@ -269,17 +274,18 @@ def zipf(**kwargs):
     ### Blockmodel Analysis
     ##############################
     # Class Ties
-    plt.figure()
-    #local_degree = comm['local_degree']
-    #local_degree = local_degree_c # strong concentration on degree 1 !
-    label, hist = zip(*model.blockmodel_ties(Y[0]))
-    bins = len(hist)
-    plt.bar(range(bins), hist)
-    label_tick = lambda t : '-'.join(t)
-    plt.xticks(np.arange(bins)+0.5, map(label_tick, label))
-    plt.tick_params(labelsize=5)
-    plt.xlabel('Class Interactions')
-    plt.title('Weighted Harmonic mean of class interactions ties')
+
+    #plt.figure()
+    ##local_degree = comm['local_degree']
+    ##local_degree = local_degree_c # strong concentration on degree 1 !
+    #label, hist = zip(*model.blockmodel_ties(Y[0]))
+    #bins = len(hist)
+    #plt.bar(range(bins), hist)
+    #label_tick = lambda t : '-'.join(t)
+    #plt.xticks(np.arange(bins)+0.5, map(label_tick, label))
+    #plt.tick_params(labelsize=5)
+    #plt.xlabel('Class Interactions')
+    #plt.title('Weighted Harmonic mean of class interactions ties')
 
 
     if model_name == "immsb":
@@ -307,8 +313,9 @@ def zipf(**kwargs):
     #draw_graph_spectral(y, clusters)
     #draw_graph_circular(y, clusters)
     #adjshow(y, title='Adjacency Matrix')
-    adjblocks(y, clusters=comm['clusters'], title='Blockmodels of Adjacency matrix')
-    draw_blocks(comm)
+
+    #adjblocks(y, clusters=comm['clusters'], title='Blockmodels of Adjacency matrix')
+    #draw_blocks(comm)
 
     print 'density: %s' % (float(y.sum()) / (N**2))
 

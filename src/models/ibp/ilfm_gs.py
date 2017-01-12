@@ -642,7 +642,7 @@ class IBPGibbsSampling(IBP, ModelBase):
             else:
                 # Comunnities (intra class bind)
                 k = l = c.pop()
-            comm = (str(k), str(l))
+            comm = '-'.join([str(k), str(l)])
             local = local_degree.get(comm, [])
 
             C = np.tile(clusters, (data.shape[0],1))

@@ -4,7 +4,7 @@
 from random import choice
 from utils.utils import *
 from utils.vocabulary import Vocabulary, parse_corpus
-from frontend.frontend import ModelManager, FrontendManager
+from frontend.manager import ModelManager, FrontendManager
 
 import numpy as np
 import scipy as sp

@@ -72,31 +72,6 @@ def surf(x, y, z):
     ax.plot_surface(X, Y, z)
     return ax
 
-def plot_degree(y, title=None, noplot=False):
-    if len(y) > 6000:
-        return
-    G = nxG(y)
-    degree = sorted(nx.degree(G).values(), reverse=True)
-    if noplot:
-        return degree
-    #plt.plot(degree)
-    x = np.arange(1, y.shape[0] + 1)
-    fig = plt.figure()
-    plt.loglog(x, degree)
-    if title:
-        plt.title(title)
-    plt.draw()
-
-def plot_degree_(y, title=None):
-    if len(y) > 6000:
-        return
-    G = nxG(y)
-    degree = sorted(nx.degree(G).values(), reverse=True)
-    x = np.arange(1, y.shape[0] + 1)
-    plt.loglog(x, degree)
-    if title:
-        plt.title(title)
-
 def log_binning(counter_dict,bin_count=35):
     max_x = np.log10(max(counter_dict.keys()))
     max_y = np.log10(max(counter_dict.values()))
@@ -112,6 +87,52 @@ def log_binning(counter_dict,bin_count=35):
     bin_means_y = np.histogram(counter_dict.keys(),bins,weights=counter_dict.values())[0]
     bin_means_x = np.histogram(counter_dict.keys(),bins,weights=counter_dict.keys())[0]
     return bin_means_x,bin_means_y
+
+#def plot_degree(y, title=None, noplot=False):
+#    if len(y) > 6000:
+#        return
+#    G = nxG(y)
+#    degree = sorted(nx.degree(G).values(), reverse=True)
+#    if noplot:
+#        return degree
+#    #plt.plot(degree)
+#    x = np.arange(1, y.shape[0] + 1)
+#    fig = plt.figure()
+#    plt.loglog(x, degree)
+#    if title:
+#        plt.title(title)
+#    plt.draw()
+#
+#def plot_degree_(y, title=None):
+#    if len(y) > 6000:
+#        return
+#    G = nxG(y)
+#    degree = sorted(nx.degree(G).values(), reverse=True)
+#    x = np.arange(1, y.shape[0] + 1)
+#    plt.loglog(x, degree)
+#    if title:
+#        plt.title(title)
+
+def plot_degree(y):
+    """ Degree plot """
+    # To convert normalized degrees to raw degrees
+    #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
+    ba_c = adj_to_degree(y)
+    d, dc = degree_hist(ba_c)
+
+    plt.xscale('log'); plt.yscale('log')
+
+    plt.scatter(d,dc,c='b',marker='o')
+    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
+
+    plt.xlim(left=1)
+    plt.ylim((.9,1e3))
+    plt.xlabel('Degree')
+    plt.ylabel('Counts')
+
+def plor_degree_polygof(y, gof):
+    # I dunno structore for plot ?
+    pass
 
 def plot_degree_poly(y, scatter=True):
     """ Degree plot along with a linear regression of the distribution.
