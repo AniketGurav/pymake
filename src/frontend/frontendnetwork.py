@@ -263,6 +263,7 @@ class frontendNetwork(DataBase):
 
     def parse_tnet(self, fn):
         sep = ' '
+        lgg.debug('opening file: %s' % fn)
         with open(fn) as f:
             content = f.read()
         lines = filter(None, content.split('\n'))
@@ -276,6 +277,7 @@ class frontendNetwork(DataBase):
 
     def parse_manufacturing(self, fn):
         sep = ';'
+        lgg.debug('opening file: %s' % fn)
         with open(fn) as f:
             content = f.read()
         lines = filter(None, content.split('\n'))[1:]
@@ -289,6 +291,7 @@ class frontendNetwork(DataBase):
 
     def parse_graph(self, fn):
         """ Parse Network data depending on type/extension """
+        lgg.debug('opening file: %s' % fn)
         f = open(fn, 'r')
         data = []
         inside = {'vertices':False, 'edges':False }
