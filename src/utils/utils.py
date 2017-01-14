@@ -49,7 +49,7 @@ def argParse(usage="Usage ?"):
         elif arg in ('-n', '--limit'):
             # no int() because could be all.
             _arg = sys.argv.pop(i+1)
-            argdict['N'] = _arg
+            argdict['N'] = int(_arg)
         elif arg in ('--alpha', '--hyper'):
             _arg = sys.argv.pop(i+1)
             argdict['hyper'] = _arg
@@ -70,8 +70,8 @@ def argParse(usage="Usage ?"):
                 _arg = str(repeat)
             argdict['repeat'] = _arg
         elif arg in ('-k',):
-            _arg = int(sys.argv.pop(i+1))
-            argdict['K'] = _arg
+            _arg = sys.argv.pop(i+1)
+            argdict['K'] =int(_arg)
         elif arg in ('--homo',):
             _arg = int(sys.argv.pop(i+1))
             argdict['homo'] = _arg
@@ -103,13 +103,8 @@ def argParse(usage="Usage ?"):
                 _arg = sys.argv.pop(i+1)
                 argdict['load'] = _arg
         elif arg in ('-r', '--random', 'random'):
-            try:
-                int(sys.argv[i+1])
-                _arg = int(sys.argv.pop(i+1))
-            except:
-                _arg = 1
-            finally:
-                argdict['random'] = _arg
+            _arg = sys.argv.pop(i+1)
+            argdict['random'] = _arg
         elif arg in ('-g'):
             argdict.update(random = False)
         elif arg in ('--help','-h'):

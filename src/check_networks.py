@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from frontend.frontend import ModelManager
+from frontend.manager import ModelManager
 from frontend.frontendnetwork import frontendNetwork
 from utils.utils import *
 from plot import *
-from expe.spec import _spec_
+from expe.spec import _spec_; _spec = _spec_()
 from expe.format import corpus_icdm, corpus_
 from utils.argparser import argparser
-from utils.algo import reorder_mat
+from utils.math import reorder_mat
 
 """ Inspect data on disk, for checking
     or updating results
@@ -21,18 +21,19 @@ from utils.algo import reorder_mat
 
 ### Config
 config = defaultdict(lambda: False, dict(
+    block_plot = True,
     write_to_file = False,
     do           = 'homo', # homo/zipf
-    clusters_org = 'model' # source/model
+    clusters_org = 'source' # source/model
 ))
 config.update(argparser.generate(''))
 
 ### Specification
-Corpuses = _spec_.CORPUS_SYN_ICDM_1
-Corpuses += _spec_.CORPUS_REAL_ICDM_1
+Corpuses = _spec.CORPUS_SYN_ICDM_1
+#Corpuses += _spec.CORPUS_REAL_ICDM_1
 
-#Model = _spec_.MODEL_FOR_CLUSTER_IBP
-Model = _spec_.MODEL_FOR_CLUSTER_IMMSB
+#Model = _spec.MODEL_FOR_CLUSTER_IBP
+Model = _spec.MODEL_FOR_CLUSTER_IMMSB
 
 ### Simulation Output
 if config.get('simul'):
@@ -40,13 +41,16 @@ if config.get('simul'):
     Build Corpuses %s''' % (str(Corpuses))
     exit()
 
-for corpus_name in Corpuses:
+for corpus_pos, corpus_name in enumerate(Corpuses):
     frontend = frontendNetwork(config)
     data = frontend.load_data(corpus_name)
     data = frontend.sample()
     prop = frontend.get_data_prop()
     msg = frontend.template(prop)
-    #print msg
+
+    lgg.info('---')
+    lgg.info(_spec.name(corpus_name))
+    lgg.info('---')
 
     if config['do'] == 'homo':
         ###################################
@@ -76,12 +80,10 @@ for corpus_name in Corpuses:
         #prop = frontend.get_data_prop()
         #print frontend.template(prop)
 
-    else:
+    elif config['do'] == 'zipf':
         ###################################
         ### Zipf Analisis
         ###################################
-        degree = adj_to_degree(data)
-        gofit(*degree_hist(adj_to_degree(data)))
 
         ### Get the Class/Cluster and local degree information
         data_r = data
@@ -139,6 +141,143 @@ for corpus_name in Corpuses:
         plot_degree_poly(data)
 
         display(False)
+    elif config['do'] == 'burstiness':
+        ###################################
+        ### Zipf Analisis (global burstiness) + local burstiness + feature burstiness
+        ###################################
 
+        ### Get the Class/Cluster and local degree information
+        try:
+            msg =  'Getting Cluster from Dataset.'
+            clusters = frontend.get_clusters()
+            if config.get('clusters_org') == 'model':
+                if clusters is not None:
+                    class_hist = np.bincount(clusters)
+                    K = (class_hist != 0).sum()
+                raise TypeError
+        except TypeError:
+            msg =  'Getting Latent Classes from Latent Models %s' % Model['model']
+            Model.update(corpus=corpus_name)
+            model = ModelManager(config=config).load(Model)
+            clusters = model.get_clusters(K, skip=1)
+            #clusters = model.get_communities(K)
+        except Exception, e:
+            msg = 'Skypping reordering adjacency matrix: %s' % e
+
+
+        # Global burstiness
+        d, dc = degree_hist(adj_to_degree(data))
+        gof = gofit(d, dc)
+        fig = plt.figure()
+        plot_degree(data)
+
+        alpha = gof['alpha']
+        x_min = gof['x_min']
+        y_max = gof['y_max']
+        # plot linear law from power law estimation
+        #plt.figure()
+        idx = d.searchsorted(x_min)
+        i = int(idx  - 0.1 * len(d))
+        idx = i if i  >= 0 else idx
+        x = d[idx:]
+        ylin = np.exp(-alpha * np.log(x/float(x_min)) + np.log(y_max))
+        #ylin = np.exp(-alpha * np.log(x/float(x_min)) + np.log((alpha-1)/x_min))
+
+
+        # Hack xticks
+        fig.canvas.draw() # !
+        lim = plt.gca().get_xlim() # !
+        locs, labels = plt.xticks()
+
+        idx_xmin = locs.searchsorted(x_min)
+        locs = np.insert(locs, idx_xmin, x_min)
+        labels.insert(idx_xmin, plt.Text(text='x_min'))
+        plt.xticks(locs, labels)
+        plt.gca().set_xlim(lim)
+        #\#
+
+        plt.plot(x, ylin , 'g--', label='power %.2f' % alpha)
+        plt.legend()
+
+        # Local burstiness
+        comm = frontend.communities_analysis()
+        clusters = comm['clusters']
+        K = len(comm['block_hist'])
+
+        print 'clusters ground truth: %s' % ( comm['block_hist'])
+
+        #data_r, labels= reorder_mat(data, clusters, labels=True)
+
+        # Just inner degree
+        #plt.figure()
+        f, (ax1, ax2) = plt.subplots(1, 2, )#sharey=True)
+
+        # assume symmetric
+        for l in np.arange(K):
+            for k in np.arange(K):
+                if k > l :
+                    continue
+
+                ixgrid = np.ix_(clusters == k, clusters == l)
+
+                if k == l:
+                    # Inner degree
+                    y = data[ixgrid]
+                    ax = ax1
+                else:
+                    # Outer degree
+                    y = np.zeros(data.shape)
+                    y[ixgrid] = data[ixgrid]
+                    ax = ax2
+
+                d, dc = degree_hist(adj_to_degree(y))
+                plot_degree_2((d,dc,None), logscale=True, colors=True, line=True, ax=ax)
+
+        # Class burstiness
+        plt.figure()
+        hist, label = sorted_perm(comm['block_hist'], reverse=True)
+        bins = len(hist)
+        plt.bar(range(bins), hist)
+        plt.xticks(np.arange(bins)+0.5, label)
+        plt.xlabel('Class labels')
+        plt.title('Blocks Size (max assignement)')
+
+        display(config['block_plot'])
+
+    elif config['do'] == 'pvalue':
+
+        ####################
+        ### Pvalue Table
+        ####################
+
+        d, dc = degree_hist(adj_to_degree(data))
+        gof = gofit(d, dc)
+
+        try:
+            Table
+        except NameError:
+            Meas = [ 'pvalue', 'alpha', 'x_min', 'n_tail']; headers = Meas
+            Table = np.empty((len(Corpuses), len(Meas)))
+            Table = np.column_stack((_spec.name(Corpuses), Table))
+
+        for i, v in enumerate(Meas):
+            Table[corpus_pos, i+1] = gof[v]
+
+###########################################
+###########################################
+
+
+### Table Format Printing
+try:
+    from tabulate import tabulate
+    tablefmt = 'latex' # 'latex'
+    print
+    print tabulate(Table, headers=headers, tablefmt=tablefmt, floatfmt='.3f')
+
+except NameError:
+    pass
+
+### Blocking Figures
 if not config.get('write_to_file'):
     display(True)
+

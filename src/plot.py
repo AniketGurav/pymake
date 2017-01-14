@@ -72,31 +72,6 @@ def surf(x, y, z):
     ax.plot_surface(X, Y, z)
     return ax
 
-def plot_degree(y, title=None, noplot=False):
-    if len(y) > 6000:
-        return
-    G = nxG(y)
-    degree = sorted(nx.degree(G).values(), reverse=True)
-    if noplot:
-        return degree
-    #plt.plot(degree)
-    x = np.arange(1, y.shape[0] + 1)
-    fig = plt.figure()
-    plt.loglog(x, degree)
-    if title:
-        plt.title(title)
-    plt.draw()
-
-def plot_degree_(y, title=None):
-    if len(y) > 6000:
-        return
-    G = nxG(y)
-    degree = sorted(nx.degree(G).values(), reverse=True)
-    x = np.arange(1, y.shape[0] + 1)
-    plt.loglog(x, degree)
-    if title:
-        plt.title(title)
-
 def log_binning(counter_dict,bin_count=35):
     max_x = np.log10(max(counter_dict.keys()))
     max_y = np.log10(max(counter_dict.values()))
@@ -112,6 +87,52 @@ def log_binning(counter_dict,bin_count=35):
     bin_means_y = np.histogram(counter_dict.keys(),bins,weights=counter_dict.values())[0]
     bin_means_x = np.histogram(counter_dict.keys(),bins,weights=counter_dict.keys())[0]
     return bin_means_x,bin_means_y
+
+#def plot_degree(y, title=None, noplot=False):
+#    if len(y) > 6000:
+#        return
+#    G = nxG(y)
+#    degree = sorted(nx.degree(G).values(), reverse=True)
+#    if noplot:
+#        return degree
+#    #plt.plot(degree)
+#    x = np.arange(1, y.shape[0] + 1)
+#    fig = plt.figure()
+#    plt.loglog(x, degree)
+#    if title:
+#        plt.title(title)
+#    plt.draw()
+#
+#def plot_degree_(y, title=None):
+#    if len(y) > 6000:
+#        return
+#    G = nxG(y)
+#    degree = sorted(nx.degree(G).values(), reverse=True)
+#    x = np.arange(1, y.shape[0] + 1)
+#    plt.loglog(x, degree)
+#    if title:
+#        plt.title(title)
+
+def plot_degree(y):
+    """ Degree plot """
+    # To convert normalized degrees to raw degrees
+    #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
+    ba_c = adj_to_degree(y)
+    d, dc = degree_hist(ba_c)
+
+    plt.xscale('log'); plt.yscale('log')
+
+    plt.scatter(d,dc,c='b',marker='o')
+    #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
+
+    plt.xlim(left=1)
+    plt.ylim((.9,1e3))
+    plt.xlabel('Degree')
+    plt.ylabel('Counts')
+
+def plor_degree_polygof(y, gof):
+    # I dunno structore for plot ?
+    pass
 
 def plot_degree_poly(y, scatter=True):
     """ Degree plot along with a linear regression of the distribution.
@@ -152,8 +173,12 @@ def plot_degree_poly_l(Y):
     plt.ylim((.9,1e3))
     plt.xlabel('Degree'); plt.ylabel('Counts')
 
-def plot_degree_2(P, logscale=False, colors=False, line=False):
+def plot_degree_2(P, logscale=False, colors=False, line=False, ax=None):
     """ Plot degree distribution for different configuration"""
+    if ax is None:
+        # Note: difference betwwen ax and plt method are the get_ and set_ suffix
+        ax = plt.gca()
+
     x, y, yerr = P
 
     c = next(_colors) if colors else 'b'
@@ -161,16 +186,16 @@ def plot_degree_2(P, logscale=False, colors=False, line=False):
     l = '--' if line else None
 
     if yerr is None:
-        plt.scatter(x, y, c=c, marker=m)
+        ax.scatter(x, y, c=c, marker=m)
         if line:
-            plt.plot(x, y, c=c, marker=m, ls=l)
+            ax.plot(x, y, c=c, marker=m, ls=l)
     else:
-        plt.errorbar(x, y, yerr, c=c, fmt=m, ls=l)
+        ax.errorbar(x, y, yerr, c=c, fmt=m, ls=l)
 
     min_d, max_d = min(x), max(x)
 
     if logscale:
-        plt.xscale('log'); plt.yscale('log')
+        ax.set_xscale('log'); ax.set_yscale('log')
         # Ensure that the ticks will be visbile (ie larger than in los step)
         #logspace = 10**np.arange(6)
         #lim =  np.searchsorted(logspace,min_d )
@@ -178,9 +203,11 @@ def plot_degree_2(P, logscale=False, colors=False, line=False):
         #    min_d = logspace[lim-1]
         #    max_d = logspace[lim]
 
-    plt.xlim((min_d, max_d+10))
-    #plt.ylim((.9,1e3))
-    plt.xlabel('Degree'); plt.ylabel('Counts')
+    ax.set_xlim((min_d, max_d+10))
+    #ax.ylim((.9,1e3))
+    #ax.xlim(left=1)
+    #ax.ylim((.9,1e3))
+    ax.set_xlabel('Degree'); ax.set_ylabel('Counts')
 
 ##########################
 ### Graph/Matrix Drawing

@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
-from frontend.frontend import ModelManager, FrontendManager
+from frontend.manager import ModelManager, FrontendManager
 from utils.utils import *
 
 import numpy as np

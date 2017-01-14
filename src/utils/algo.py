@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from collections import defaultdict
+
 import numpy as np
 import scipy as sp
 
@@ -42,7 +44,11 @@ class Algo(Object):
         K = self.K
         return dict(zip(*[np.arange(K), clusters]))
 
-import community as pylouvain
+try:
+    import community as pylouvain
+except:
+    pass
+
 class Louvain(Algo):
     def __init__(self, data, iterations=100, **kwargs):
         super(Louvain, self).__init__(**kwargs)
@@ -371,26 +377,42 @@ class Annealing(Algo, frontendNetwork):
 from scipy.stats import kstest, ks_2samp
 from scipy.special import zeta
 # Ref: Clauset, Aaron, Cosma Rohilla Shalizi, and Mark EJ Newman. "Power-law distributions in empirical data."
-# @todo:cut-off
+# Debug
+# @todo: Estimation of x_min instead of the "max" heuristic.
+# @todo: cut-off
 def gofit(x, y, model='powerlaw'):
     """ (x,y): the empirical distribution with x the values and y **THE COUNTS** """
-
-    # Reconstruct the data samples
-    d = degree_hist_to_list(x, y)
 
     y = y.astype(float)
     #### Power law Goodness of fit
     # Estimate x_min
-    x_min = x[y.argmax()]
+    y_max = y.max()
+    #index_min = len(y) - np.argmax(y[::-1]) # max from right
+    index_min = np.argmax(y) # max from left
+    x_min = x[index_min]
+
+    # Reconstruct the data samples
+    d = degree_hist_to_list(x[index_min:], y[index_min:])
 
     ### cutoff ?
     x_max = x.max()
 
     # Estimate \alpha
-    N = len(d)
-    n_tail = float((d>x_min).sum())
-    if n_tail < 20:
-        return {'n_tail':n_tail, 'pvalue':None}
+    N = int(y.sum())
+    n_tail = y[index_min:].sum()
+    if n_tail < 25:
+        # no enough point
+        return defaultdict(lambda : False, {'n_tail':n_tail})
+    elif n_tail / float(N) < 3/4.0:
+        # tail not relevant
+        index_min = len(y) - np.argmax(y[::-1]) # max from left
+        #index_min = 0 # all the distribution
+        x_min = x[index_min]
+        n_tail = y[index_min:].sum()
+
+    n_head =  N - n_tail
+    d = degree_hist_to_list(x[index_min:], y[index_min:])
+
     alpha = 1 + n_tail * (np.log(d[d>x_min] / (x_min -0.5)).sum())**-1
 
     ### Build The hypothesis
@@ -398,7 +420,7 @@ def gofit(x, y, model='powerlaw'):
         ### Discrete CDF (gives worse p-value)
         cdf = lambda x: 1 - zeta(alpha, x) / zeta(alpha, x_min)
         ### Continious CDF
-        #cdf = lambda x:1-(x/x_min)**(-alpha+1)
+        #cdf = lambda x:1-(x/float(x_min))**(-alpha+1)
     else:
         lgg.error('Godfit: Hypothese Unknow %s' % model)
         return
@@ -411,7 +433,7 @@ def gofit(x, y, model='powerlaw'):
     # Ignore head data
     if False:
         N = n_tail # bad effect
-        ks_d = kstest(d[d>x_min], cdf)
+        ks_d = kstest(d[d>=x_min], cdf)
     else:
         ks_d = kstest(d, cdf)
 
@@ -427,16 +449,15 @@ def gofit(x, y, model='powerlaw'):
         powerlaw_samples = random_powerlaw(alpha, x_min, powerlaw_samples_size)
 
         ### Cutoff ?!
-        #powerlaw_samples = powerlaw_samples[powerlaw_samples <= x_max]
-        #ratio =  powerlaw_samples_size / len(powerlaw_samples)
-        #if ratio > 1:
-        #    supplement = random_powerlaw(alpha, x_min, powerlaw_samples_size * (ratio -1))
-        #    supplement = supplement[supplement <= x_max]
-        #    sync_samples = np.hstack((out_samples, powerlaw_samples, supplement))
-        #else:
-        #    sync_samples = np.hstack((out_samples, powerlaw_samples))
-        sync_samples = np.hstack((out_samples, powerlaw_samples))
-
+        powerlaw_samples = powerlaw_samples[powerlaw_samples <= x_max]
+        ratio =  powerlaw_samples_size / len(powerlaw_samples)
+        if ratio > 1:
+            supplement = random_powerlaw(alpha, x_min, powerlaw_samples_size * (ratio -1))
+            supplement = supplement[supplement <= x_max]
+            sync_samples = np.hstack((out_samples, powerlaw_samples, supplement))
+        else:
+            sync_samples = np.hstack((out_samples, powerlaw_samples))
+        #sync_samples = np.hstack((out_samples, powerlaw_samples))
 
         #ks_2 = ks_2samp(sync_samples, d)
         ks_s = kstest(sync_samples, cdf)
@@ -446,7 +467,9 @@ def gofit(x, y, model='powerlaw'):
     #frontend.DataBase.save(sync_samples, 'sc.pk')
 
     pvalue = float(sum(pvalue)) / len(pvalue)
-    estim = {'alpha': alpha, 'x_min':x_min, 'n_tail': n_tail,'n_head': N-n_tail,  'pvalue':pvalue}
+    estim = {'alpha': alpha, 'x_min':x_min, 'y_max':y_max,
+             'n_tail': n_tail,'n_head':n_head,
+             'pvalue':pvalue}
     print 'KS data: ', ks_d
     print 'KS synthetic: ', ks_s
     print estim

@@ -1065,7 +1065,7 @@ class GibbsRun(ModelBase):
             else:
                 # Comunnities (intra class bind)
                 k = l = c.pop()
-            comm = (str(k), str(l))
+            comm = '-'.join([str(k), str(l)])
             local = local_degree.get(comm, [])
 
             C = np.tile(clusters, (data.shape[0],1))
@@ -1073,7 +1073,7 @@ class GibbsRun(ModelBase):
             if y_c.size > 0:
                 local_degree[comm] = adj_to_degree(y_c).values()
 
-            # Summing Fasle !
+            # Summing False !
             #for n in np.arange(data.shape[0]))[clusters == k]:
             #    degree_n = data[n,:][(clusters == k) == (clusters == l)].sum()
             #    if not symmetric:

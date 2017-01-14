@@ -15,11 +15,17 @@ USAGE = '''\
     expe_meas [model] [K]
 '''
 
+#TENSOR = _spec_.EXPE_ICDM_R
+TENSOR = _spec_.EXPE_ICDM_R_R
+
+
+###
+
 expe_args = argparser.expe_tabulate(USAGE)
 
 ###################################################################
 # Data Forest config
-map_parameters = _spec_.EXPE_ICDM_R
+map_parameters = TENSOR
 ### Seek experiments results
 target_files = make_forest_path(map_parameters, 'json')
 ### Make Tensor Forest of results
@@ -76,16 +82,17 @@ h = expe_1['model'].upper() + ' / ' + h_mask
 headers.insert(0, h)
 # Row
 keys = map_parameters['corpus']
-keys = [''.join(k) for k in zip(keys, [' b/h', ' b/-h', ' -b/-h', ' -b/h'])]
+#keys = [''.join(k) for k in zip(keys, [' b/h', ' b/-h', ' -b/-h', ' -b/h'])]
 ## Results
 table = rez[ptx]
 
 try:
     table = np.column_stack((keys, table))
 except ValueError, e:
+    hack_float = np.vectorize(lambda x : '{:.3f}'.format(float(x)))
     lgg.warn('ValueError, assumming repeat mean variance reduction: %d repetition' % table.shape[1])
-    table_mean = np.char.array(table.mean(1))
-    table_std = np.char.array(table.std(1))
+    table_mean = np.char.array(hack_float(table.mean(1)), itemsize=100)
+    table_std = np.char.array(hack_float(table.std(1)), itemsize=100)
     #table_mean = np.char.array(np.around(table.mean(1), decimals=3))
     #table_std = np.char.array(np.around(table.std(1), decimals=3))
     #table = table_mean + ' \pm ' + table_std

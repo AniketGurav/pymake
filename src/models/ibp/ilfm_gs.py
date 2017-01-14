@@ -44,7 +44,6 @@ class IBPGibbsSampling(IBP, ModelBase):
                  snapshot_interval=100, iterations=100, burnin=0.05, output_path=None, write=False):
         self.iterations = iterations
         self.burnin = iterations - int(burnin*iterations)
-        self._mean_w = 0
         self._sigma_w_hyper_parameter = sigma_w_hyper_parameter
         self.bilinear_matrix = None
         self.log_likelihood = None
@@ -87,6 +86,7 @@ class IBPGibbsSampling(IBP, ModelBase):
         #super(IBPGibbsSampling, self)._initialize(self.center_data(data), alpha, initial_Z)
         super(IBPGibbsSampling, self)._initialize(data, alpha, initial_Z, KK=KK)
 
+        self._mean_w = 0
         assert(type(sigma_w) is float)
         self._sigma_w = sigma_w
         self._sigb = 1 # Carreful make overflow in exp of sigmoid !
@@ -642,7 +642,7 @@ class IBPGibbsSampling(IBP, ModelBase):
             else:
                 # Comunnities (intra class bind)
                 k = l = c.pop()
-            comm = (str(k), str(l))
+            comm = '-'.join([str(k), str(l)])
             local = local_degree.get(comm, [])
 
             C = np.tile(clusters, (data.shape[0],1))
