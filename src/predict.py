@@ -6,7 +6,6 @@ from frontend.frontendnetwork import frontendNetwork
 from utils.utils import *
 from utils.math import *
 from plot import *
-from frontend.frontend_io import *
 from expe.spec import _spec_
 from expe.format import *
 from utils.argparser import argparser
@@ -73,7 +72,12 @@ for corpus_name in Corpuses:
         ###################################
         Model.update(corpus=corpus_name)
         model = ModelManager(config=config).load(Model)
-        Model['hyperparams'] = model.get_hyper()
+        try:
+            # this try due to mthod modification entry in init not in picke object..
+            Model['hyperparams'] = model.get_hyper()
+        except:
+            model._mean_w = 0
+            Model['hyperparams'] = 0
 
         if model is None:
             continue

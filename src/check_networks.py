@@ -5,7 +5,7 @@ from frontend.manager import ModelManager
 from frontend.frontendnetwork import frontendNetwork
 from utils.utils import *
 from plot import *
-from expe.spec import _spec_
+from expe.spec import _spec_; _spec = _spec_()
 from expe.format import corpus_icdm, corpus_
 from utils.argparser import argparser
 from utils.math import reorder_mat
@@ -21,6 +21,7 @@ from utils.math import reorder_mat
 
 ### Config
 config = defaultdict(lambda: False, dict(
+    block_plot = True,
     write_to_file = False,
     do           = 'homo', # homo/zipf
     clusters_org = 'source' # source/model
@@ -28,11 +29,11 @@ config = defaultdict(lambda: False, dict(
 config.update(argparser.generate(''))
 
 ### Specification
-Corpuses = _spec_.CORPUS_SYN_ICDM_1
-#Corpuses += _spec_.CORPUS_REAL_ICDM_1
+Corpuses = _spec.CORPUS_SYN_ICDM_1
+#Corpuses += _spec.CORPUS_REAL_ICDM_1
 
-#Model = _spec_.MODEL_FOR_CLUSTER_IBP
-Model = _spec_.MODEL_FOR_CLUSTER_IMMSB
+#Model = _spec.MODEL_FOR_CLUSTER_IBP
+Model = _spec.MODEL_FOR_CLUSTER_IMMSB
 
 ### Simulation Output
 if config.get('simul'):
@@ -40,13 +41,16 @@ if config.get('simul'):
     Build Corpuses %s''' % (str(Corpuses))
     exit()
 
-for corpus_name in Corpuses:
+for corpus_pos, corpus_name in enumerate(Corpuses):
     frontend = frontendNetwork(config)
     data = frontend.load_data(corpus_name)
     data = frontend.sample()
     prop = frontend.get_data_prop()
     msg = frontend.template(prop)
-    #print msg
+
+    lgg.info('---')
+    lgg.info(_spec.name(corpus_name))
+    lgg.info('---')
 
     if config['do'] == 'homo':
         ###################################
@@ -142,8 +146,6 @@ for corpus_name in Corpuses:
         ### Zipf Analisis (global burstiness) + local burstiness + feature burstiness
         ###################################
 
-        lgg.info(corpus_name)
-
         ### Get the Class/Cluster and local degree information
         try:
             msg =  'Getting Cluster from Dataset.'
@@ -162,7 +164,6 @@ for corpus_name in Corpuses:
         except Exception, e:
             msg = 'Skypping reordering adjacency matrix: %s' % e
 
-        lgg.info('---')
 
         # Global burstiness
         d, dc = degree_hist(adj_to_degree(data))
@@ -173,11 +174,10 @@ for corpus_name in Corpuses:
         alpha = gof['alpha']
         x_min = gof['x_min']
         y_max = gof['y_max']
-        n_head = gof['n_head']
         # plot linear law from power law estimation
         #plt.figure()
         idx = d.searchsorted(x_min)
-        i = idx  - 0.1 * len(d)
+        i = int(idx  - 0.1 * len(d))
         idx = i if i  >= 0 else idx
         x = d[idx:]
         ylin = np.exp(-alpha * np.log(x/float(x_min)) + np.log(y_max))
@@ -194,11 +194,10 @@ for corpus_name in Corpuses:
         labels.insert(idx_xmin, plt.Text(text='x_min'))
         plt.xticks(locs, labels)
         plt.gca().set_xlim(lim)
+        #\#
 
         plt.plot(x, ylin , 'g--', label='power %.2f' % alpha)
-
         plt.legend()
-
 
         # Local burstiness
         comm = frontend.communities_analysis()
@@ -210,13 +209,29 @@ for corpus_name in Corpuses:
         #data_r, labels= reorder_mat(data, clusters, labels=True)
 
         # Just inner degree
-        plt.figure()
+        #plt.figure()
+        f, (ax1, ax2) = plt.subplots(1, 2, )#sharey=True)
 
-        for c in np.arange(K):
-            ixgrid = np.ix_(clusters == c, clusters == c)
-            y = data[ixgrid]
-            d, dc = degree_hist(adj_to_degree(y))
-            plot_degree_2((d,dc,None), logscale=True, colors=True, line=True)
+        # assume symmetric
+        for l in np.arange(K):
+            for k in np.arange(K):
+                if k > l :
+                    continue
+
+                ixgrid = np.ix_(clusters == k, clusters == l)
+
+                if k == l:
+                    # Inner degree
+                    y = data[ixgrid]
+                    ax = ax1
+                else:
+                    # Outer degree
+                    y = np.zeros(data.shape)
+                    y[ixgrid] = data[ixgrid]
+                    ax = ax2
+
+                d, dc = degree_hist(adj_to_degree(y))
+                plot_degree_2((d,dc,None), logscale=True, colors=True, line=True, ax=ax)
 
         # Class burstiness
         plt.figure()
@@ -227,7 +242,42 @@ for corpus_name in Corpuses:
         plt.xlabel('Class labels')
         plt.title('Blocks Size (max assignement)')
 
-        display(True)
+        display(config['block_plot'])
 
+    elif config['do'] == 'pvalue':
+
+        ####################
+        ### Pvalue Table
+        ####################
+
+        d, dc = degree_hist(adj_to_degree(data))
+        gof = gofit(d, dc)
+
+        try:
+            Table
+        except NameError:
+            Meas = [ 'pvalue', 'alpha', 'x_min', 'n_tail']; headers = Meas
+            Table = np.empty((len(Corpuses), len(Meas)))
+            Table = np.column_stack((_spec.name(Corpuses), Table))
+
+        for i, v in enumerate(Meas):
+            Table[corpus_pos, i+1] = gof[v]
+
+###########################################
+###########################################
+
+
+### Table Format Printing
+try:
+    from tabulate import tabulate
+    tablefmt = 'latex' # 'latex'
+    print
+    print tabulate(Table, headers=headers, tablefmt=tablefmt, floatfmt='.3f')
+
+except NameError:
+    pass
+
+### Blocking Figures
 if not config.get('write_to_file'):
     display(True)
+

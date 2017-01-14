@@ -383,13 +383,13 @@ from scipy.special import zeta
 def gofit(x, y, model='powerlaw'):
     """ (x,y): the empirical distribution with x the values and y **THE COUNTS** """
 
-
     y = y.astype(float)
     #### Power law Goodness of fit
     # Estimate x_min
     y_max = y.max()
-    index_min = len(y) - np.argmax(y[::-1])
-    x_min = x[index_min] # max from right
+    #index_min = len(y) - np.argmax(y[::-1]) # max from right
+    index_min = np.argmax(y) # max from left
+    x_min = x[index_min]
 
     # Reconstruct the data samples
     d = degree_hist_to_list(x[index_min:], y[index_min:])
@@ -398,14 +398,15 @@ def gofit(x, y, model='powerlaw'):
     x_max = x.max()
 
     # Estimate \alpha
-    N = y.sum()
+    N = int(y.sum())
     n_tail = y[index_min:].sum()
     if n_tail < 25:
         # no enough point
         return defaultdict(lambda : False, {'n_tail':n_tail})
-    elif n_tail / float(N) < 1/2.0:
+    elif n_tail / float(N) < 3/4.0:
         # tail not relevant
-        index_min = 0
+        index_min = len(y) - np.argmax(y[::-1]) # max from left
+        #index_min = 0 # all the distribution
         x_min = x[index_min]
         n_tail = y[index_min:].sum()
 
@@ -419,7 +420,7 @@ def gofit(x, y, model='powerlaw'):
         ### Discrete CDF (gives worse p-value)
         cdf = lambda x: 1 - zeta(alpha, x) / zeta(alpha, x_min)
         ### Continious CDF
-        #cdf = lambda x:1-(x/x_min)**(-alpha+1)
+        #cdf = lambda x:1-(x/float(x_min))**(-alpha+1)
     else:
         lgg.error('Godfit: Hypothese Unknow %s' % model)
         return
@@ -448,16 +449,15 @@ def gofit(x, y, model='powerlaw'):
         powerlaw_samples = random_powerlaw(alpha, x_min, powerlaw_samples_size)
 
         ### Cutoff ?!
-        #powerlaw_samples = powerlaw_samples[powerlaw_samples <= x_max]
-        #ratio =  powerlaw_samples_size / len(powerlaw_samples)
-        #if ratio > 1:
-        #    supplement = random_powerlaw(alpha, x_min, powerlaw_samples_size * (ratio -1))
-        #    supplement = supplement[supplement <= x_max]
-        #    sync_samples = np.hstack((out_samples, powerlaw_samples, supplement))
-        #else:
-        #    sync_samples = np.hstack((out_samples, powerlaw_samples))
-        sync_samples = np.hstack((out_samples, powerlaw_samples))
-
+        powerlaw_samples = powerlaw_samples[powerlaw_samples <= x_max]
+        ratio =  powerlaw_samples_size / len(powerlaw_samples)
+        if ratio > 1:
+            supplement = random_powerlaw(alpha, x_min, powerlaw_samples_size * (ratio -1))
+            supplement = supplement[supplement <= x_max]
+            sync_samples = np.hstack((out_samples, powerlaw_samples, supplement))
+        else:
+            sync_samples = np.hstack((out_samples, powerlaw_samples))
+        #sync_samples = np.hstack((out_samples, powerlaw_samples))
 
         #ks_2 = ks_2samp(sync_samples, d)
         ks_s = kstest(sync_samples, cdf)

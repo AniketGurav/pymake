@@ -173,8 +173,12 @@ def plot_degree_poly_l(Y):
     plt.ylim((.9,1e3))
     plt.xlabel('Degree'); plt.ylabel('Counts')
 
-def plot_degree_2(P, logscale=False, colors=False, line=False):
+def plot_degree_2(P, logscale=False, colors=False, line=False, ax=None):
     """ Plot degree distribution for different configuration"""
+    if ax is None:
+        # Note: difference betwwen ax and plt method are the get_ and set_ suffix
+        ax = plt.gca()
+
     x, y, yerr = P
 
     c = next(_colors) if colors else 'b'
@@ -182,16 +186,16 @@ def plot_degree_2(P, logscale=False, colors=False, line=False):
     l = '--' if line else None
 
     if yerr is None:
-        plt.scatter(x, y, c=c, marker=m)
+        ax.scatter(x, y, c=c, marker=m)
         if line:
-            plt.plot(x, y, c=c, marker=m, ls=l)
+            ax.plot(x, y, c=c, marker=m, ls=l)
     else:
-        plt.errorbar(x, y, yerr, c=c, fmt=m, ls=l)
+        ax.errorbar(x, y, yerr, c=c, fmt=m, ls=l)
 
     min_d, max_d = min(x), max(x)
 
     if logscale:
-        plt.xscale('log'); plt.yscale('log')
+        ax.set_xscale('log'); ax.set_yscale('log')
         # Ensure that the ticks will be visbile (ie larger than in los step)
         #logspace = 10**np.arange(6)
         #lim =  np.searchsorted(logspace,min_d )
@@ -199,11 +203,11 @@ def plot_degree_2(P, logscale=False, colors=False, line=False):
         #    min_d = logspace[lim-1]
         #    max_d = logspace[lim]
 
-    plt.xlim((min_d, max_d+10))
-    #plt.ylim((.9,1e3))
-    #plt.xlim(left=1)
-    #plt.ylim((.9,1e3))
-    plt.xlabel('Degree'); plt.ylabel('Counts')
+    ax.set_xlim((min_d, max_d+10))
+    #ax.ylim((.9,1e3))
+    #ax.xlim(left=1)
+    #ax.ylim((.9,1e3))
+    ax.set_xlabel('Degree'); ax.set_ylabel('Counts')
 
 ##########################
 ### Graph/Matrix Drawing

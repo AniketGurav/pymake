@@ -1,9 +1,20 @@
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 class _spec_(object):
     #############################################################################
     ### Corpuses
     #############################################################################
+
+    _trans = dict((
+        ('manufacturing'  , 'Manufacturing'),
+        ('fb_uc'          , 'UC Irvine' ),
+        ('generator7'     , 'Network 1' ),
+        ('generator12'    , 'Network 2' ),
+        ('generator10'    , 'Network 3' ),
+        ('generator4'     , 'Network 4' ),
+        ('ibp'     , 'ilfm' ),
+        ('mmsb'     , 'immsb' ),
+    ))
     """
     =================
     === Networks
@@ -167,3 +178,20 @@ class _spec_(object):
         ('hyper_prior', ('1 2 3 4', '10 2')),
         ('repeat'   , (0, 1, 2, 4, 5)),
     ))
+
+    def __init__(self):
+        pass
+
+    def name(self, l):
+        if isinstance(l, (set, list, tuple)):
+            return [ self._trans[i] for i in l ]
+        elif isinstance(l, str):
+            try:
+                return self._trans[l]
+            except:
+                return l
+        else:
+            print l
+            print type(l)
+            raise NotImplementedError
+

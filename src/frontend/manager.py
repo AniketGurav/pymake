@@ -5,8 +5,11 @@ lgg = logging.getLogger('root')
 # Frontend Manager Utilities
 from .frontendtext import frontendText
 from .frontendnetwork import frontendNetwork
+from .frontend_io import *
 
 # Model Manager Utilities
+import numpy as np
+import pickle, json # presence of this module here + in .frontend not zen
 from models.hdp import mmsb, lda
 from models.ibp.ilfm_gs import IBPGibbsSampling
 
@@ -44,7 +47,6 @@ class FrontendManager(object):
         if frontend is None:
             raise ValueError('Unknown Corpus `%s\'!' % corpus)
         return frontend
-
 
 
 class ModelManager(object):
@@ -259,6 +261,7 @@ class ModelManager(object):
                 for f in model_walker(os.path.dirname(fn), fmt='list'):
                     print(f)
                 return None
+            lgg.debug('opening file: %s' % fn)
             with open(fn, 'r') as _f:
                 model =  pickle.load(_f)
         self.model = model

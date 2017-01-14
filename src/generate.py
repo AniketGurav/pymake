@@ -31,6 +31,7 @@ analysis in [clustering, zipf, (to complete)]
 ####################################################
 ### Config
 config = defaultdict(lambda: False, dict(
+    block_plot = True,
     write_to_file = False,
     do            = 'zipf',
     #generative    = 'evidence',
@@ -84,7 +85,16 @@ for corpus_name in Corpuses:
     frontend = frontendNetwork(config)
     data = frontend.load_data(corpus_name)
     data = frontend.sample()
+
+    lgg.info('---')
+    lgg.info(_spec.name(corpus_name))
+    lgg.info('---')
+
     for Model in Models:
+
+        lgg.info('---')
+        lgg.info(_spec.name(Models['model']))
+        lgg.info('---')
 
         ###################################
         ### Setup Models
@@ -171,7 +181,7 @@ for corpus_name in Corpuses:
 
         #format.debug(**globals())
 
-        display(True)
+        display(config['block_plot'])
 
 if not config.get('write_to_file'):
     display(True)
