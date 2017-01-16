@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import pickle, json
+import pickle, json, copy
 from itertools import chain
 from string import Template
 from collections import defaultdict
@@ -129,12 +129,20 @@ class DataBase(object):
     def load_data(self):
         raise NotImplementedError()
 
+    # convert ndarray to list.
     def save_json(self, res):
+        """ Save a dictionnary in json"""
         fn = self.output_path + '.json'
-        print self.output_path
-        print fn
-        print res
-        return json.dump(res, open(fn,'w'))
+        new_res = copy.copy(res)
+        for k, v  in new_res.items():
+            # Go at two level deeper, no more !
+            if type(v) is dict:
+                for kk, vv  in v.items():
+                    if hasattr(vv, 'tolist'):
+                        new_res[k][kk] = vv.tolist()
+            if hasattr(v, 'tolist'):
+                new_res[k] = v.tolist()
+        return json.dump(new_res, open(fn,'w'))
     def get_json(self):
         fn = self.output_path + '.json'
         d = json.load(open(fn,'r'))
@@ -143,7 +151,7 @@ class DataBase(object):
         fn = self.output_path + '.json'
         res = json.load(open(fn,'r'))
         res.update(d)
-        print('updating json: %s' % fn)
+        lgg.info('updating json: %s' % fn)
         json.dump(res, open(fn,'w'))
         return fn
 
@@ -191,7 +199,7 @@ class DataBase(object):
     def save(data, fn):
         fn = fn + '.pk'
         with open(fn, 'w') as _f:
-            return pickle.dump(data, _f)
+            return pickle.dump(data, _f, protocol=pickle.HIGHEST_PROTOCOL)
 
     @staticmethod
     def load(fn):

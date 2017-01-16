@@ -417,6 +417,10 @@ class frontendNetwork(DataBase):
         modul = pylouvain.modularity(part, g)
         return modul
 
+    #def louvain_feature(self):
+    #    get the louvain modularity
+    #    and the feature for local analysis
+
     def diameter(self):
         G = self.GG()
         try:
