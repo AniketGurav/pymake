@@ -1,11 +1,11 @@
-## Structure Tree
-Manage the i/o coherence instead. 
-How should be the backend to make big scale learning with database and search engine interface...
-* Spark/Hadoop interface... (hdfs = htable)
+# Code Factoring
 
 use args...https://github.com/kennethreitz/args instead parser for fit.py
+use arparser as standard parser !
 
-@debug: clique and random generator tree path. Working ?
+@purge: 
+* model/lda
+* clean and homogeneize, the communities analysis framework. There is redoncdancy, and non consistent call to modularity...
 
 @todo: 
 * frontend: use for bas class for random network:
@@ -14,9 +14,13 @@ use args...https://github.com/kennethreitz/args instead parser for fit.py
 * OBJECT ! change frontendNetwork to Graph(Object), it is clear ?! (implement morphism in Object for example. (issue42)
 * @frontend: better print the status of what's going on in the beginning of fit.
 
-@purge: 
-* model/lda
-* clean and homogeneize, the communities analysis framework. There is redoncdancy, and non consistent call to modularity...
+@structure
+* simpliy frontend:
+    * check [dataset/model](source) [zipf|homo](measure)  -- plot figure / things
+    * tabulate (tensor spec)  -- tabs
+
+@debug: clique and random generator tree path. Working ?
+
 
 
 # Implement some baseline
@@ -28,6 +32,9 @@ use args...https://github.com/kennethreitz/args instead parser for fit.py
     * nonparam
     * MMSB ! (infinite - dynamic...)
     * IBP
+
+How should be the backend to make big scale learning with database and search engine interface...
+* Spark/Hadoop interface... (hdfs = htable)
 
 ## Mesure attachement prefarential:
 * proba que tout les lien à 0 soit liée ?  -- comparé à aux leader (ceux qui ont un haut degré)

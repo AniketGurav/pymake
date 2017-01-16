@@ -30,7 +30,7 @@ config.update(argparser.generate(''))
 
 ### Specification
 Corpuses = _spec.CORPUS_SYN_ICDM_1
-#Corpuses += _spec.CORPUS_REAL_ICDM_1
+#Corpuses = _spec.CORPUS_REAL_ICDM_1
 
 #Model = _spec.MODEL_FOR_CLUSTER_IBP
 Model = _spec.MODEL_FOR_CLUSTER_IMMSB

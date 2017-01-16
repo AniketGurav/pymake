@@ -8,7 +8,7 @@ from utils.math import *
 from utils.algo import Annealing
 from plot import *
 from frontend.frontend_io import *
-from expe.spec import _spec_
+from expe.spec import _spec_; _spec = _spec_()
 from expe import format
 from utils.argparser import argparser
 
@@ -47,17 +47,17 @@ gmma = 1
 delta = (1, 5)
 
 # Corpuses
-Corpuses = _spec_.CORPUS_REAL_ICDM_1
-Corpuses = _spec_.CORPUS_SYN_ICDM_1
+Corpuses = _spec.CORPUS_REAL_ICDM_1
+Corpuses = _spec.CORPUS_SYN_ICDM_1
 Corpuses = ('generator10',)
 
-Corpuses = _spec_.CORPUS_SYN_ICDM_1
-Corpuses += _spec_.CORPUS_REAL_ICDM_1
+Corpuses = _spec.CORPUS_SYN_ICDM_1
+#Corpuses += _spec.CORPUS_REAL_ICDM_1
 
-Corpuses = Corpuses[1:]
+Corpuses = ('fb_uc',)
 
 ### Models
-#Models = _spec_.MODELS_GENERATE
+#Models = _spec.MODELS_GENERATE
 Models = [dict ((
     ('data_type'    , 'networks'),
     ('debug'        , 'debug11') , # ign in gen
@@ -93,7 +93,7 @@ for corpus_name in Corpuses:
     for Model in Models:
 
         lgg.info('---')
-        lgg.info(_spec.name(Models['model']))
+        lgg.info(_spec.name(Model['model']))
         lgg.info('---')
 
         ###################################

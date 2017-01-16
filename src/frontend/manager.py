@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys, os
 import logging
 lgg = logging.getLogger('root')
@@ -233,14 +234,22 @@ class ModelManager(object):
         #for u, v in vars(self.model).items():
         #    with open(f, 'w') as _f:
         #        try:
-        #            pickle.dump(v, _f)
+        #            pickle.dump(v, _f, protocol=pickle.HIGHEST_PROTOCOL )
         #        except:
         #            print 'not serializable here: %s, %s' % (u, v)
         self.model._f = None
         self.model.purge()
+        # |
+        # |
+        # HOW TO called thid method recursvely from..
+        for k, v in self.model.__dict__.items():
+            if hasattr(v, 'func_name') and v.func_name == '<lambda>':
+                delattr(self.model, k)
+            #elif type(k) is defaultdict:
+            #    setattr(self.model, k, dict(v))
 
         with open(fn, 'w') as _f:
-            return pickle.dump(self.model, _f)
+            return pickle.dump(self.model, _f, protocol=pickle.HIGHEST_PROTOCOL)
 
     # Debug classmethod and ecrasement d'object en jeux.
     #@classmethod

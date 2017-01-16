@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from collections import defaultdict
 
 import numpy as np
@@ -387,8 +386,12 @@ def gofit(x, y, model='powerlaw'):
     #### Power law Goodness of fit
     # Estimate x_min
     y_max = y.max()
+
+    # X_min heuristic /Estim
     #index_min = len(y) - np.argmax(y[::-1]) # max from right
-    index_min = np.argmax(y) # max from left
+    #index_min = np.argmax(y) # max from left
+    index_min = 0
+
     x_min = x[index_min]
 
     # Reconstruct the data samples
@@ -449,15 +452,16 @@ def gofit(x, y, model='powerlaw'):
         powerlaw_samples = random_powerlaw(alpha, x_min, powerlaw_samples_size)
 
         ### Cutoff ?!
-        powerlaw_samples = powerlaw_samples[powerlaw_samples <= x_max]
-        ratio =  powerlaw_samples_size / len(powerlaw_samples)
-        if ratio > 1:
-            supplement = random_powerlaw(alpha, x_min, powerlaw_samples_size * (ratio -1))
-            supplement = supplement[supplement <= x_max]
-            sync_samples = np.hstack((out_samples, powerlaw_samples, supplement))
-        else:
-            sync_samples = np.hstack((out_samples, powerlaw_samples))
-        #sync_samples = np.hstack((out_samples, powerlaw_samples))
+        #powerlaw_samples = powerlaw_samples[powerlaw_samples <= x_max]
+        #ratio =  powerlaw_samples_size / len(powerlaw_samples)
+        #if ratio > 1:
+        #    supplement = random_powerlaw(alpha, x_min, powerlaw_samples_size * (ratio -1))
+        #    supplement = supplement[supplement <= x_max]
+        #    sync_samples = np.hstack((out_samples, powerlaw_samples, supplement))
+        #else:
+        #    sync_samples = np.hstack((out_samples, powerlaw_samples))
+
+        sync_samples = np.hstack((out_samples, powerlaw_samples))
 
         #ks_2 = ks_2samp(sync_samples, d)
         ks_s = kstest(sync_samples, cdf)

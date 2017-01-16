@@ -47,7 +47,7 @@ class lookup_stirling(object):
             print( n)
             self.array_stir[n, 1:] = np.array([ self._stirling_table_dishe(n, m) for m in xrange(1, k_max) ])
             if save:
-                pickle.dump(self.array_stir[n], _f)
+                pickle.dump(self.array_stir[n], _f, protocol=pickle.HIGHEST_PROTOCOL)
                 _f.flush()
 
         _f.close()

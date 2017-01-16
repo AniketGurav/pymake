@@ -6,10 +6,8 @@ import math
 import logging
 lgg = logging.getLogger('root')
 
-"""
-@author: Adrien Dulac (adrien.dulac@imag.fr)
-
-This code was modified from the code originally written by Zhai Ke (kzhai@umd.edu).  """
+""" This code was modified from the code
+originally written by Zhai Ke (kzhai@umd.edu)."""
 
 class IBP(object):
     __metaclass__ = abc.ABCMeta

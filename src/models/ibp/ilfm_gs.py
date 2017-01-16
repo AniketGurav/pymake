@@ -23,8 +23,6 @@ Implements MCMC inference for the Infinite Latent Feature Relationnal Model [1].
 This code was modified from the code originally written by Zhai Ke (kzhai@umd.edu).
 
 [1] Kurt Miller, Michael I Jordan, and Thomas L Griffiths. Nonparametric latent feature models for link prediction. In Advances in neural information processing systems 2009.
-
-@author: Adrien Dulac
 """
 
 ### @TODO
@@ -572,7 +570,7 @@ class IBPGibbsSampling(IBP, ModelBase):
 
         ### Finding Communities
         lgg.info('Finding Communities...')
-        communities = self.communities_analysis(Z)
+        communities = self.communities_analysis()
 
         res = {'Precision': precision,
                'Recall': rappel,
