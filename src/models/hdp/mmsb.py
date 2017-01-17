@@ -21,8 +21,11 @@ from frontend.frontend import DataBase, ModelBase
 
 from utils.math import *
 from utils.algo import *
-from utils.compute_stirling import load_stirling
-_stirling_mat = load_stirling()
+try:
+    from utils.compute_stirling import load_stirling
+    _stirling_mat = load_stirling()
+except:
+    _stirling_mat = None
 
 #import sys
 #sys.setrecursionlimit(10000)
