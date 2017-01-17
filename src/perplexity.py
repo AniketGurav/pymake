@@ -7,7 +7,7 @@ from utils.utils import *
 from utils.math import *
 from plot import *
 from frontend.frontend_io import *
-from expe.spec import _spec_
+from expe.spec import _spec_; _spec = _spec_()
 from expe.format import *
 from utils.argparser import argparser
 
@@ -28,10 +28,10 @@ config.update(argparser.generate(''))
 
 
 # Corpuses
-Corpuses = _spec_.CORPUS_SYN_ICDM_1
-Corpuses += _spec_.CORPUS_REAL_ICDM_1
+Corpuses = _spec.CORPUS_SYN_ICDM_1
+Corpuses += _spec.CORPUS_REAL_ICDM_1
 ### Models
-Models = _spec_.MODELS_GENERATE
+Models = _spec.MODELS_GENERATE
 
 
 for m in Models:

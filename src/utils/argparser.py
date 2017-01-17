@@ -2,7 +2,7 @@ import inspect
 from functools import wraps
 import args as clargs
 from frontend.frontend_io import *
-from expe.spec import _spec_
+from expe.spec import _spec_; _spec = _spec_()
 
 #########
 # @TODO:
@@ -99,13 +99,13 @@ class argparser(object):
         # Default request
         req = dict(
             OUT_TYPE = 'path',
-            SPEC = _spec_.RUN_DD,
+            SPEC = _spec.RUN_DD,
             FTYPE = 'pk',
             STATUS = None )
 
         ontologies = dict(
             out_type = ('runcmd', 'path'),
-            spec = map(str.lower, vars(_spec_).keys()),
+            spec = map(str.lower, vars(_spec).keys()),
             ftype = ('json', 'pk', 'inf') )
 
         ### Making ontologie based argument attribution
@@ -116,7 +116,7 @@ class argparser(object):
             for ont, words in ontologies.items():
                 if v in words:
                     if ont == 'spec':
-                        v = getattr(_spec_, v.upper())
+                        v = getattr(_spec, v.upper())
                     req[ont.upper()] = v
                     checksum -= 1
                     break

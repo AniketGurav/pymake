@@ -6,7 +6,7 @@ from frontend.frontendnetwork import frontendNetwork
 from utils.utils import *
 from utils.math import *
 from plot import *
-from expe.spec import _spec_
+from expe.spec import _spec_; _spec = _spec_()
 from expe.format import *
 from utils.argparser import argparser
 
@@ -31,10 +31,10 @@ delta = 0.1
 delta = (0.1, 0.1)
 
 # Corpuses
-Corpuses = _spec_.CORPUS_SYN_ICDM_1
-Corpuses += _spec_.CORPUS_REAL_ICDM_1
+Corpuses = _spec.CORPUS_SYN_ICDM_1
+Corpuses += _spec.CORPUS_REAL_ICDM_1
 ### Models
-Models = _spec_.MODELS_GENERATE
+Models = _spec.MODELS_GENERATE
 
 #Models = [dict ((
 #    ('data_type'    , 'networks'),
@@ -99,7 +99,7 @@ for corpus_name in Corpuses:
 
     plt.plot([0, 1], [0, 1], linestyle='--', color='k', label='Luck')
     plt.legend(loc="lower right", prop={'size':10})
-    plt.title(corpus_[corpus_name][0])
+    plt.title(_spec.name(corpus_name))
 
     display(False)
 

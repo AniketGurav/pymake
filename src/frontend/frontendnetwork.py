@@ -324,9 +324,13 @@ class frontendNetwork(DataBase):
         g[[e[0] for e in edges], [e[1] for e in edges]] = 1
         g[[e[1] for e in edges], [e[0] for e in edges]] = 1
 
-        parameters = parse_file_conf(os.path.join(os.path.dirname(fn), 'parameters'))
-        parameters['devs'] = map(float, parameters['devs'].split(';'))
-        self.parameters_ = parameters
+        try:
+            parameters = parse_file_conf(os.path.join(os.path.dirname(fn), 'parameters'))
+            parameters['devs'] = map(float, parameters['devs'].split(';'))
+        except IOError:
+            parameters = {}
+        finally:
+            self.parameters_ = parameters
 
         self.clusters = clusters
         self.features = np.array(features)
