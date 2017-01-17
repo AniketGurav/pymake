@@ -4,7 +4,7 @@
 from frontend.manager import ModelManager, FrontendManager
 from frontend.frontendnetwork import frontendNetwork
 from frontend.frontend_io import *
-from expe.spec import _spec_
+from expe.spec import _spec_; _spec = _spec_()
 from utils.argparser import argparser
 
 """ Parse models on disk, for checking
@@ -27,9 +27,9 @@ def_conf.update(argparser.generate(USAGE))
 
 ####################################################
 ### Config
-spec = _spec_.EXPE_ICDM_R
+spec = _spec.EXPE_ICDM_R
 spec['debug'] = 'hyper101'
-#spec = _spec_.EXPE_ALL_3_IBP
+#spec = _spec.EXPE_ALL_3_IBP
 
 def exception_config(config):
     if config['model'] in ('mmsb_cgs', 'immsb'):

@@ -8,15 +8,15 @@ from collections import OrderedDict
 from frontend.frontend_io import *
 from utils.utils import *
 from utils.argparser import argparser
-from expe.spec import _spec_
+from expe.spec import _spec_; _spec = _spec_()
 
 USAGE = '''\
 # Usage:
     expe_meas [model] [K]
 '''
 
-#TENSOR = _spec_.EXPE_ICDM_R
-TENSOR = _spec_.EXPE_ICDM_R_R
+#TENSOR = _spec.EXPE_ICDM_R
+TENSOR = _spec.EXPE_ICDM_R_R
 
 
 ###
