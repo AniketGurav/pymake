@@ -27,7 +27,7 @@ class _spec_(object):
     CORPUS_NBURST_1    = ( 'generator4', 'generator5', 'generator6', 'generator9', 'generator10',)
 
     ### Expe ICDM
-    CORPUS_SYN_ICDM_1  = ( 'generator4', 'generator10', 'generator12', 'generator7')
+    CORPUS_SYN_ICDM_1  = ( 'generator7', 'generator12', 'generator10', 'generator4')
     CORPUS_REAL_ICDM_1 = ( 'manufacturing', 'fb_uc',)
 
     CORPUS_ALL_3 = CORPUS_SYN_ICDM_1 + CORPUS_REAL_ICDM_1

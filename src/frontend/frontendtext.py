@@ -8,9 +8,13 @@ from .frontend import DataBase
 from utils.vocabulary import Vocabulary, parse_corpus
 
 sys.path.insert(1, os.path.join(os.path.dirname(__file__),'../../../gensim'))
-import gensim
-from gensim.models import ldamodel, ldafullbaye
-Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': None}
+
+try:
+    import gensim
+    from gensim.models import ldamodel, ldafullbaye
+    Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': None}
+except:
+    pass
 
 
 class frontendText(DataBase):

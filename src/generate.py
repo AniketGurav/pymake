@@ -28,8 +28,9 @@ analysis in [clustering, zipf, (to complete)]
     ./generate.py --alpha 1 --gmma 1 -n 1000 --seed
 '''
 
-####################################################
+#######################
 ### Config
+#######################
 config = defaultdict(lambda: False, dict(
     block_plot = True,
     write_to_file = False,
@@ -46,27 +47,29 @@ alpha = 1
 gmma = 1
 delta = (1, 5)
 
-# Corpuses
-Corpuses = _spec.CORPUS_REAL_ICDM_1
-Corpuses = _spec.CORPUS_SYN_ICDM_1
-Corpuses = ('generator10',)
+#######################
+### Corpuses
+#######################
+#Corpuses = _spec.CORPUS_SYN_ICDM_1
+#Corpuses = _spec.CORPUS_REAL_ICDM_1
+Corpuses = _spec.CORPUS_SYN_ICDM_1 + _spec.CORPUS_REAL_ICDM_1
 
-Corpuses = _spec.CORPUS_SYN_ICDM_1
-#Corpuses += _spec.CORPUS_REAL_ICDM_1
+#Corpuses = ('generator7',)
+#Corpuses = ('fb_uc',)
 
-Corpuses = ('fb_uc',)
-
+#######################
 ### Models
+#######################
 #Models = _spec.MODELS_GENERATE
 Models = [dict ((
     ('data_type'    , 'networks'),
     ('debug'        , 'debug11') , # ign in gen
     #('model'        , 'mmsb_cgs')   ,
-    ('model'        , 'ibp')   ,
+    ('model'        , 'immsb')   ,
     ('K'            , 10)        ,
     ('N'            , 'all')     , # ign in gen
-    ('hyper'        , 'fix')    , # ign in ge
-    ('homo'         , 0)         , # ign in ge
+    ('hyper'        , 'auto')    , # ign in gen
+    ('homo'         , 0)         , # ign in gen
     #('repeat'      , '*')       ,
 ))]
 
@@ -81,7 +84,11 @@ for opt in ('alpha','gmma', 'delta'):
     if config.get(opt):
         globals()[opt] = config[opt]
 
-for corpus_name in Corpuses:
+#  to get track of last experimentation in expe.format
+nb_of_iteration = len(Corpuses) * len(Models) -1
+_it = 0
+for corpus_pos, corpus_name in enumerate(Corpuses):
+    _end = _it == nb_of_iteration
     frontend = frontendNetwork(config)
     data = frontend.load_data(corpus_name)
     data = frontend.sample()
@@ -91,8 +98,6 @@ for corpus_name in Corpuses:
     lgg.info('---')
 
     for Model in Models:
-
-        lgg.info('---')
         lgg.info(_spec.name(Model['model']))
         lgg.info('---')
 
@@ -163,24 +168,22 @@ for corpus_name in Corpuses:
         ###################################
         model_name = Model['model']
         model_hyper = Model['hyperparams']
-        print 'Mode: %s' % config['generative']
-        print('corpus: %s, model: %s, K = %s, N =  %s, hyper: %s'.replace(',','\n') % (corpus_name, model_name, K, N, str(model_hyper)) )
+        lgg.info('=== M_e Mode === ')
+        lgg.info('Expe: %s' % config['do'])
+        lgg.info('Mode: %s' % config['generative'])
+        lgg.info('corpus: %s, model: %s, K = %s, N =  %s, hyper: %s'.replace(',','\n') % (_spec.name(corpus_name), _spec.name(model_name), K, N, str(model_hyper)) )
 
         ###################################
         ### Visualize
         ###################################
-        if config.get('write_to_file'):
-            #format.generate_icdm(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'])
-            format.generate_icdm_debug(data=data, Y=Y, corpus_name=corpus_name, model_name=model_name, K=K)
-            continue
-
-        g = None
+        g = None # ?; remove !
 
         analysis = getattr(format, config['do'])
         analysis(**globals())
 
         #format.debug(**globals())
 
+        _it += 1
         display(config['block_plot'])
 
 if not config.get('write_to_file'):

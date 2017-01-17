@@ -8,19 +8,16 @@ use arparser as standard parser !
 * clean and homogeneize, the communities analysis framework. There is redoncdancy, and non consistent call to modularity...
 
 @todo: 
-* frontend: use for bas class for random network:
-* integration of measure on degree, goodness of fit etc
-* deal with the fact taht there no loading scheme here...
 * OBJECT ! change frontendNetwork to Graph(Object), it is clear ?! (implement morphism in Object for example. (issue42)
 * @frontend: better print the status of what's going on in the beginning of fit.
+
 
 @structure
 * simpliy frontend:
     * check [dataset/model](source) [zipf|homo](measure)  -- plot figure / things
     * tabulate (tensor spec)  -- tabs
-
-@debug: clique and random generator tree path. Working ?
-
+* ExpeManger (factorize the scripts)
+* plotManager (same scenario, axe, title, **kwargs**)
 
 
 # Implement some baseline
