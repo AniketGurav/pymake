@@ -392,7 +392,7 @@ def gofit(x, y, model='powerlaw'):
     #index_min = np.argmax(y) # max from left
     index_min = 0
 
-    x_min = x[index_min]
+    x_min = x[index_min] or 1
 
     # Reconstruct the data samples
     d = degree_hist_to_list(x[index_min:], y[index_min:])

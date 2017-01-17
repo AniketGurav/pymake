@@ -17,6 +17,7 @@ from plot import *
 from plot import _markers, _colors
 
 from tabulate import tabulate
+from numpy import ma
 import numpy as np
 import scipy as sp
 #np.set_printoptions(threshold='nan')
@@ -60,6 +61,7 @@ def zipf(**kwargs):
     globals().update(kwargs)
     y = kwargs['y']
     N = y.shape[0]
+
     if Model['model'] == 'ibp':
         title = 'N=%s, K=%s alpha=%s, lambda:%s'% ( N, K, alpha, delta)
     elif Model['model'] == 'immsb':
@@ -96,7 +98,7 @@ def zipf(**kwargs):
     if model_name == 'immsb':
         ZZ = []
         #for _ in [Y[0]]:
-        for _ in Y[:5]: # Do not reflect real local degree !
+        for _ in Y[:]: # Do not reflect real local degree !
             Z = np.empty((2,N,N))
             order = np.arange(N**2).reshape((N,N))
             if frontend.is_symmetric():
@@ -139,31 +141,30 @@ def zipf(**kwargs):
         #k_perm = itertools.product(np.unique(clusters) , repeat=2)
         k_perm = itertools.product(range(theta.shape[1]) , repeat=2)
     for i, c in enumerate(k_perm):
-        if i > 10:
+        if i > 20:
             break
         if len(c) == 2:
-            # Stochastic Equivalence (extra class bind
+            # Stochastic Equivalence (outer class)
             k, l = c
-            #continue
         else:
-            # Comunnities (intra class bind)
+            # Comunnities (inner class)
             k = l = c.pop()
 
         degree_c = []
         YY = []
         if model_name == 'immsb':
             for y, z in zip(Y, ZZ): # take the len of ZZ if < Y
-                y_c = y.copy()
+                y_c = np.zeros(y.shape)
                 phi_c = np.zeros(y.shape)
                 # UNDIRECTED !
-                phi_c[(z[0] == k) & (z[1] == l)] = 1 #; phi_c[(z[0] == l) & (z[1] == k)] = 1
-                y_c[phi_c != 1] = 0
+                phi_c[(z[0] == k) & (z[1] == l)] = 1
+                y_c = y * phi_c
                 #degree_c += adj_to_degree(y_c).values()
                 #yerr= None
                 YY.append(y_c)
-        elif model_name == 'ibp':
+        elif model_name == 'ibp': # or Corpus !
             for y in Y:
-                YY.append((y == np.outer(theta[:,k], theta[:,l])).astype(int))
+                YY.append((y * np.outer(theta[:,k], theta[:,l] )).astype(int))
 
         ## remove ,old issue
         #if len(degree_c) == 0: continue
@@ -215,7 +216,6 @@ def zipf(**kwargs):
         plt.xlabel('Class labels')
         plt.title('Blocks Size (max assignement)')
 
-
     #draw_graph_spring(y, clusters)
     #draw_graph_spectral(y, clusters)
     #draw_graph_circular(y, clusters)
@@ -232,21 +232,25 @@ def pvalue(**kwargs):
         Parameters
         ==========
         type: pvalue type in (global, local, feature)
-
     """
     globals().update(kwargs)
-    _type = kwargs.get('_type', 'global')
+    _type = kwargs.get('_type', 'local')
     y = kwargs['y']
     N = y.shape[0]
 
+    # if model is None, work with dataset:
+    data = kwargs['data']
+    Y = [data]
+    K = max(frontend.clusters) +1
+    theta = np.zeros((data.shape[0], K))
+    theta[np.arange(data.shape[0]),  frontend.clusters] = 1
+    #\
+
+    global Table
+    Meas = [ 'pvalue', 'alpha', 'x_min', 'n_tail']; headers = Meas
+
     if _type == 'global':
-        try:
-            Table
-            print '11111111111'
-        except NameError:
-            Meas = [ 'pvalue', 'alpha', 'x_min', 'n_tail']; headers = Meas
-            Table = np.empty((len(Corpuses), len(Meas), len(Y)))
-            print '22222222222'
+        Table = globals().get('Table', np.empty((len(Corpuses), len(Meas), len(Y))))
 
         ### Global degree
         d, dc, yerr = random_degree(Y)
@@ -254,15 +258,15 @@ def pvalue(**kwargs):
             d, dc = degree_hist(adj_to_degree(data))
             gof = gofit(d, dc)
 
-
             for i, v in enumerate(Meas):
                 Table[corpus_pos, i, it_dat] = gof[v]
-
-        print Table
 
     elif _type == 'local':
         ### Z assignement method
         now = Now()
+        table_shape = (len(Corpuses), len(Meas), K**2)
+        Table = globals().get('Table', ma.array(np.empty(table_shape), mask=np.ones(table_shape)))
+
         if model_name == 'immsb':
             ZZ = []
             #for _ in [Y[0]]:
@@ -296,8 +300,8 @@ def pvalue(**kwargs):
         else:
             #k_perm = itertools.product(np.unique(clusters) , repeat=2)
             k_perm = itertools.product(range(theta.shape[1]) , repeat=2)
-        for i, c in enumerate(k_perm):
-            if i > 10:
+        for it_k, c in enumerate(k_perm):
+            if it_k > 20:
                 break
             if len(c) == 2:
                 # Stochastic Equivalence (extra class bind
@@ -321,7 +325,7 @@ def pvalue(**kwargs):
                     YY.append(y_c)
             elif model_name == 'ibp':
                 for y in Y:
-                    YY.append((y == np.outer(theta[:,k], theta[:,l])).astype(int))
+                    YY.append((y * np.outer(theta[:,k], theta[:,l])).astype(int))
 
             ## remove ,old issue
             #if len(degree_c) == 0: continue
@@ -330,8 +334,10 @@ def pvalue(**kwargs):
             d, dc, yerr = random_degree(YY)
             if len(dc) == 0: continue
             #local_degree_c[str(k)+str(l)] = filter(lambda x: x != 0, degree_c)
-            god =  gofit(d, dc)
-            plot_degree_2((d,dc,yerr), logscale=True, colors=True, line=True)
+            gof =  gofit(d, dc)
+
+            for i, v in enumerate(Meas):
+                Table[corpus_pos, i, it_k] = gof[v]
 
     elif _type == "feature":
         raise NotImplementedError
@@ -350,7 +356,42 @@ def pvalue(**kwargs):
 
     ### Table Format Printing
     if _end is True:
+        # Function in (utils. ?)
+        table_mean = np.char.array(np.around(Table.mean(2), decimals=3)).astype("|S20")
+        table_std = np.char.array(np.around(Table.std(2), decimals=3)).astype("|S20")
+        Table = table_mean + ' p2m ' + table_std
 
+        Table = np.column_stack((_spec.name(Corpuses), Table))
+        tablefmt = 'latex' # 'latex'
+        print
+        print tabulate(Table, headers=headers, tablefmt=tablefmt, floatfmt='.3f')
+
+
+def homo(**kwargs):
+    """ Hmophily test -- table output
+        Parameters
+        ==========
+        type: similarity type in (natural, latent)
+    """
+    globals().update(kwargs)
+    _type = kwargs.get('_type', 'latent')
+
+    # class / self !
+    global Table
+    Meas = [ 'pearson coeff', '2-tailed pvalue' ]; headers = Meas
+
+    Table = globals().get('Table', np.empty((len(Corpuses), len(Meas), len(Y))))
+
+    ### Global degree
+    d, dc, yerr = random_degree(Y)
+    for it_dat, data in enumerate(Y):
+        edges = data.flatten()
+        sim = model.similarity_matrix(sim=_type).flatten()
+
+        Table[corpus_pos, :,  it_dat] = sp.stats.pearsonr(edges, sim)
+
+    ### Table Format Printing
+    if _end is True:
         # Function in (utils. ?)
         table_mean = np.char.array(np.around(Table.mean(2), decimals=3)).astype("|S20")
         table_std = np.char.array(np.around(Table.std(2), decimals=3)).astype("|S20")

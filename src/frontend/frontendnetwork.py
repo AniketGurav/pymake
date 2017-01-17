@@ -14,11 +14,6 @@ from .frontend import DataBase
 from utils.utils import parse_file_conf
 from utils.math import *
 
-sys.path.insert(1, '../../gensim')
-import gensim
-from gensim.models import ldamodel, ldafullbaye
-Models = { 'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
-
 
 def getClique(N=100, K=4):
     from scipy.linalg import block_diag

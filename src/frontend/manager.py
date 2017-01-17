@@ -20,10 +20,13 @@ sys.modules['hdp'] = hdp
 sys.modules['ibp'] = ibp
 ###
 
-sys.path.insert(1, '../../gensim')
-import gensim as gsm
-from gensim.models import ldamodel, ldafullbaye
-Models = {'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
+try:
+    sys.path.insert(1, '../../gensim')
+    import gensim as gsm
+    from gensim.models import ldamodel, ldafullbaye
+    Models = {'ldamodel': ldamodel, 'ldafullbaye': ldafullbaye, 'hdp': 1}
+except:
+    pass
 
 class FrontendManager(object):
     """ Utility Class who aims at mananing the frontend at the higher level.
@@ -302,4 +305,14 @@ class ModelManager(object):
             raise NotImplementedError()
 
         return model
+
+
+class ExpeManager(object):
+    """ Mange set of experiments
+        * Main loop consist of Corpuses and classe
+        * a Tensor ?
+    """
+    def __init(self):
+        pass
+
 

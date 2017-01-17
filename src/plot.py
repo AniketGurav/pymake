@@ -173,7 +173,7 @@ def plot_degree_poly_l(Y):
     plt.ylim((.9,1e3))
     plt.xlabel('Degree'); plt.ylabel('Counts')
 
-def plot_degree_2(P, logscale=False, colors=False, line=False, ax=None):
+def plot_degree_2(P, logscale=False, colors=False, line=False, ax=None, title=None):
     """ Plot degree distribution for different configuration"""
     if ax is None:
         # Note: difference betwwen ax and plt method are the get_ and set_ suffix
@@ -202,6 +202,8 @@ def plot_degree_2(P, logscale=False, colors=False, line=False, ax=None):
         #if lim == np.searchsorted(logspace,max_d ):
         #    min_d = logspace[lim-1]
         #    max_d = logspace[lim]
+    if title:
+        ax.set_title(title)
 
     ax.set_xlim((min_d, max_d+10))
     #ax.ylim((.9,1e3))

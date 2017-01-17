@@ -6,7 +6,6 @@ from frontend.frontendnetwork import frontendNetwork
 from utils.utils import *
 from plot import *
 from expe.spec import _spec_; _spec = _spec_()
-from expe.format import corpus_icdm, corpus_
 from utils.argparser import argparser
 from utils.math import reorder_mat
 
@@ -50,6 +49,7 @@ for corpus_pos, corpus_name in enumerate(Corpuses):
 
     lgg.info('---')
     lgg.info(_spec.name(corpus_name))
+    lgg.info('Expe: %s' % config['do'])
     lgg.info('---')
 
     if config['do'] == 'homo':
@@ -111,18 +111,15 @@ for corpus_pos, corpus_name in enumerate(Corpuses):
         ##############################
         if clusters is not None:
             print 'Reordering Adj matrix from `%s\':' % config.get('clusters_org')
-            print 'corpus: %s/%s, %s, Clusters size: %s' % (corpus_name, corpus_[corpus_name], msg, K)
+            print 'corpus: %s/%s, %s, Clusters size: %s' % (corpus_name, _spec.name(corpus_name), msg, K)
             data_r = reorder_mat(data, clusters)
         else:
-            print 'corpus: %s/%s, noo Reordering !' % (corpus_name, corpus_[corpus_name])
+            print 'corpus: %s/%s, noo Reordering !' % (corpus_name, _spec.name(corpus_name))
         print
 
         ###################################
         ### Plotting
         ###################################
-        if config.get('write_to_file'):
-            corpus_icdm(data=data_r, corpus_name=corpus_name)
-            continue
 
         ###################################
         ### Plot Adjacency matrix
@@ -210,7 +207,7 @@ for corpus_pos, corpus_name in enumerate(Corpuses):
 
         # Just inner degree
         #plt.figure()
-        f, (ax1, ax2) = plt.subplots(1, 2, )#sharey=True)
+        f, (ax1, ax2) = plt.subplots(1, 2, sharey=True, sharex=True)
 
         # assume symmetric
         for l in np.arange(K):
@@ -221,17 +218,19 @@ for corpus_pos, corpus_name in enumerate(Corpuses):
                 ixgrid = np.ix_(clusters == k, clusters == l)
 
                 if k == l:
-                    # Inner degree
-                    y = data[ixgrid]
+                    title = 'Inner degree'
+                    #y = data[ixgrid]
+                    y = np.zeros(data.shape) # some zeros...
+                    y[ixgrid] = data[ixgrid]
                     ax = ax1
                 else:
-                    # Outer degree
-                    y = np.zeros(data.shape)
+                    title = 'Outer degree'
+                    y = np.zeros(data.shape) # some zeros...
                     y[ixgrid] = data[ixgrid]
                     ax = ax2
 
                 d, dc = degree_hist(adj_to_degree(y))
-                plot_degree_2((d,dc,None), logscale=True, colors=True, line=True, ax=ax)
+                plot_degree_2((d,dc,None), logscale=True, colors=True, line=True, ax=ax, title=title)
 
         # Class burstiness
         plt.figure()

@@ -273,12 +273,12 @@ class ModelBase(object):
             phi = self.phi
 
         features = theta
-        if sim == 'dot':
+        if sim in  ('dot', 'latent'):
             sim = np.dot(features, features.T)
         elif sim == 'cos':
             norm = np.linalg.norm(features, axis=1)
             sim = np.dot(features, features.T)/norm/norm.T
-        elif sim == 'model':
+        elif sim in  ('model', 'natural'):
             sim = features.dot(phi).dot(features.T)
         else:
             lgg.error('Similaririty metric unknow: %s' % sim)

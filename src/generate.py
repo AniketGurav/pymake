@@ -50,16 +50,12 @@ delta = (1, 5)
 #######################
 ### Corpuses
 #######################
-Corpuses = _spec.CORPUS_REAL_ICDM_1
-Corpuses = _spec.CORPUS_SYN_ICDM_1
-
-Corpuses = _spec.CORPUS_SYN_ICDM_1
-Corpuses += _spec.CORPUS_REAL_ICDM_1
+#Corpuses = _spec.CORPUS_SYN_ICDM_1
+#Corpuses = _spec.CORPUS_REAL_ICDM_1
+Corpuses = _spec.CORPUS_SYN_ICDM_1 + _spec.CORPUS_REAL_ICDM_1
 
 #Corpuses = ('generator7',)
 #Corpuses = ('fb_uc',)
-Corpuses = ('manufacturing', 'generator7')
-
 
 #######################
 ### Models
@@ -69,10 +65,10 @@ Models = [dict ((
     ('data_type'    , 'networks'),
     ('debug'        , 'debug11') , # ign in gen
     #('model'        , 'mmsb_cgs')   ,
-    ('model'        , 'ibp')   ,
+    ('model'        , 'immsb')   ,
     ('K'            , 10)        ,
     ('N'            , 'all')     , # ign in gen
-    ('hyper'        , 'fix')    , # ign in gen
+    ('hyper'        , 'auto')    , # ign in gen
     ('homo'         , 0)         , # ign in gen
     #('repeat'      , '*')       ,
 ))]
@@ -173,18 +169,14 @@ for corpus_pos, corpus_name in enumerate(Corpuses):
         model_name = Model['model']
         model_hyper = Model['hyperparams']
         lgg.info('=== M_e Mode === ')
+        lgg.info('Expe: %s' % config['do'])
         lgg.info('Mode: %s' % config['generative'])
         lgg.info('corpus: %s, model: %s, K = %s, N =  %s, hyper: %s'.replace(',','\n') % (_spec.name(corpus_name), _spec.name(model_name), K, N, str(model_hyper)) )
 
         ###################################
         ### Visualize
         ###################################
-        if config.get('write_to_file'):
-            #format.generate_icdm(data=data, Y=Y, corpus_name=corpus_name, model_name=Model['model'])
-            format.generate_icdm_debug(data=data, Y=Y, corpus_name=corpus_name, model_name=model_name, K=K)
-            continue
-
-        g = None
+        g = None # ?; remove !
 
         analysis = getattr(format, config['do'])
         analysis(**globals())
