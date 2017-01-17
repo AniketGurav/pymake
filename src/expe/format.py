@@ -11,31 +11,18 @@ import utils.algo as A
 from utils.algo import gofit
 from utils.utils import *
 from utils.math import *
+from expe.spec import _spec_; _spec = _spec_()
 
 from plot import *
 from plot import _markers, _colors
 
+from tabulate import tabulate
 import numpy as np
 import scipy as sp
 #np.set_printoptions(threshold='nan')
 from sklearn.metrics import roc_curve, auc, precision_recall_curve
 
 
-#path = '../../../papers/personal/relational_models/git/img/'
-path = '../results/networks/generate/'
-
-### Expe Spec
-corpus_ = dict((
-    ('manufacturing'  , ('Manufacturing', 'manufacturing')),
-    ('fb_uc'          , ('UC Irvine', 'irvine')),
-    ('generator7'     , ('Network 1', 'g1')),
-    ('generator12'    , ('Network 2', 'g2')),
-    ('generator10'    , ('Network 3', 'g3')),
-    ('generator4'     , ('Network 4', 'g4')),
-))
-
-model_ = dict(ibp = 'ilfm',
-              immsb = 'immsb')
 
 """ **kwargs is passed to the format function.
     The attributes curently in used in the globals dict are:
@@ -46,90 +33,12 @@ model_ = dict(ibp = 'ilfm',
     etc..
 """
 
-def generate_icdm(**kwargs):
+
+def savefig_debug(**kwargs):
     # @Debug: does not make the variable accessible
     #in the current scope.
     globals().update(kwargs)
-    model_name = kwargs['model_name']
-    corpus_name = kwargs['corpus_name']
-    Y = kwargs['Y']
-
-    #### Expe ID
-    model_name = model_[model_name]
-    title = model_name +' | '+ corpus_[corpus_name][0]
-    fn = model_name +'_'+ corpus_[corpus_name][1]
-
-    #################################################
-    ### Plot Degree
-    figsize=(3.8, 4.3)
-    plt.figure(figsize=figsize)
-    plot_degree_2_l(Y)
-    plot_degree_poly(data, scatter=False)
-    plt.title(title)
-
-    fn = path+fn+'_d'+'.pdf'
-    print('saving %s' % fn)
-    plt.savefig(fn, facecolor='white', edgecolor='black')
-
-    return
-
-
-### Expe
-corpus_ = dict ((
-    ('generator4'     , ('Network 4 -b/h'  , 'g4'))            ,
-    ('generator10'    , ('Network 3 -b/-h' , 'g3'))            ,
-    ('generator12'    , ('Network 2 b/-h'  , 'g2'))            ,
-    ('generator7'     , ('Network 1  b/h ' , 'g1'))            ,
-    ('manufacturing'  , ('Manufacturing'   , 'manufacturing')) ,
-    ('fb_uc'          , ('UC Irvine'       , 'irvine' ))       ,
-))
-
-def corpus_icdm(**kwargs):
-    globals().update(kwargs)
-    corpus_name = kwargs['corpus_name']
-    data = kwargs['data']
-
-    #### Expe ID
-    title = corpus_[corpus_name][0]
-    fn = corpus_[corpus_name][1]
-
-    #################################################
-    ### Plotting
-
-    ### Filtering
-    if fn != 'manufacturing':
-        ddata = dilate(data)
-    else:
-        ddata = data
-
-    ### Plot Adjacency matrix
-    figsize=(4.7, 4.7)
-    plt.figure(figsize=figsize)
-    adjshow(ddata, title=title)
-    #plt.figtext(.15, .1, homo_text, fontsize=12)
-    plt.savefig(path+fn+'.pdf', facecolor='white', edgecolor='black')
-
-    ### Plot Degree
-    figsize=(3.8, 4.3)
-    plt.figure(figsize=figsize)
-    plot_degree_poly(data)
-
-    fn = path+fn+'_d'+'.pdf'
-    plt.savefig(fn, facecolor='white', edgecolor='black')
-
-
-def generate_icdm_debug(**kwargs):
-    # @Debug: does not make the variable accessible
-    #in the current scope.
-    globals().update(kwargs)
-    model_name = kwargs['model_name']
-    corpus_name = kwargs['corpus_name']
-    Y = kwargs['Y']
-
-    #### Expe ID
-    model_name = model_[model_name]
-    title = model_name +' | '+ corpus_[corpus_name][0]
-    fn = model_name +'_'+ corpus_[corpus_name][1]
+    path = '../results/networks/generate/'
 
     #################################################
     ### Plot Degree
@@ -152,16 +61,14 @@ def zipf(**kwargs):
     y = kwargs['y']
     N = y.shape[0]
     if Model['model'] == 'ibp':
-        title = '%s, N=%s, K=%s alpha=%s, lambda:%s'% (model_name, N, K, alpha, delta)
+        title = 'N=%s, K=%s alpha=%s, lambda:%s'% ( N, K, alpha, delta)
     elif Model['model'] == 'immsb':
-        title = '%s, N=%s, K=%s alpha=%s, gamma=%s, lambda:%s'% (model_name, N, K, alpha, gmma, delta)
+        title = 'N=%s, K=%s alpha=%s, gamma=%s, lambda:%s'% (N, K, alpha, gmma, delta)
     elif Model['model'] == 'mmsb_cgs':
-        title = '%s, N=%s, K=%s alpha=%s, lambda:%s'% (model_name, N, K, alpha, delta)
+        title = 'N=%s, K=%s alpha=%s, lambda:%s'% ( N, K, alpha, delta)
     else:
         raise NotImplementedError
 
-    if config['generative'] == 'predictive':
-        title = '%s, K=%s,  dataset=%s'% (model_name, K, corpus_name)
     ##############################
     ### Global degree
     ##############################
@@ -319,6 +226,142 @@ def zipf(**kwargs):
 
     print 'density: %s' % (float(y.sum()) / (N**2))
 
+
+def pvalue(**kwargs):
+    """ similar to zipf but compute pvalue and print table
+        Parameters
+        ==========
+        type: pvalue type in (global, local, feature)
+
+    """
+    globals().update(kwargs)
+    _type = kwargs.get('_type', 'global')
+    y = kwargs['y']
+    N = y.shape[0]
+
+    if _type == 'global':
+        try:
+            Table
+            print '11111111111'
+        except NameError:
+            Meas = [ 'pvalue', 'alpha', 'x_min', 'n_tail']; headers = Meas
+            Table = np.empty((len(Corpuses), len(Meas), len(Y)))
+            print '22222222222'
+
+        ### Global degree
+        d, dc, yerr = random_degree(Y)
+        for it_dat, data in enumerate(Y):
+            d, dc = degree_hist(adj_to_degree(data))
+            gof = gofit(d, dc)
+
+
+            for i, v in enumerate(Meas):
+                Table[corpus_pos, i, it_dat] = gof[v]
+
+        print Table
+
+    elif _type == 'local':
+        ### Z assignement method
+        now = Now()
+        if model_name == 'immsb':
+            ZZ = []
+            #for _ in [Y[0]]:
+            for _ in Y[:5]: # Do not reflect real local degree !
+                Z = np.empty((2,N,N))
+                order = np.arange(N**2).reshape((N,N))
+                if frontend.is_symmetric():
+                    triu = np.triu_indices(N)
+                    order = order[triu]
+                else:
+                    order = order.flatten()
+                order = zip(*np.unravel_index(order, (N,N)))
+
+                for i,j in order:
+                    Z[0, i,j] = categorical(theta[i])
+                    Z[1, i,j] = categorical(theta[j])
+                Z[0] = np.triu(Z[0]) + np.triu(Z[0], 1).T
+                Z[1] = np.triu(Z[1]) + np.triu(Z[1], 1).T
+                ZZ.append( Z )
+            ellapsed_time('Z formation', now)
+
+        clustering = 'modularity'
+        comm = model.communities_analysis(data=Y[0], clustering=clustering)
+        print 'clustering method: %s, active clusters ratio: %f' % (clustering, len(comm['block_hist']>0)/float(theta.shape[1]))
+
+        local_degree_c = {}
+        ### Iterate over all classes couple
+        if frontend.is_symmetric():
+            #k_perm = np.unique( map(list, map(set, itertools.product(np.unique(clusters) , repeat=2))))
+            k_perm =  np.unique(map(list, map(list, map(set, itertools.product(range(theta.shape[1]) , repeat=2)))))
+        else:
+            #k_perm = itertools.product(np.unique(clusters) , repeat=2)
+            k_perm = itertools.product(range(theta.shape[1]) , repeat=2)
+        for i, c in enumerate(k_perm):
+            if i > 10:
+                break
+            if len(c) == 2:
+                # Stochastic Equivalence (extra class bind
+                k, l = c
+                #continue
+            else:
+                # Comunnities (intra class bind)
+                k = l = c.pop()
+
+            degree_c = []
+            YY = []
+            if model_name == 'immsb':
+                for y, z in zip(Y, ZZ): # take the len of ZZ if < Y
+                    y_c = y.copy()
+                    phi_c = np.zeros(y.shape)
+                    # UNDIRECTED !
+                    phi_c[(z[0] == k) & (z[1] == l)] = 1 #; phi_c[(z[0] == l) & (z[1] == k)] = 1
+                    y_c[phi_c != 1] = 0
+                    #degree_c += adj_to_degree(y_c).values()
+                    #yerr= None
+                    YY.append(y_c)
+            elif model_name == 'ibp':
+                for y in Y:
+                    YY.append((y == np.outer(theta[:,k], theta[:,l])).astype(int))
+
+            ## remove ,old issue
+            #if len(degree_c) == 0: continue
+            #d, dc = degree_hist(degree_c)
+
+            d, dc, yerr = random_degree(YY)
+            if len(dc) == 0: continue
+            #local_degree_c[str(k)+str(l)] = filter(lambda x: x != 0, degree_c)
+            god =  gofit(d, dc)
+            plot_degree_2((d,dc,yerr), logscale=True, colors=True, line=True)
+
+    elif _type == "feature":
+        raise NotImplementedError
+        ### Blockmodel Analysis
+        if model_name == "immsb":
+            # Class burstiness
+            hist, label = clusters_hist(comm['clusters'])
+            bins = len(hist)
+        elif model_name == "ibp":
+            # Class burstiness
+            hist, label = sorted_perm(comm['block_hist'], reverse=True)
+            bins = len(hist)
+    else:
+        raise NotImplementedError
+
+
+    ### Table Format Printing
+    if _end is True:
+
+        # Function in (utils. ?)
+        table_mean = np.char.array(np.around(Table.mean(2), decimals=3)).astype("|S20")
+        table_std = np.char.array(np.around(Table.std(2), decimals=3)).astype("|S20")
+        Table = table_mean + ' p2m ' + table_std
+
+        Table = np.column_stack((_spec.name(Corpuses), Table))
+        tablefmt = 'latex' # 'latex'
+        print
+        print tabulate(Table, headers=headers, tablefmt=tablefmt, floatfmt='.3f')
+
+
 def debug(**kwargs):
     y = kwargs['y']
     model = kwargs['model']
@@ -342,7 +385,7 @@ def roc_test(**kwargs):
     y_true, probas = model.mask_probas(data)
     fpr, tpr, thresholds = roc_curve(y_true, probas)
     roc_auc = auc(fpr, tpr)
-    plt.plot(fpr, tpr, label='ROC %s (area = %0.2f)' % (model_[model_name], roc_auc))
+    plt.plot(fpr, tpr, label='ROC %s (area = %0.2f)' % (_spec.name(model_name), roc_auc))
 
     #precision, recall, thresholds = precision_recall_curve( y_true, probas)
     #plt.plot(precision, recall, label='PR curve; %s' % (model_name ))
@@ -358,7 +401,7 @@ def perplexity(**kwargs):
     column = csv_row('likelihood')
     ll_y = [row.split(sep)[column] for row in data][5:]
     ll_y = np.ma.masked_invalid(np.array(ll_y, dtype='float'))
-    plt.plot(ll_y, label=model_[model_name])
+    plt.plot(ll_y, label=_spec.name(model_name))
 
 _algo = 'Louvain'
 _algo = 'Annealing'
