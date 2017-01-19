@@ -14,8 +14,9 @@ from utils.math import reorder_mat
 
     params
     ------
-    zipf : degree based analysis
-    homo : homophily based analysis
+    zipf       : adjacency matrix + global degree
+    burstiness : global + local + feature burstiness
+    homo       : homophily based analysis
 """
 
 ### Config
@@ -166,7 +167,7 @@ for corpus_pos, corpus_name in enumerate(Corpuses):
         d, dc = degree_hist(adj_to_degree(data))
         gof = gofit(d, dc)
         fig = plt.figure()
-        plot_degree(data)
+        plot_degree(data, spec=True)
 
         alpha = gof['alpha']
         x_min = gof['x_min']

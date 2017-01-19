@@ -72,6 +72,40 @@ def surf(x, y, z):
     ax.plot_surface(X, Y, z)
     return ax
 
+def plot(P, logscale=False, colors=False, line=True, ax=None, title=None, sort=False):
+    """ General Plot
+    Parameters
+    ==========
+    P: array or tuple
+        y or (x, y), the curve (and optionnal, the x-axis)
+    """
+    if ax is None:
+        # Note: difference betwwen ax and plt method are the get_ and set_ suffix
+        ax = plt.gca()
+    if isinstance(P, (list, tuple)):
+        x, y = P
+    else:
+        y = P
+        x = np.arange(len(y))
+
+    ### Math
+    if sort is True:
+        x = sorted(y)
+
+    ### Matplotlib
+    if logscale:
+        ax.set_xscale('log'); ax.set_yscale('log')
+    if title:
+        ax.set_title(title)
+
+    c = next(_colors) if colors else 'b'
+    m = next(_markers) if colors else 'o'
+    l = '--' if line else None
+
+    #ax.figure()
+    ax.plot(x, y, c=c, marker=m, ls=l)
+
+
 def log_binning(counter_dict,bin_count=35):
     max_x = np.log10(max(counter_dict.keys()))
     max_y = np.log10(max(counter_dict.values()))
@@ -113,22 +147,28 @@ def log_binning(counter_dict,bin_count=35):
 #    if title:
 #        plt.title(title)
 
-def plot_degree(y):
+def plot_degree(y, spec=False):
     """ Degree plot """
     # To convert normalized degrees to raw degrees
     #ba_c = {k:int(v*(len(ba_g)-1)) for k,v in ba_c.iteritems()}
-    ba_c = adj_to_degree(y)
-    d, dc = degree_hist(ba_c)
+    if isinstance(y, np.ndarray) and y.ndim == 2:
+        ba_c = adj_to_degree(y)
+        d, dc = degree_hist(ba_c)
+    else:
+        # assume list
+        d = np.arange(len(y))
+        dc = sorted(y)
 
     plt.xscale('log'); plt.yscale('log')
 
     plt.scatter(d,dc,c='b',marker='o')
     #plt.scatter(ba_x,ba_y,c='r',marker='s',s=50)
 
-    plt.xlim(left=1)
-    plt.ylim((.9,1e3))
-    plt.xlabel('Degree')
-    plt.ylabel('Counts')
+    if spec is True:
+        plt.xlim(left=1)
+        plt.ylim((.9,1e3))
+        plt.xlabel('Degree')
+        plt.ylabel('Counts')
 
 def plor_degree_polygof(y, gof):
     # I dunno structore for plot ?
@@ -225,7 +265,7 @@ def draw_boundary(mat, clusters):
         B = B[1:-1]
     else:
         mat = reorder_mat(mat, clusters)
-        B, _ = clusters_hist(clusters)
+        B, __ = clusters_hist(clusters)
         B = np.cumsum(B)[:-1]
 
     K = len(B)
