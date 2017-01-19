@@ -32,20 +32,18 @@ analysis in [clustering, zipf, (to complete)]
 ### Config
 #######################
 config = defaultdict(lambda: False, dict(
-    block_plot = True,
+    block_plot = False,
     write_to_file = False,
     do            = 'zipf',
     #generative    = 'evidence',
     generative    = 'predictive',
     gen_size      = 1000,
     epoch         = 20 , #20
+    #### Path Spec
     debug         = 'debug11'
+    #debug         = 'debug111111', repeat        = 5,
 ))
 config.update(argparser.generate(USAGE))
-
-alpha = 1
-gmma = 1
-delta = (1, 5)
 
 #######################
 ### Corpuses
@@ -56,6 +54,8 @@ Corpuses = _spec.CORPUS_SYN_ICDM_1 + _spec.CORPUS_REAL_ICDM_1
 
 #Corpuses = ('generator7',)
 #Corpuses = ('fb_uc',)
+
+alpha = 1; gmma = 1; delta = (1, 5)
 
 #######################
 ### Models
@@ -70,7 +70,7 @@ Models = [dict ((
     ('N'            , 'all')     , # ign in gen
     ('hyper'        , 'auto')    , # ign in gen
     ('homo'         , 0)         , # ign in gen
-    #('repeat'      , '*')       ,
+    ('repeat'      , '')       ,
 ))]
 
 

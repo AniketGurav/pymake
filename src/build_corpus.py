@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from frontend.frontendimport frontendText
+from frontend.frontendtext import frontendText
 
 # @Issue43: Parser/config unification.
 from utils.utils import *

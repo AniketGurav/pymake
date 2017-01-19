@@ -380,12 +380,18 @@ from scipy.special import zeta
 # @todo: Estimation of x_min instead of the "max" heuristic.
 # @todo: cut-off
 def gofit(x, y, model='powerlaw'):
-    """ (x,y): the empirical distribution with x the values and y **THE COUNTS** """
+    """ (x, y): the empirical distribution with x the values and y **THE COUNTS** """
+
 
     y = y.astype(float)
     #### Power law Goodness of fit
     # Estimate x_min
     y_max = y.max()
+
+    # Reconstruct the data samples
+    data = degree_hist_to_list(x, y)
+    #x = np.arange(1, y.sum()) ?
+
 
     # X_min heuristic /Estim
     #index_min = len(y) - np.argmax(y[::-1]) # max from right
@@ -394,18 +400,16 @@ def gofit(x, y, model='powerlaw'):
 
     x_min = x[index_min] or 1
 
-    # Reconstruct the data samples
-    d = degree_hist_to_list(x[index_min:], y[index_min:])
-
     ### cutoff ?
     x_max = x.max()
 
     # Estimate \alpha
     N = int(y.sum())
     n_tail = y[index_min:].sum()
-    if n_tail < 25:
+    if n_tail < 25 or len(y) < 5:
         # no enough point
-        return defaultdict(lambda : False, {'n_tail':n_tail})
+        lgg.error('Not enough samples %s' % n_tail)
+        return
     elif n_tail / float(N) < 3/4.0:
         # tail not relevant
         index_min = len(y) - np.argmax(y[::-1]) # max from left
@@ -413,10 +417,7 @@ def gofit(x, y, model='powerlaw'):
         x_min = x[index_min]
         n_tail = y[index_min:].sum()
 
-    n_head =  N - n_tail
-    d = degree_hist_to_list(x[index_min:], y[index_min:])
-
-    alpha = 1 + n_tail * (np.log(d[d>x_min] / (x_min -0.5)).sum())**-1
+    alpha = 1 + n_tail * (np.log(data[data>x_min] / (x_min -0.5)).sum())**-1
 
     ### Build The hypothesis
     if model == 'powerlaw':
@@ -429,6 +430,7 @@ def gofit(x, y, model='powerlaw'):
         return
 
     # Number of synthetic datasets to generate
+    #precision = 0.03
     precision = 0.03
     S = int(0.25 * (precision)**-2)
     pvalue = []
@@ -436,9 +438,9 @@ def gofit(x, y, model='powerlaw'):
     # Ignore head data
     if False:
         N = n_tail # bad effect
-        ks_d = kstest(d[d>=x_min], cdf)
+        ks_d = kstest(data[data>=x_min], cdf)
     else:
-        ks_d = kstest(d, cdf)
+        ks_d = kstest(data, cdf)
 
     for s in range(S):
         ### p-value with Kolmogorov-Smirnov, for each synthetic dataset
@@ -448,8 +450,10 @@ def gofit(x, y, model='powerlaw'):
         out_empirical_samples_size = N - powerlaw_samples_size
 
         # Generate synthetic dataset
-        out_samples = np.random.choice((d[d<=x_min]), size=out_empirical_samples_size)
-        powerlaw_samples = random_powerlaw(alpha, x_min, powerlaw_samples_size)
+        ratio_plaw = 1
+        ratio_random = 1
+        out_samples = np.random.choice((data[data<=x_min]), size=out_empirical_samples_size*ratio_random)
+        powerlaw_samples = random_powerlaw(alpha, x_min, powerlaw_samples_size*ratio_plaw)
 
         ### Cutoff ?!
         #powerlaw_samples = powerlaw_samples[powerlaw_samples <= x_max]
@@ -472,7 +476,7 @@ def gofit(x, y, model='powerlaw'):
 
     pvalue = float(sum(pvalue)) / len(pvalue)
     estim = {'alpha': alpha, 'x_min':x_min, 'y_max':y_max,
-             'n_tail': n_tail,'n_head':n_head,
+             'n_tail': n_tail,'n_head':N - n_tail,
              'pvalue':pvalue}
     print 'KS data: ', ks_d
     print 'KS synthetic: ', ks_s

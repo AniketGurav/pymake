@@ -745,7 +745,15 @@ class GibbsRun(ModelBase):
     def update_hyper(self, hyper):
         if hyper is None:
             return
-        alpha, gmma, delta = hyper
+        elif isinstance(type(hyper), (tuple, list)):
+            alpha = hyper[0]
+            gmma = hyper[1]
+            delta = hyper[2]
+        else:
+            delta = hyper.get('delta')
+            alpha = hyper.get('alpha')
+            gmma = hyper.get('gmma')
+
         if delta:
             self._delta = delta
         if alpha:
@@ -852,7 +860,11 @@ class GibbsRun(ModelBase):
         self.K = K
         return Y, theta, phi
 
-    def link_expectation(self, theta, phi):
+    def link_expectation(self, theta=None, phi=None):
+        if theta is None:
+            theta = self.theta
+        if phi is None:
+            phi = self.phi
         likelihood = theta.dot(phi).dot(theta.T)
         return likelihood
 
@@ -938,13 +950,15 @@ class GibbsRun(ModelBase):
         return res
 
     def mask_probas(self, data):
-        mask = self.s.mask
+        mask = self.get_mask()
         y_test = data[mask]
         theta, phi = self.reduce_latent()
         p_ji = theta.dot(phi).dot(theta.T)
         probas = p_ji[mask]
         return y_test, probas
 
+    def get_mask(self):
+        return self.s.mask
 
     def get_clusters(self, K=None, skip=0):
         """ Return a vector of clusters membership of nodes.

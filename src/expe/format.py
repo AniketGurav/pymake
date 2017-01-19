@@ -94,11 +94,13 @@ def zipf(**kwargs):
     ##############################
     ### Z assignement method
     ##############################
+    limit_epoch = 50
+    limit_class = 50
     now = Now()
     if model_name == 'immsb':
         ZZ = []
         #for _ in [Y[0]]:
-        for _ in Y[:]: # Do not reflect real local degree !
+        for _ in Y[:limit_epoch]: # Do not reflect real local degree !
             Z = np.empty((2,N,N))
             order = np.arange(N**2).reshape((N,N))
             if frontend.is_symmetric():
@@ -141,7 +143,7 @@ def zipf(**kwargs):
         #k_perm = itertools.product(np.unique(clusters) , repeat=2)
         k_perm = itertools.product(range(theta.shape[1]) , repeat=2)
     for i, c in enumerate(k_perm):
-        if i > 20:
+        if i > limit_class:
             break
         if len(c) == 2:
             # Stochastic Equivalence (outer class)
@@ -235,28 +237,32 @@ def pvalue(**kwargs):
     """
     globals().update(kwargs)
     _type = kwargs.get('_type', 'local')
+    lgg.info('using `%s\' burstiness' % _type)
     y = kwargs['y']
     N = y.shape[0]
 
-    # if model is None, work with dataset:
-    data = kwargs['data']
-    Y = [data]
-    K = max(frontend.clusters) +1
-    theta = np.zeros((data.shape[0], K))
-    theta[np.arange(data.shape[0]),  frontend.clusters] = 1
-    #\
+    ## if model is None, work with dataset:
+    #data = kwargs['data']
+    #Y = [data]
+    #K = max(frontend.clusters) +1
+    #theta = np.zeros((data.shape[0], K))
+    #theta[np.arange(data.shape[0]),  frontend.clusters] = 1
+    ##\
 
     global Table
     Meas = [ 'pvalue', 'alpha', 'x_min', 'n_tail']; headers = Meas
+    row_headers = _spec.name(Corpuses)
 
     if _type == 'global':
-        Table = globals().get('Table', np.empty((len(Corpuses), len(Meas), len(Y))))
+        Table = globals().get('Table', np.empty((len(row_headers), len(Meas), len(Y))))
 
         ### Global degree
         d, dc, yerr = random_degree(Y)
         for it_dat, data in enumerate(Y):
             d, dc = degree_hist(adj_to_degree(data))
             gof = gofit(d, dc)
+            if not gof:
+                continue
 
             for i, v in enumerate(Meas):
                 Table[corpus_pos, i, it_dat] = gof[v]
@@ -264,7 +270,7 @@ def pvalue(**kwargs):
     elif _type == 'local':
         ### Z assignement method
         now = Now()
-        table_shape = (len(Corpuses), len(Meas), K**2)
+        table_shape = (len(row_headers), len(Meas), K**2)
         Table = globals().get('Table', ma.array(np.empty(table_shape), mask=np.ones(table_shape)))
 
         if model_name == 'immsb':
@@ -335,6 +341,8 @@ def pvalue(**kwargs):
             if len(dc) == 0: continue
             #local_degree_c[str(k)+str(l)] = filter(lambda x: x != 0, degree_c)
             gof =  gofit(d, dc)
+            if not gof:
+                continue
 
             for i, v in enumerate(Meas):
                 Table[corpus_pos, i, it_k] = gof[v]
@@ -353,15 +361,16 @@ def pvalue(**kwargs):
     else:
         raise NotImplementedError
 
-
     ### Table Format Printing
     if _end is True:
         # Function in (utils. ?)
+        # Mean and standard deviation
         table_mean = np.char.array(np.around(Table.mean(2), decimals=3)).astype("|S20")
         table_std = np.char.array(np.around(Table.std(2), decimals=3)).astype("|S20")
         Table = table_mean + ' p2m ' + table_std
 
-        Table = np.column_stack((_spec.name(Corpuses), Table))
+        # Table formatting
+        Table = np.column_stack((row_headers, Table))
         tablefmt = 'latex' # 'latex'
         print
         print tabulate(Table, headers=headers, tablefmt=tablefmt, floatfmt='.3f')
@@ -374,33 +383,70 @@ def homo(**kwargs):
         type: similarity type in (natural, latent)
     """
     globals().update(kwargs)
-    _type = kwargs.get('_type', 'latent')
+    Y = kwargs['Y']
+    _type = kwargs.get('_type', 'contingency')
+    lgg.info('using `%s\' type' % _type)
+    _sim = kwargs.get('_sim', 'natural')
+    lgg.info('using `%s\' similarity' % _sim)
+    force_table_print = False
 
     # class / self !
     global Table
-    Meas = [ 'pearson coeff', '2-tailed pvalue' ]; headers = Meas
 
-    Table = globals().get('Table', np.empty((len(Corpuses), len(Meas), len(Y))))
+    if _type == 'pearson':
+        # No variance for link expecation !!!
+        Y = [Y[0]]
 
-    ### Global degree
-    d, dc, yerr = random_degree(Y)
-    for it_dat, data in enumerate(Y):
-        edges = data.flatten()
-        sim = model.similarity_matrix(sim=_type).flatten()
+        Meas = [ 'pearson coeff', '2-tailed pvalue' ]; headers = Meas
+        row_headers = _spec.name(Corpuses)
+        Table = globals().get('Table', np.empty((len(row_headers), len(Meas), len(Y))))
 
-        Table[corpus_pos, :,  it_dat] = sp.stats.pearsonr(edges, sim)
+        ### Global degree
+        d, dc, yerr = random_degree(Y)
+        sim = model.similarity_matrix(sim=_sim)
+        #plot(sim, title='Similarity', sort=True)
+        #plot_degree(sim)
+        for it_dat, data in enumerate(Y):
+
+            #homo_object = data
+            homo_object = model.link_expectation()
+
+            Table[corpus_pos, :,  it_dat] = sp.stats.pearsonr(homo_object.flatten(), sim.flatten())
+
+    elif 'contingency':
+        force_table_print = True
+        Meas = [ 'esij', 'vsij' ]; headers = Meas
+        row_headers = ['Non Links', 'Links']
+        Table = globals().get('Table', np.empty((len(row_headers), len(Meas), len(Y))))
+
+        ### Global degree
+        d, dc, yerr = random_degree(Y)
+        sim = model.similarity_matrix(sim=_sim)
+        for it_dat, data in enumerate(Y):
+
+            #homo_object = data
+            homo_object = model.link_expectation()
+
+            Table[0, 0,  it_dat] = sim[data == 0].mean()
+            Table[1, 0,  it_dat] = sim[data == 1].mean()
+            Table[0, 1,  it_dat] = sim[data == 0].var()
+            Table[1, 1,  it_dat] = sim[data == 1].var()
+
 
     ### Table Format Printing
-    if _end is True:
+    if _end is True or force_table_print is True:
         # Function in (utils. ?)
+        # Mean and standard deviation
         table_mean = np.char.array(np.around(Table.mean(2), decimals=3)).astype("|S20")
         table_std = np.char.array(np.around(Table.std(2), decimals=3)).astype("|S20")
         Table = table_mean + ' p2m ' + table_std
 
-        Table = np.column_stack((_spec.name(Corpuses), Table))
+        # Table formatting
+        Table = np.column_stack((row_headers, Table))
         tablefmt = 'latex' # 'latex'
         print
         print tabulate(Table, headers=headers, tablefmt=tablefmt, floatfmt='.3f')
+        del Table
 
 
 def debug(**kwargs):
@@ -419,6 +465,8 @@ def debug(**kwargs):
     #adjshow(reorder_mat(y, comm['clusters']), 'test reordering')
 
     draw_graph_circular(y, clusters)
+
+    print model.get_mask()
 
 
 def roc_test(**kwargs):
@@ -460,3 +508,6 @@ def clustering(algo=_algo, **kwargs):
 
     adjshow(mat, algo)
     plt.colorbar()
+
+
+

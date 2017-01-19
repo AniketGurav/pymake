@@ -275,6 +275,7 @@ class ModelManager(object):
                 return None
             lgg.debug('opening file: %s' % fn)
             with open(fn, 'r') as _f:
+                lgg.info('loading model: %s' % fn)
                 model =  pickle.load(_f)
         self.model = model
         return model
@@ -304,6 +305,7 @@ class ModelManager(object):
         else:
             raise NotImplementedError()
 
+        model.update_hyper(self.hyperparams)
         return model
 
 

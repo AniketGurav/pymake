@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from frontend.frontend import frontendNetwork
+from frontend.frontendnetwork import frontendNetwork
 
 # @Issue43: Parser/config unification.
 from utils.utils import *
@@ -27,8 +27,8 @@ if __name__ == '__main__':
 
     # Expe
     corpuses = ('generator7',)
-    corpuses = ( 'generator4', 'generator10', 'generator12', 'generator7',)
-    corpuses = ( 'fb_uc', 'manufacturing', )
+    corpuses = ( 'generator7', 'generator12', 'generator10', 'generator4')
+    corpuses += ( 'fb_uc', 'manufacturing', )
 
     ############################################################
     ##### Simulation Output

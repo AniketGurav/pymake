@@ -149,7 +149,10 @@ class argparser(object):
             elif '-n' in key:
                 conf['gen_size'] = int(clargs.grouped['-n'].get(0))
             elif '--alpha' in key:
-                conf['alpha'] = float(clargs.grouped['--alpha'].get(0))
+                try:
+                    conf['alpha'] = float(clargs.grouped['--alpha'].get(0))
+                except ValueError:
+                    conf['hyper'] = clargs.grouped['--alpha'].get(0)
             elif '--gmma' in key:
                 conf['gmma'] = float(clargs.grouped['--gmma'].get(0))
             elif '--delta' in key:

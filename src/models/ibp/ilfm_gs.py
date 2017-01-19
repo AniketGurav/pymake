@@ -468,7 +468,11 @@ class IBPGibbsSampling(IBP, ModelBase):
     def update_hyper(self, hyper):
         if hyper is None:
             return
-        alpha, _ = hyper
+        elif isinstance(type(hyper), (tuple, list)):
+            alpha = hyper[0]
+        else:
+            alpha = hyper.get('alpha')
+
         if alpha:
             self._alpha = alpha
 
@@ -512,7 +516,11 @@ class IBPGibbsSampling(IBP, ModelBase):
         self.K = K
         return Y, theta, phi
 
-    def link_expectation(self, theta, phi):
+    def link_expectation(self, theta=None, phi=None):
+        if theta is None:
+            theta = self.theta
+        if phi is None:
+            phi = self.phi
         bilinear_form = theta.dot(phi).dot(theta.T)
         likelihood = 1 / (1 + np.exp(- self._sigb * bilinear_form))
         return likelihood
@@ -582,12 +590,15 @@ class IBPGibbsSampling(IBP, ModelBase):
         return res
 
     def mask_probas(self, data):
-        mask = self._Y.mask
+        mask = self.get_mask()
         y_test = data[mask]
         theta, phi = self.reduce_latent()
         p_ji = theta.dot(phi).dot(theta.T)
         probas = p_ji[mask]
         return y_test, probas
+
+    def get_mask(self):
+        return self._Y.mask
 
     def get_clusters(self, K=None):
         Z, W = self.get_params()

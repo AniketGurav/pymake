@@ -300,9 +300,12 @@ class ModelBase(object):
         return
 
     def update_hyper(self):
-        raise NotImplementedError
+        lgg.error('no method to update hyperparams')
+        return
+
     def get_hyper(self):
-        raise NotImplementedError
+        lgg.error('no method to get hyperparams')
+        return
     # Just for MCMC ?():
     def reduce_latent(self):
         raise NotImplementedError
